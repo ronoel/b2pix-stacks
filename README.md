@@ -11,10 +11,11 @@
 
 ## App & Social
 
-- **App**: https://b2pix.org
-- **X/Twitter**: https://x.com/b2pixorg
-- **Telegram**: https://t.me/+XGmtL15A4BszMmQx
-- **Instagram**: https://www.instagram.com/b2pix_
+- **[App](https://b2pix.org)**
+- **[X/Twitter](https://x.com/b2pixorg)**
+- **[Telegram](https://t.me/+XGmtL15A4BszMmQx)**
+- **[Instagram](https://www.instagram.com/b2pix_)**
+
 
 ### Key Features
 
