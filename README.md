@@ -1,8 +1,22 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/ronoel/b2pix-stacks/main/logo-vertical-branco.jpg" alt="B2PIX logo" width="220">
+</p>
+
 # B2PIX - Bitcoin PIX Exchange
 
-## 🚀 Overview
+## Overview
 
 **B2PIX** is a privacy-focused, automated P2P Bitcoin exchange platform that bridges traditional Brazilian banking (PIX) with Bitcoin. Users can buy and sell Bitcoin directly with each other using instant PIX transfers, all while maintaining custody of their funds through smart contracts on the Stacks blockchain.
+
+
+## App & Social
+
+- **App**: https://b2pix.org
+- **X/Twitter**: https://x.com/b2pixorg
+- **Telegram**: https://t.me/+XGmtL15A4BszMmQx
+- **Instagram**: https://www.instagram.com/b2pix_?igsh=MWdmaHFqYXdlMWFqeg==
+
+> Follow us and try the app to support sBTC adoption in Brazil.
 
 ### Key Features
 
@@ -12,7 +26,7 @@
 - **sBTC Support**: Trade with synthetic Bitcoin (sBTC) for faster, cheaper transactions
 - **Privacy First**: Invite-only platform with minimal data collection
 - **Fee UX via Bolt:** Pay Stacks tx fees in **sBTC** (Bolt Protocol) for simpler UX.  
-- **Bank Integration**: Direct integration with Brazilian banks for PIX setup
+- **PIX API Integration**: Server-side integration with bank/PSP PIX APIs for payment verification
 
 ## 🎯 How It Works
 
@@ -23,7 +37,7 @@
 
 ---
 
-## 💳 Single‑Token UX via Bolt Protocol (No STX Required)
+##  Single‑Token UX via Bolt Protocol (No STX Required)
 
 A key UX feature of **B2PIX** is **no dual‑token requirement** on Stacks. New users don’t need **STX** to pay transaction fees — they can use a **fresh wallet** and operate **only with sBTC**:
 
@@ -33,7 +47,87 @@ A key UX feature of **B2PIX** is **no dual‑token requirement** on Stacks. New 
 
 > Result: simpler onboarding and a Bitcoin‑native UX focused on sBTC.
 
-## 🧩 Smart Contracts
+
+## Architecture
+
+### Architecture Diagram
+
+
+```mermaid
+flowchart TD
+  subgraph Client
+    F["@stacks/connect"]
+  end
+
+  subgraph Backend
+    API["REST API"]
+    Server["B2PIX Server"]
+  end
+
+  subgraph Protocol["Bolt Protocol"]
+    BOLT["Bolt Protocol API"]
+  end
+
+  subgraph Chain["Stacks Blockchain"]
+    Hiro["Hiro API"]
+    C["Smart Contract"]
+  end
+
+  subgraph Bank["Bank"]
+    PIX["PIX API/PSP"]
+  end
+
+
+  F -->|Signed Requests| API
+
+  API <--> Server
+  Server <-->|Submit Tx / Fees in sBTC| BOLT
+
+  Server <--> PIX
+
+  BOLT --> Hiro
+  Hiro --> C
+
+  
+
+```
+
+
+
+- **Frontend (Angular):** Requires a SIP‑030 Stacks wallet and uses `@stacks/connect` for authentication and transaction signing.
+- **Backend (Rust):** Event‑driven services (orders, escrow, PIX). Communicates with the **Bolt Protocol API** to interact with the Stacks blockchain and enable **fees in sBTC** (no STX required).
+- **PIX Integration:** The server communicates with Brazilian **PIX APIs** (banks/PSPs) to verify incoming payments.
+- **Signed FrontBack Communications:** All requests from the frontend to the backend carry **messages signed by the user’s SIP‑030 wallet**, providing origin authentication and replay protection.
+
+### Payment Verification Flow
+
+```
+  BUYER                       BACKEND                      SELLER
+    │                            │                            │
+    │ 1. Send BRL via PIX        │                            │
+    │    to seller's PIX key     │                            │
+    │                            │                            │
+    │ 2. Mark as Paid            │                            │
+    │                            │                            │
+    │───────────────────────────▶│                            │
+    │                            │ 3. Verify                  │
+    │                            │    - Check PIX transaction │
+    │                            │    - Verify amount         │
+    │                            │                            │
+    │                            │ 4. Update Buy Status       │
+    │                            │    PAID  PAYMENT_CONFIRMED │
+    │                            │                            │
+    │                            │ 5. Notify Seller           │
+    │                            │───────────────────────────▶│
+    │                            │                            │
+    │                            │ 6. Release sBTC            │
+    │◀───────────────────────────┤    (Bolt to Stacks)        │
+    │    Bitcoin received        │                            │
+    │                            │                            │
+```
+
+
+## Smart Contracts
 
 ### Escrow Contract (Addresses & Functions)
 
@@ -52,68 +146,3 @@ A key UX feature of **B2PIX** is **no dual‑token requirement** on Stacks. New 
 - **On-chain truth:** Asset custody and state are enforced by Clarity contracts.  
 - **Off-chain signal:** PIX “payment received” is verified off-chain (bank app/PSP event).  
 - **Disputes / timeouts:** If no valid confirmation before expiry, send refunds to the seller.
-
----
-
-- Wallets: any implementing **SIP-030** should work.  
-- Transactions: contract calls use **sBTC**; with **Bolt**, fees can be paid in sBTC to avoid STX UX friction.
-
----
-
-## 🔄 Trade Flow
-
-1. **Seller posts offer** → defines price, min/max, and deposit `lock(...)`.  
-2. **Buyer takes offer** → UI shows PIX instructions.  
-3. **Buyer sends PIX** → off-chain payment occurs.  
-4. **PIX confirmation** → webhook/manual confirm triggers `confirm(trade-id)`.  
-5. **Contract releases** → sBTC transfers to the buyer’s wallet.  
-6. **Timeout** → if no confirm before `expiry`, seller get refund.
-
-**Failure Modes**
-- Buyer sends PIX but never confirmed → dispute channel; seller can refund after expiry if no valid proof.  
-- Seller locks funds but disappears → either confirm (if proof exists) or refund after expiry.  
-- Indexer downtime → safe restart; reconcile from on-chain events.
-
----
-
-## Payment Verification Flow
-
-```
-  BUYER                       BACKEND                      SELLER
-    │                            │                            │
-    │ 1. Send BRL via PIX        │                            │
-    │───────────────────────────▶│                            │
-    │    to seller's PIX key     │                            │
-    │                            │                            │
-    │ 2. Mark as Paid            │                            │
-    │                            │                            │
-    │───────────────────────────▶│                            │
-    │                            │ 3. Verify                  │
-    │                            │    - Check PIX transaction │
-    │                            │    - Verify amount         │
-    │                            │                            │
-    │                            │ 4. Update Buy Status       │
-    │                            │    PAID → PAYMENT_CONFIRMED│
-    │                            │                            │
-    │                            │ 5. Notify Seller           │
-    │                            │───────────────────────────▶│
-    │                            │                            │
-    │                            │ 6. Release sBTC            │
-    │◀───────────────────────────┤    (Bolt to Stacks)        │
-    │    Bitcoin received        │                            │
-    │                            │                            │
-```
-
----
-
-## 🔗 Links
-
-- **Website**: [b2pix.org](https://b2pix.org)
-
-## ⚡ About sBTC
-
-sBTC (synthetic Bitcoin) is a 1:1 Bitcoin-backed asset on the Stacks blockchain that enables:
-- Fast, cheap Bitcoin transactions
-- Smart contract programmability
-- DeFi integration while maintaining Bitcoin exposure
-- Seamless conversion to/from real Bitcoin
