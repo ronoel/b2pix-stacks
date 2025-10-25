@@ -19,13 +19,15 @@
 
 ### Key Features
 
-- **Non-Custodial Trading**: Your Bitcoin stays in your wallet until the trade is completed
-- **PIX Integration**: Instant Brazilian real transfers using PIX payment system
-- **Stacks Blockchain**: Built on Bitcoin's most advanced layer-2 solution
-- **sBTC Support**: Trade with synthetic Bitcoin (sBTC) for faster, cheaper transactions
-- **Privacy First**: Invite-only platform with minimal data collection
-- **Fee UX via Bolt:** Pay Stacks tx fees in **sBTC** (Bolt Protocol) for simpler UX.  
-- **PIX API Integration**: Server-side integration with bank/PSP PIX APIs for payment verification
+- **PIX Integration**: Instant Brazilian real transfers using PIX payment system.
+- **Stacks Blockchain**: Built on Bitcoin's most advanced layer-2 solution.
+- **sBTC Support**: Trade with synthetic Bitcoin (sBTC) for faster, cheaper transactions.
+- **Privacy First**: Invite-only platform with minimal data collection.
+- **Fee UX via Bolt:** Pay Stacks tx fees in **sBTC** (Bolt Protocol) for simpler UX.
+- **PIX API Integration**: Server-side integration with bank/PSP PIX APIs for payment verification.
+- **Embedded Wallet**: Built-in non-custodial wallet available in the dApp — users can **create** a new wallet or **import** an existing one (seed / mnemonic), with keys stored encrypted in the browser and optional encrypted backup/export.
+- **Email Notifications**: Transactional e-mail alerts (e.g., purchase completed, sale completed, payment confirmed).
+
 
 ## 🎯 How It Works
 
