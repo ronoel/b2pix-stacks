@@ -48,6 +48,23 @@ A key UX feature of **B2PIX** is **no dual‑token requirement** on Stacks. New 
 
 > Result: simpler onboarding and a Bitcoin‑native UX focused on sBTC.
 
+## Embedded Wallet for Web2-like UX
+
+To make onboarding into the Stacks ecosystem as smooth as possible, **B2PIX** offers two wallet options:
+
+- **Connect External Wallet:** Users can connect their preferred Stacks wallet (such as Xverse or Leather) through `@stacks/connect`.  
+- **Use Embedded Wallet:** Alternatively, users can choose the built-in non-custodial wallet that is fully integrated into the dApp.
+
+The **embedded wallet** is designed to offer a **Web2-like experience** — allowing users to start trading instantly without installing extensions or leaving the app:
+
+- **Instant Onboarding:** Create or import a wallet directly in-app (mnemonic/seed).  
+- **Secure Key Storage:** Private keys are encrypted and stored locally in the browser, with optional encrypted backup/export.  
+- **Seamless UX:** Eliminates friction for first-time users of the Stacks blockchain, while maintaining full self-custody.  
+
+> Result: a **simpler and smoother onboarding experience** for new users, bridging familiar Web2 usability with the power and security of Web3 on Stacks.
+
+---
+
 
 ## Architecture
 
@@ -96,6 +113,10 @@ flowchart TD
 
 
 - **Frontend (Angular):** Requires a SIP‑030 Stacks wallet and uses `@stacks/connect` for authentication and transaction signing.
+  - **Embedded Wallet Integration:**  
+  The frontend includes an in-app **key manager** for the embedded wallet.  
+  It handles wallet creation, import, encryption, signing, and optional backup/export —  
+  enabling direct communication between the dApp and smart contracts without relying on external extensions.
 - **Backend (Rust):** Event‑driven services (orders, escrow, PIX). Communicates with the **Bolt Protocol API** to interact with the Stacks blockchain and enable **fees in sBTC** (no STX required).
 - **PIX Integration:** The server communicates with Brazilian **PIX APIs** (banks/PSPs) to verify incoming payments.
 - **Signed FrontBack Communications:** All requests from the frontend to the backend carry **messages signed by the user’s SIP‑030 wallet**, providing origin authentication and replay protection.
