@@ -105,24 +105,38 @@ flowchart TD
 ```
   BUYER                       BACKEND                      SELLER
     │                            │                            │
-    │ 1. Send BRL via PIX        │                            │
+    │                            │                            │
+    │                            │ 0. Create Advertisement    │
+    │                            │                            │
+    │                            │<───────────────────────────│
+    │                            │                            │
+    │                            │ 1. Lock sBTC in            │
+    │                            │    Smart Contract (Bolt)   │
+    │                            │<───────────────────────────│
+    │                            │                            │
+    │ 2. Request to Buy          │                            │
+    │───────────────────────────▶│                            │
+    │                            │                            │
+    │                            │ 3. Reserve sBTC amount     │
+    │                            │    for Buyer in contract   │
+    │                            │                            │
+    │ 4. Send BRL via PIX        │                            │
     │    to seller's PIX key     │                            │
     │                            │                            │
-    │ 2. Mark as Paid            │                            │
-    │                            │                            │
+    │ 5. Mark as Paid            │                            │
     │───────────────────────────▶│                            │
-    │                            │ 3. Verify                  │
+    │                            │ 6. Verify Payment          │
     │                            │    - Check PIX transaction │
     │                            │    - Verify amount         │
     │                            │                            │
-    │                            │ 4. Update Buy Status       │
+    │                            │ 7. Update Buy Status       │
     │                            │    PAID  PAYMENT_CONFIRMED │
     │                            │                            │
-    │                            │ 5. Notify Seller           │
+    │                            │ 8. Notify Seller           │
     │                            │───────────────────────────▶│
     │                            │                            │
-    │                            │ 6. Release sBTC            │
-    │◀───────────────────────────┤    (Bolt to Stacks)        │
+    │                            │ 9. Release sBTC from       │
+    │◀───────────────────────────┤    Smart Contract (Bolt → Stacks)
     │    Bitcoin received        │                            │
     │                            │                            │
 ```
