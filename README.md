@@ -11,11 +11,16 @@
 
 ## App & Social
 
-- **[App](https://b2pix.org)**
+- **[Website](https://b2pix.org)**
+- **[Video Demo](https://www.youtube.com/watch?v=lZwk6rVDvzI)**
 - **[X/Twitter](https://x.com/b2pixorg)**
 - **[Telegram](https://t.me/+XGmtL15A4BszMmQx)**
 - **[Instagram](https://www.instagram.com/b2pix_)**
 
+
+Watch our demonstration video that showcases how B2Pix works:
+
+[![Bolt Protocol Demo](https://img.youtube.com/vi/lZwk6rVDvzI/0.jpg)](https://youtu.be/lZwk6rVDvzI)
 
 ### Key Features
 
@@ -40,11 +45,16 @@
 
 ##  Single‑Token UX via Bolt Protocol (No STX Required)
 
-A key UX feature of **B2PIX** is **no dual‑token requirement** on Stacks. New users don’t need **STX** to pay transaction fees — they can use a **fresh wallet** and operate **only with sBTC**:
+A key UX feature of **B2PIX** is **no dual‑token requirement** on Stacks. New users don't need **STX** to pay transaction fees — they can use a **fresh wallet** and operate **only with sBTC**:
 
-- **Fees in sBTC:** All contract calls can pay network fees in **sBTC** instead of STX.  
-- **No STX setup friction:** Users can acquire sBTC and transact immediately without preloading STX.  
-- **Powered by Bolt Protocol:** This is enabled by the **Bolt Protocol**, which allows Stacks fees to be paid in sBTC. See: https://github.com/ronoel/bolt-protocol
+- **Fees in sBTC:** All contract calls can pay network fees in **sBTC** instead of STX.
+- **No STX setup friction:** Users can acquire sBTC and transact immediately without preloading STX.
+- **Powered by Bolt Protocol:** This is enabled by the [**Bolt Protocol**](https://github.com/ronoel/bolt-protocol), which allows Stacks fees to be paid in sBTC.
+
+**Bolt Protocol Resources:**
+- [GitHub Repository](https://github.com/ronoel/bolt-protocol)
+- [Contract Source Code](https://github.com/ronoel/bolt-protocol/blob/main/bolt-protocol-contracts/contracts/boltproto-sbtc.clar)
+- [Mainnet Contract Explorer](https://explorer.hiro.so/txid/SP3QZNX3CGT6V7PE1PBK17FCRK1TP1AT02ZHQCMVJ.boltproto-sbtc-v2?chain=mainnet)
 
 > Result: simpler onboarding and a Bitcoin‑native UX focused on sBTC.
 
@@ -167,18 +177,72 @@ flowchart TD
 
 ### Escrow Contract (Addresses & Functions)
 
-**Contract address — Testnet**  
+**Contract Source Code**
+[boltproto-sbtc.clar](https://github.com/ronoel/bolt-protocol/blob/main/bolt-protocol-contracts/contracts/boltproto-sbtc.clar)
+
+**Contract address — Testnet**
 `ST3QZNX3CGT6V7PE1PBK17FCRK1TP1AT02W1N0YJF.boltproto-sbtc-rc-2-0-0`
 
-**Contract address — Mainnet**  
+**Contract address — Mainnet**
 `SP3QZNX3CGT6V7PE1PBK17FCRK1TP1AT02ZHQCMVJ.boltproto-sbtc-v2`
+[View on Explorer](https://explorer.hiro.so/txid/SP3QZNX3CGT6V7PE1PBK17FCRK1TP1AT02ZHQCMVJ.boltproto-sbtc-v2?chain=mainnet)
 
-**Functions used by B2PIX trade flow**  
-- **Lock seller sBTC:** `transfer-stacks-to-bolt`  
+**Functions used by B2PIX trade flow**
+- **Lock seller sBTC:** `transfer-stacks-to-bolt`
 - **Release to buyer:** `transfer-bolt-to-stacks`
 
 ### Trust & Assumptions
 
-- **On-chain truth:** Asset custody and state are enforced by Clarity contracts.  
-- **Off-chain signal:** PIX “payment received” is verified off-chain (bank app/PSP event).  
+- **On-chain truth:** Asset custody and state are enforced by Clarity contracts.
+- **Off-chain signal:** PIX "payment received" is verified off-chain (bank app/PSP event).
 - **Disputes / timeouts:** If no valid confirmation before expiry, send refunds to the seller.
+
+---
+
+## Business Model & Sustainability
+
+**B2PIX** is designed to be a sustainable, revenue-generating platform while maintaining privacy and accessibility:
+
+### Revenue Streams
+
+1. **Transaction Fees**
+   - **0.5%–1%** fee on completed trades (split between platform and liquidity providers)
+   - Fees are only charged on successful transactions, incentivizing quality service
+   - Competitive with traditional exchanges while offering better privacy
+
+2. **Referral Program**
+   - User-driven growth through invitation codes
+   - Referrers earn a percentage of fees from referred users
+   - Creates organic, trust-based network effects
+
+3. **Strategic Partnerships**
+   - Integration partnerships with Stacks wallet providers (Xverse, Leather, etc.)
+   - Collaboration with Brazilian fintech companies and PSPs for PIX API access
+   - White-label solutions for other markets
+
+### Growth Strategy
+
+- **Phase 1 (Current):** Brazil-focused with PIX integration
+- **Phase 2:** Expansion to other Latin American countries (Mexico's CoDi, Colombia's Transfiya, etc.)
+- **Phase 3:** Global expansion to markets with instant payment systems
+- **Phase 4:** Additional financial products (recurring purchases, DCA, merchant solutions)
+
+### Competitive Advantages
+
+- **No KYC friction:** Invite-only model reduces regulatory overhead while maintaining compliance
+- **True self-custody:** Users maintain control of their Bitcoin through smart contracts
+- **Instant settlement:** PIX enables real-time fiat transfers (24/7/365)
+- **Lower fees:** P2P model eliminates traditional exchange markup
+- **Bitcoin-native UX:** Single-token experience via Bolt Protocol reduces onboarding complexity
+
+---
+
+## Technical Innovation
+
+**B2PIX** showcases several cutting-edge features in the Stacks ecosystem:
+- **Built on [Bolt Protocol](https://github.com/ronoel/bolt-protocol)** for sBTC fee payment
+- **Hybrid wallet architecture** combining external wallet support with embedded Web2-like experience
+- **Server-side PIX verification** integrated with smart contract escrow
+- **SIP-030 message signing** for secure frontend-backend communication
+
+---
