@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/ronoel/b2pix-stacks/blob/main/logo-vertical-branco.png" alt="B2PIX logo" width="220">
+  <img src="https://github.com/ronoel/b2pix-stacks/blob/main/logo-vertical-branco.png?raw=true" alt="B2PIX logo" width="220">
 </p>
 
 # B2PIX - Bitcoin PIX Exchange
