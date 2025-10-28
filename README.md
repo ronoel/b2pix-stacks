@@ -12,7 +12,7 @@
 ## App & Social
 
 - **[Website](https://b2pix.org)**
-- **[Video Demo](https://www.youtube.com/watch?v=lZwk6rVDvzI)**
+- **[Video Demo](https://www.youtube.com/watch?v=cNLiJa3Frkg)**
 - **[X/Twitter](https://x.com/b2pixorg)**
 - **[Telegram](https://t.me/+XGmtL15A4BszMmQx)**
 - **[Instagram](https://www.instagram.com/b2pix_)**
@@ -20,7 +20,7 @@
 
 Watch our demonstration video that showcases how B2Pix works:
 
-[![Bolt Protocol Demo](https://img.youtube.com/vi/lZwk6rVDvzI/0.jpg)](https://youtu.be/lZwk6rVDvzI)
+[![Bolt Protocol Demo](https://img.youtube.com/vi/cNLiJa3Frkg/0.jpg)](https://youtu.be/cNLiJa3Frkg)
 
 ### Key Features
 
