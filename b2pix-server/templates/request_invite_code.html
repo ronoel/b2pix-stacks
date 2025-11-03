@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solicitação de Código de Convite - B2PIX</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .email-wrapper {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2563eb;
+            margin-bottom: 10px;
+        }
+        .status-box {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+            border-left: 4px solid #ffc107;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+        .footer a {
+            color: #2563eb;
+            text-decoration: none;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        .security-notice {
+            background-color: #fef3c7;
+            border: 1px solid #fbbf24;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 15px 0;
+            font-size: 13px;
+            border-left: 4px solid #f59e0b;
+        }
+        @media (max-width: 640px) {
+            .email-wrapper {
+                max-width: 95%;
+                margin: 10px auto;
+            }
+            .container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-wrapper">
+        <div class="container">
+            <div class="header">
+                <div class="logo">B2PIX</div>
+                <h1>Solicitação de Código de Convite Recebida</h1>
+            </div>
+            
+            <p>Olá {{USERNAME}},</p>
+            
+            <p>Recebemos sua solicitação de código de convite para entrar na plataforma B2PIX.</p>
+            
+            <div class="status-box">
+                <strong>Sua solicitação está sendo analisada</strong><br>
+                Notificaremos você por email assim que seu código de convite estiver pronto.
+            </div>
+            
+            <p>Detalhes da solicitação:</p>
+            <ul>
+                <li><strong>Nome de usuário:</strong> {{USERNAME}}</li>
+                <li><strong>Código:</strong> {{CODE}}</li>
+            </ul>
+            
+            <p>O que acontece agora:</p>
+            <ul>
+                <li>Nossa equipe analisará sua solicitação em 24-48 horas</li>
+                <li>Você receberá um email com seu código de convite após aprovação</li>
+                <li>Use o código de convite para completar seu registro</li>
+            </ul>
+
+            <div class="security-notice">
+                <strong>🔒 Aviso de Segurança:</strong><br>
+                • A B2PIX <strong>nunca</strong> pedirá suas chaves privadas, seed phrases ou senhas por email<br>
+                • Nunca compartilhe as seeds (palavras de recuperação) da sua carteira com ninguém<br>
+                • Este email foi enviado para {{RECIPIENT_EMAIL}}
+            </div>
+
+            <p>Obrigado pelo seu interesse na B2PIX!</p>
+
+            <p>Atenciosamente,<br>
+            Equipe B2PIX</p>
+
+            <div class="footer">
+                <p><strong>B2PIX - Plataforma de Negociação P2P de Criptomoedas</strong></p>
+                <p>b2pix.org</p>
+                <p>© 2025 B2PIX. Todos os direitos reservados.</p>
+                <p style="font-size: 11px; color: #999; margin-top: 10px;">
+                    Você está recebendo este email porque solicitou um código de convite na plataforma B2PIX.
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
