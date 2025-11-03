@@ -4,7 +4,7 @@ use serde::Deserialize;
 use crate::events::{
     handlers::{EventHandler, EventHandlerError},
 };
-use crate::services::trello::trello_card_service::TrelloCardService;
+use crate::services::trello::trello_card_service::{TrelloCardService, TrelloConfig};
 
 #[derive(Clone)]
 pub struct PaymentRequestCreatedTrelloHandler {
@@ -12,9 +12,9 @@ pub struct PaymentRequestCreatedTrelloHandler {
 }
 
 impl PaymentRequestCreatedTrelloHandler {
-    pub fn new() -> Self {
+    pub fn new(config: TrelloConfig) -> Self {
         Self {
-            trello_service: TrelloCardService::new(),
+            trello_service: TrelloCardService::new(config),
         }
     }
 }

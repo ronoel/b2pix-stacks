@@ -20,7 +20,7 @@ use crate::{
     },
     infrastructure::storage::GcsManager,
     publisher::EventPublisher,
-    services::{efi_pay_service::EfiPayService, trello::TrelloCardService},
+    services::{efi_pay_service::EfiPayService, trello::{TrelloCardService, TrelloConfig}},
 };
 
 pub struct BuyService {
@@ -511,7 +511,12 @@ impl BuyService {
                 tracing::error!("Failed to query PIX for seller {}: {:?}", seller_stacks_address, e);
 
                 // Create Trello card to report the error
-                if let Err(trello_err) = TrelloCardService::new().create_card(
+                let trello_config = TrelloConfig::new(
+                    self.config.trello_api_key.clone(),
+                    self.config.trello_token.clone(),
+                    self.config.trello_list_id.clone(),
+                );
+                if let Err(trello_err) = TrelloCardService::new(trello_config).create_card(
                     format!("B2PIX - Buy {} PIX Query Error", buy.id),
                     format!(
                         "🚨 ERROR QUERYING PIX TRANSACTIONS\n\n\
@@ -620,7 +625,12 @@ impl BuyService {
                         }
 
                         // Create Trello card with detailed PIX information
-                        if let Err(e) = TrelloCardService::new().create_card(
+                        let trello_config = TrelloConfig::new(
+                            self.config.trello_api_key.clone(),
+                            self.config.trello_token.clone(),
+                            self.config.trello_list_id.clone(),
+                        );
+                        if let Err(e) = TrelloCardService::new(trello_config).create_card(
                             format!("B2PIX - Buy {} in Dispute (Multiple PIX Found)", buy.id),
                             format!(
                                 "🚨 MULTIPLE PIX WITH SAME VALUE DETECTED\n\n\
@@ -685,7 +695,12 @@ impl BuyService {
                             ));
                         }
 
-                        if let Err(e) = TrelloCardService::new().create_card(
+                        let trello_config = TrelloConfig::new(
+                            self.config.trello_api_key.clone(),
+                            self.config.trello_token.clone(),
+                            self.config.trello_list_id.clone(),
+                        );
+                        if let Err(e) = TrelloCardService::new(trello_config).create_card(
                             format!("B2PIX - Buy {} in Dispute (PIX Found)", buy.id),
                             format!(
                                 "Buy ID: {}\n\
@@ -763,12 +778,17 @@ impl BuyService {
                 }
             }
 
-            if let Err(e) = TrelloCardService::new().create_card(
+            let trello_config = TrelloConfig::new(
+                self.config.trello_api_key.clone(),
+                self.config.trello_token.clone(),
+                self.config.trello_list_id.clone(),
+            );
+            if let Err(e) = TrelloCardService::new(trello_config).create_card(
                 format!("B2PIX - Buy {} Payment Confirmed", buy.id),
-                format!("Buy ID: {}\nAdvertisement ID: {}\nAmount: {}\nPay Value: {}\nPIX ID: {:?}\nPIX Transaction: {}\nStatus: Payment confirmed via PIX verification", 
-                    buy.id, 
-                    buy.advertisement_id, 
-                    buy.amount, 
+                format!("Buy ID: {}\nAdvertisement ID: {}\nAmount: {}\nPay Value: {}\nPIX ID: {:?}\nPIX Transaction: {}\nStatus: Payment confirmed via PIX verification",
+                    buy.id,
+                    buy.advertisement_id,
+                    buy.amount,
                     buy.pay_value,
                     buy.pix_id,
                     matching_pix.end_to_end_id
@@ -822,7 +842,12 @@ impl BuyService {
                 ));
             }
 
-            if let Err(e) = TrelloCardService::new().create_card(
+            let trello_config = TrelloConfig::new(
+                self.config.trello_api_key.clone(),
+                self.config.trello_token.clone(),
+                self.config.trello_list_id.clone(),
+            );
+            if let Err(e) = TrelloCardService::new(trello_config).create_card(
                 format!("B2PIX - Buy {} in Dispute", buy.id),
                 format!("Buy ID: {}\nAdvertisement ID: {}\nAmount: {} sats\nPay Value: {} cents (R$ {:.2})\nPIX ID: {:?}\nQuery Period:\n  Start: {}\n  End: {}\nStatus: {}{}",
                     buy.id,
@@ -974,12 +999,17 @@ impl BuyService {
         match self.buy_repository.mark_as_dispute_favor_seller(&buy_id).await {
             Ok(Some(buy)) => {
                 // Create Trello card for tracking
-                if let Err(e) = TrelloCardService::new().create_card(
+                let trello_config = TrelloConfig::new(
+                    self.config.trello_api_key.clone(),
+                    self.config.trello_token.clone(),
+                    self.config.trello_list_id.clone(),
+                );
+                if let Err(e) = TrelloCardService::new(trello_config).create_card(
                     format!("B2PIX - Buy {} Dispute Favor Seller", buy.id),
-                    format!("Buy ID: {}\nAdvertisement ID: {}\nAmount: {}\nPay Value: {}\nStatus: Dispute resolved in favor of seller", 
-                        buy.id, 
-                        buy.advertisement_id, 
-                        buy.amount, 
+                    format!("Buy ID: {}\nAdvertisement ID: {}\nAmount: {}\nPay Value: {}\nStatus: Dispute resolved in favor of seller",
+                        buy.id,
+                        buy.advertisement_id,
+                        buy.amount,
                         buy.pay_value
                     )
                 ).await {
