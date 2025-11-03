@@ -34,7 +34,7 @@ use crate::infrastructure::database::repositories::{
     AdvertisementRepositoryImpl, AdvertisementDepositRepositoryImpl, BankCredentialsRepositoryImpl, BuyRepositoryImpl, InviteRepositoryImpl, PaymentRequestRepositoryImpl,
 };
 use crate::services::email::EmailService;
-use crate::services::trello::TrelloService;
+use crate::services::trello::{TrelloService, TrelloConfig};
 use crate::services::efi_pay_service::EfiPayService;
 use crate::services::bitcoin_price::quote_service::QuoteService;
 
@@ -141,7 +141,14 @@ pub async fn run() -> anyhow::Result<()> {
         Arc::clone(&invite_repository),
     );
     Arc::clone(&advertisement_service).register_handlers(&handler_registry);
-    trello_service.register_handlers(&handler_registry);
+
+    // Create Trello config and register handlers
+    let trello_config = TrelloConfig::new(
+        config.trello_api_key.clone(),
+        config.trello_token.clone(),
+        config.trello_list_id.clone(),
+    );
+    trello_service.register_handlers(&handler_registry, trello_config);
 
     // Register advertisement deposit handler
     handler_registry.register(Arc::new(AdvertisementDepositCreatedHandler::new(
