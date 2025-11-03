@@ -1,0 +1,373 @@
+import { Component, input, output, ViewEncapsulation } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Advertisement, AdvertisementStatus } from '../../../shared/models/advertisement.model';
+
+@Component({
+  selector: 'app-listing-card',
+  standalone: true,
+  imports: [CommonModule],
+  encapsulation: ViewEncapsulation.None,
+  template: `
+    <div class="listing-section">
+      <div class="listing-card">
+        <div class="listing-header">
+          <div class="listing-status-badge" [ngClass]="getStatusClass(advertisement().status)">
+            {{ getStatusLabel(advertisement().status) }}
+          </div>
+          @if (canFinish()) {
+            <div class="listing-actions">
+              <button class="btn btn-danger btn-sm" (click)="onFinish()" [disabled]="isFinishing()">
+                @if (!isFinishing()) {
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M21 12V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V5C3 3.89543 3.89543 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                }
+                @if (isFinishing()) {
+                  <span class="loading-spinner-sm"></span>
+                }
+                {{ isFinishing() ? 'Finalizando...' : 'Finalizar Anúncio' }}
+              </button>
+            </div>
+          }
+        </div>
+        <div class="listing-content">
+          <div class="listing-main-info">
+            <div class="listing-price">
+              <span class="price-label">Preço por Bitcoin:</span>
+              <span class="price-value">{{ formatPriceCurrency(advertisement().price) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="amount-label">Quantidade:</span>
+              <span class="amount-value">{{ formatBTC(advertisement().total_deposited) }} BTC</span>
+            </div>
+          </div>
+          <div class="listing-details-grid">
+            <div class="detail-item">
+              <span class="detail-label">Restante:</span>
+              <span class="detail-value">{{ formatBTC(advertisement().available_amount) }} BTC</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Valor Mínimo:</span>
+              <span class="detail-value">{{ formatCentsToReais(advertisement().min_amount) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Valor Máximo:</span>
+              <span class="detail-value">{{ formatCentsToReais(advertisement().max_amount) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Criado:</span>
+              <span class="detail-value">{{ formatDate(advertisement().created_at) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Depósitos:</span>
+              <span class="detail-value">
+                <button class="deposits-link" (click)="onShowDeposits()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" fill="currentColor"/>
+                  </svg>
+                  Ver Depósitos
+                </button>
+              </span>
+            </div>
+          </div>
+          @if (advertisement().status === 'ready') {
+            <div class="listing-progress">
+              <div class="progress-bar">
+                <div class="progress-fill" [style.width.%]="getProgressPercentage(advertisement())"></div>
+              </div>
+              <div class="progress-text">{{ getProgressPercentage(advertisement()) }}% vendido</div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  `,
+  styles: [`
+    .listing-section {
+      margin-bottom: 32px;
+    }
+    .listing-card {
+      background: #FFFFFF;
+      border: 2px solid #E5E7EB;
+      border-radius: 16px;
+      padding: 24px;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .listing-card:hover {
+      border-color: #1E40AF;
+      box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.1);
+      transform: translateY(-2px);
+    }
+    .listing-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      position: relative;
+    }
+    .listing-status-badge {
+      padding: 6px 16px;
+      border-radius: 9999px;
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: #F9FAFB;
+      color: #059669;
+      border: 1px solid #A7F3D0;
+    }
+    .listing-status-badge.ready {
+      background: #22c55e20;
+      color: #22c55e;
+    }
+    .listing-status-badge.pending {
+      background: #f59e0b20;
+      color: #f59e0b;
+    }
+    .listing-status-badge.disabled {
+      background: #64748b20;
+      color: #64748b;
+    }
+    .listing-status-badge.closed {
+      background: #ef444420;
+      color: #ef4444;
+    }
+    .listing-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .listing-content {
+      padding: 0 0 16px 0;
+    }
+    .listing-main-info {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 24px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid #E5E7EB;
+    }
+    .listing-price, .listing-amount {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .price-label, .amount-label {
+      color: #6B7280;
+      font-size: 14px;
+    }
+    .price-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: #F59E0B;
+    }
+    .amount-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1E40AF;
+    }
+    .listing-details-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .detail-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .detail-label {
+      color: #6B7280;
+      font-size: 13px;
+    }
+    .detail-value {
+      color: #1F2937;
+      font-weight: 500;
+    }
+    .listing-progress {
+      margin-top: 16px;
+    }
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #E5E7EB;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 6px;
+    }
+    .progress-fill {
+      height: 100%;
+      background: #1E40AF;
+      transition: width 0.3s ease;
+    }
+    .progress-text {
+      text-align: center;
+      color: #6B7280;
+      font-size: 13px;
+    }
+    .deposits-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #1E40AF;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 4px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .deposits-link:hover {
+      background: #1D4ED8;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: 1px solid transparent;
+    }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+      border-color: #ef4444;
+    }
+    .btn-danger:hover:not(:disabled) {
+      background: #dc2626;
+    }
+    .btn-sm {
+      padding: 8px 16px;
+      font-size: 12px;
+    }
+    .loading-spinner-sm {
+      width: 16px;
+      height: 16px;
+      border: 2px solid transparent;
+      border-top: 2px solid currentColor;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    @media (max-width: 768px) {
+      .listing-main-info {
+        grid-template-columns: 1fr;
+      }
+      .listing-details-grid {
+        grid-template-columns: 1fr;
+      }
+      .listing-card {
+        padding: 16px;
+      }
+    }
+  `]
+})
+export class ListingCardComponent {
+  advertisement = input.required<Advertisement>();
+  canFinish = input.required<boolean>();
+  isFinishing = input.required<boolean>();
+
+  finish = output<void>();
+  showDeposits = output<void>();
+
+  onFinish() {
+    this.finish.emit();
+  }
+
+  onShowDeposits() {
+    this.showDeposits.emit();
+  }
+
+  getStatusClass(status: AdvertisementStatus): string {
+    switch (status) {
+      case AdvertisementStatus.READY:
+        return 'ready';
+      case AdvertisementStatus.PENDING:
+        return 'pending';
+      case AdvertisementStatus.CLOSED:
+        return 'closed';
+      case AdvertisementStatus.DISABLED:
+        return 'disabled';
+      default:
+        return 'pending';
+    }
+  }
+
+  getStatusLabel(status: AdvertisementStatus): string {
+    switch (status) {
+      case AdvertisementStatus.DRAFT:
+        return 'Rascunho';
+      case AdvertisementStatus.PENDING:
+        return 'Aguardando';
+      case AdvertisementStatus.READY:
+        return 'Ativo';
+      case AdvertisementStatus.BANK_FAILED:
+        return 'Erro Bancário';
+      case AdvertisementStatus.DEPOSIT_FAILED:
+        return 'Erro Depósito';
+      case AdvertisementStatus.CLOSED:
+        return 'Fechado';
+      case AdvertisementStatus.DISABLED:
+        return 'Pausado';
+      default:
+        return status;
+    }
+  }
+
+  formatPriceCurrency(price: number): string {
+    const priceInReais = price / 100;
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(priceInReais);
+  }
+
+  formatBTC(amount: number): string {
+    const btcAmount = amount / 100000000;
+    return btcAmount.toFixed(8);
+  }
+
+  formatCentsToReais(cents: string | number): string {
+    const reais = Number(cents) / 100;
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(reais);
+  }
+
+  formatDate(dateString: string): string {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
+  }
+
+  getProgressPercentage(ad: Advertisement): number {
+    if (ad.total_deposited === 0) return 0;
+    const sold = ad.total_deposited - ad.available_amount;
+    return Math.round((sold / ad.total_deposited) * 100);
+  }
+}
