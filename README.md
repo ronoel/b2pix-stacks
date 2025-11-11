@@ -182,6 +182,7 @@ flowchart TD
 
 **Contract address — Testnet**
 `ST3QZNX3CGT6V7PE1PBK17FCRK1TP1AT02W1N0YJF.boltproto-sbtc-rc-2-0-0`
+[View on Explorer](https://explorer.hiro.so/txid/ST3QZNX3CGT6V7PE1PBK17FCRK1TP1AT02W1N0YJF.boltproto-sbtc-rc-2-0-0?chain=testnet)
 
 **Contract address — Mainnet**
 `SP3QZNX3CGT6V7PE1PBK17FCRK1TP1AT02ZHQCMVJ.boltproto-sbtc-v2`
