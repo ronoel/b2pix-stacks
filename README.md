@@ -230,11 +230,10 @@ flowchart TD
 
 ### Competitive Advantages
 
-- **No KYC friction:** Invite-only model reduces regulatory overhead while maintaining compliance
-- **True self-custody:** Users maintain control of their Bitcoin through smart contracts
+- **No KYC friction:** The invite-only model minimizes regulatory overhead while maintaining compliance
+- **True self-custody:** Users retain full control of their Bitcoin in their own wallets
 - **Instant settlement:** PIX enables real-time fiat transfers (24/7/365)
-- **Lower fees:** P2P model eliminates traditional exchange markup
-- **Bitcoin-native UX:** Single-token experience via Bolt Protocol reduces onboarding complexity
+- **Bitcoin-native UX:** A single-token experience via the Bolt Protocol simplifies onboarding
 
 ---
 
