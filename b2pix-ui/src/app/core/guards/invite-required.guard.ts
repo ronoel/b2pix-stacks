@@ -4,7 +4,7 @@ import { WalletService } from "../../libs/wallet.service";
 import { InvitesService } from "../../shared/api/invites.service";
 import { map, catchError, of } from "rxjs";
 
-export const inviteRequiredGuard: CanActivateFn = () => {
+export const inviteRequiredGuard: CanActivateFn = (route, state) => {
   const walletService = inject(WalletService);
   const invitesService = inject(InvitesService);
   const router = inject(Router);
@@ -19,8 +19,10 @@ export const inviteRequiredGuard: CanActivateFn = () => {
   return invitesService.getWalletInvite().pipe(
     map((invite) => {
       if (!invite) {
-        // No invite found, redirect to invite validation
-        router.navigate(['/invite-validation']);
+        // No invite found, redirect to invite validation with returnUrl
+        router.navigate(['/invite-validation'], {
+          queryParams: { returnUrl: state.url }
+        });
         return false;
       }
 
@@ -33,12 +35,16 @@ export const inviteRequiredGuard: CanActivateFn = () => {
         return true;
       }
 
-      router.navigate(['/invite-validation']);
+      router.navigate(['/invite-validation'], {
+        queryParams: { returnUrl: state.url }
+      });
       return false;
     }),
     catchError(() => {
       // No invite found
-      router.navigate(['/invite-validation']);
+      router.navigate(['/invite-validation'], {
+        queryParams: { returnUrl: state.url }
+      });
       return of(false);
     })
   );

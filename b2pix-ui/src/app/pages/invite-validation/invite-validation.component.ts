@@ -1,7 +1,7 @@
-import { Component, inject, signal, ViewEncapsulation } from '@angular/core';
+import { Component, inject, signal, ViewEncapsulation, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { InvitesService } from '../../shared/api/invites.service';
 
 @Component({
@@ -457,15 +457,22 @@ import { InvitesService } from '../../shared/api/invites.service';
     }
   `]
 })
-export class InviteValidationComponent {
+export class InviteValidationComponent implements OnInit {
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private invitesService = inject(InvitesService);
-  
+
   inviteCode = '';
   username = '';
   loading = signal(false);
   error = signal('');
   usernameError = signal('');
+  private returnUrl: string = '/dashboard';
+
+  ngOnInit() {
+    // Get the returnUrl from query parameters, default to '/dashboard'
+    this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
+  }
 
   validateUsername(username: string): boolean {
     // Reset error
@@ -519,10 +526,10 @@ export class InviteValidationComponent {
     
     this.invitesService.claimInvite(this.inviteCode, this.username).subscribe({
       next: (response) => {
-        
+
         if (response && response.status === 'claimed') {
-          // Success: redirect to dashboard
-          this.router.navigate(['/dashboard']);
+          // Success: redirect to returnUrl or dashboard
+          this.router.navigateByUrl(this.returnUrl);
         } else {
           this.error.set('Código de convite já foi usado ou não existe.');
         }

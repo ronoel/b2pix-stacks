@@ -821,8 +821,10 @@ export class BuyComponent implements OnInit, OnDestroy {
         this.loadingService.hide();
 
         if (!invite) {
-          // No invite found, redirect to invite validation
-          this.router.navigate(['/invite-validation']);
+          // No invite found, redirect to invite validation with returnUrl
+          this.router.navigate(['/invite-validation'], {
+            queryParams: { returnUrl: '/buy' }
+          });
           return;
         }
 
@@ -832,7 +834,9 @@ export class BuyComponent implements OnInit, OnDestroy {
         }
 
         if (invite.status !== 'claimed') {
-          this.router.navigate(['/invite-validation']);
+          this.router.navigate(['/invite-validation'], {
+            queryParams: { returnUrl: '/buy' }
+          });
           return;
         }
 
@@ -843,7 +847,9 @@ export class BuyComponent implements OnInit, OnDestroy {
       error: (error) => {
         this.loadingService.hide();
         console.error('Error checking invite status:', error);
-        this.router.navigate(['/invite-validation']);
+        this.router.navigate(['/invite-validation'], {
+          queryParams: { returnUrl: '/buy' }
+        });
       }
     });
   }
