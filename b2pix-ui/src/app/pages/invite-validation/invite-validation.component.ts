@@ -27,9 +27,9 @@ import { InvitesService } from '../../shared/api/invites.service';
         <!-- Validation Form Card -->
         <div class="validation-card">
           <div class="form-section">
-            <h2 class="form-title">Bem-vindo à Plataforma</h2>
+            <h2 class="form-title">Área Restrita para Convidados</h2>
             <p class="form-description">
-              Insira o código do convite que você recebeu e escolha seu nome de usuário para começar.
+              A funcionalidade que você está tentando acessar está disponível apenas para usuários convidados. Para continuar, insira o código do convite que você recebeu e escolha seu nome de usuário.
             </p>
 
             <form (ngSubmit)="submit()">
@@ -125,7 +125,15 @@ import { InvitesService } from '../../shared/api/invites.service';
 
         <!-- Footer -->
         <div class="page-footer">
-          <p>Não tem um convite? Entre em contato com o suporte.</p>
+          <p class="footer-text">Ainda não tem um convite?</p>
+          <a href="https://forms.gle/sfiQjCAY6BkTqkWg6" target="_blank" rel="noopener noreferrer" class="btn-waitlist">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M16 21V19C16 17.9391 15.5786 16.9217 14.8284 16.1716C14.0783 15.4214 13.0609 15 12 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="8.5" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M20 8V14M23 11H17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Inscrever-se na Lista de Espera
+          </a>
         </div>
       </div>
     </div>
@@ -380,12 +388,48 @@ import { InvitesService } from '../../shared/api/invites.service';
       text-align: center;
       margin-top: 2rem;
       padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      align-items: center;
     }
 
-    .page-footer p {
+    .footer-text {
       font-size: 0.875rem;
       color: #64748B;
       margin: 0;
+      font-weight: 500;
+    }
+
+    .btn-waitlist {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+      color: white;
+      border: none;
+      border-radius: 0.5rem;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+    }
+
+    .btn-waitlist:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+    }
+
+    .btn-waitlist:active {
+      transform: translateY(0);
+    }
+
+    .btn-waitlist svg {
+      flex-shrink: 0;
     }
 
     /* Responsive */

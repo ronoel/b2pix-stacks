@@ -1211,10 +1211,10 @@ export class SellComponent implements OnInit {
 
     // Amount is already in satoshis
     const amountInSats = this.sellOrder.amountSats;
-    
+
     // Debug logging to check price conversion
     const priceForAPI = BigInt(Math.round(this.sellOrder.btcPriceCentsPerBtc));
-    
+
     this.advertisementService.createAdvertisement({
       amountInSats,
       price: priceForAPI,  // Price in cents per Bitcoin

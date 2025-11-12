@@ -7,6 +7,7 @@ import { UserService } from '../../services/user.service';
 import { LoadingService } from '../../services/loading.service';
 import { AdvertisementService } from '../../shared/api/advertisement.service';
 import { BuyService } from '../../shared/api/buy.service';
+import { InvitesService } from '../../shared/api/invites.service';
 import { OfferCardComponent } from '../../components/offer-card/offer-card.component';
 import { Advertisement } from '../../shared/models/advertisement.model';
 import { Buy } from '../../shared/models/buy.model';
@@ -688,6 +689,7 @@ export class BuyComponent implements OnInit, OnDestroy {
   protected loadingService = inject(LoadingService);
   private advertisementService = inject(AdvertisementService);
   private buyService = inject(BuyService);
+  private invitesService = inject(InvitesService);
 
   // Core signals
   listings = signal<BitcoinListing[]>([]);
@@ -811,8 +813,39 @@ export class BuyComponent implements OnInit, OnDestroy {
   }
 
   buyInstant(listing: BitcoinListing) {
-    this.selectedListing.set(listing);
-    this.showConfirmationModal.set(true);
+    // Check invite status before allowing purchase
+    this.loadingService.show('Verificando convite...');
+
+    this.invitesService.getWalletInvite().subscribe({
+      next: (invite) => {
+        this.loadingService.hide();
+
+        if (!invite) {
+          // No invite found, redirect to invite validation
+          this.router.navigate(['/invite-validation']);
+          return;
+        }
+
+        if (invite.status === 'blocked') {
+          this.router.navigate(['/blocked']);
+          return;
+        }
+
+        if (invite.status !== 'claimed') {
+          this.router.navigate(['/invite-validation']);
+          return;
+        }
+
+        // Invite is valid, proceed with purchase
+        this.selectedListing.set(listing);
+        this.showConfirmationModal.set(true);
+      },
+      error: (error) => {
+        this.loadingService.hide();
+        console.error('Error checking invite status:', error);
+        this.router.navigate(['/invite-validation']);
+      }
+    });
   }
 
   closeConfirmationModal() {
