@@ -1,52 +1,91 @@
-# B2PIX - Bitcoin PIX Exchange
+# B2PIX UI
 
-A peer-to-peer Bitcoin trading platform that enables seamless Bitcoin transactions using Brazil's PIX instant payment system. Built on the Stacks blockchain with sBTC integration for secure, non-custodial trading.
+Frontend interface for B2PIX platform - P2P Bitcoin Exchange with PIX integration.
 
-## 🚀 Overview
+## 📋 Prerequisites
 
-**B2PIX** is a privacy-focused, automated P2P Bitcoin exchange platform that bridges traditional Brazilian banking (PIX) with Bitcoin. Users can buy and sell Bitcoin directly with each other using instant PIX transfers, all while maintaining custody of their funds through smart contracts on the Stacks blockchain.
+- Node.js (version 18 or higher)
+- npm (usually installed with Node.js)
 
-### Key Features
+## 🚀 Installation
 
-- **Non-Custodial Trading**: Your Bitcoin stays in your wallet until the trade is completed
-- **PIX Integration**: Instant Brazilian real transfers using PIX payment system
-- **Stacks Blockchain**: Built on Bitcoin's most advanced layer-2 solution
-- **sBTC Support**: Trade with synthetic Bitcoin (sBTC) for faster, cheaper transactions
-- **Privacy First**: Invite-only platform with minimal data collection
-- **Smart Contracts**: Automated escrow and trade settlement
-- **Bank Integration**: Direct integration with Brazilian banks for PIX setup
+1. Clone the repository (if you haven't already):
+```bash
+git clone <repository-url>
+cd b2pix-ui
+```
 
-## 🛠 Technology Stack
+2. Install project dependencies:
+```bash
+npm install
+```
 
-- **Frontend**: Angular 20+ with TypeScript
-- **Blockchain**: Stacks blockchain smart contracts
-- **Wallet**: Stacks Connect wallet integration
-- **Payments**: PIX (Brazilian instant payment system)
-- **Styling**: SCSS with custom design system
-- **Assets**: sBTC (synthetic Bitcoin) tokens
+## 🏃 Running the Project
 
-## 🏗 Architecture
+### Development Mode
 
-The platform consists of several key components:
+To start the development server:
 
-### Core Services
-- **Wallet Service**: Stacks wallet connection and management
-- **sBTC Token Service**: Smart contract interactions for sBTC transfers
-- **Bolt Protocol Service**: Lightning-fast Bitcoin layer integration
-- **PIX Integration**: Brazilian banking system connectivity
+```bash
+ng serve
+```
 
-### Smart Contract Features
-- Escrow management for secure trading
-- Automated trade settlement
-- Fee management and distribution
-- Multi-signature transaction support
+The application will be available at `http://localhost:4200/`. The page will automatically reload when you make changes to the code.
 
-### User Interface
-- **Landing Page**: Public information and invite requests
-- **Dashboard**: Trade overview and account management  
-- **Buy/Sell**: P2P marketplace for Bitcoin trading
-- **PIX Account**: Bank account setup and management
-- **Ad Management**: Create and manage trading advertisements
+### Production Build
+
+To generate optimized files for production:
+
+```bash
+npm run build
+```
+
+The build files will be generated in the `dist/` directory.
+
+### Watch Mode
+
+For development with automatic rebuild:
+
+```bash
+npm run watch
+```
+
+### Run Tests
+
+To run unit tests:
+
+```bash
+npm test
+```
+
+## 🛠 Main Technologies
+
+- **Angular 20+** - Frontend framework
+- **TypeScript** - Programming language
+- **Stacks Connect** - Stacks blockchain integration
+- **SCSS** - CSS preprocessor
+
+## 📁 Project Structure
+
+```
+src/
+├── app/              # Application code
+│   ├── components/   # Reusable components
+│   ├── pages/        # Application pages
+│   ├── services/     # Services
+│   ├── guards/       # Route guards
+│   └── libs/         # Libraries and utilities
+├── environments/     # Environment configurations
+└── styles/           # Global styles
+```
+
+## 🌐 Environments
+
+The project has three configured environments:
+
+- **development** - Local development environment
+- **staging** - Staging environment
+- **production** - Production environment
 
 ## 🚦 Getting Started
 
@@ -79,7 +118,6 @@ The platform consists of several key components:
 
 ### Available Scripts
 
-- `npm start` - Start development server
 - `npm run build` - Build for production
 - `npm test` - Run unit tests
 - `npm run watch` - Build with file watching
