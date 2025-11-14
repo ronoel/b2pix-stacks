@@ -28,7 +28,10 @@ use crate::features::buys::services::{
 use crate::features::invites::ports::InviteRepository;
 use crate::features::invites::services::InviteService;
 use crate::features::payment_requests::ports::PaymentRequestRepository;
-use crate::features::payment_requests::services::{PaymentRequestService, PaymentRequestTransactionVerifierTaskHandler};
+use crate::features::payment_requests::services::{
+    PaymentRequestService, PaymentRequestTransactionVerifierTaskHandler,
+    AutomaticPaymentHandler, PendingAutomaticPaymentRetryTaskHandler,
+};
 use crate::infrastructure::database::mongo::init_mongo;
 use crate::infrastructure::database::repositories::{
     AdvertisementRepositoryImpl, AdvertisementDepositRepositoryImpl, BankCredentialsRepositoryImpl, BuyRepositoryImpl, InviteRepositoryImpl, PaymentRequestRepositoryImpl,
@@ -37,6 +40,8 @@ use crate::services::email::EmailService;
 use crate::services::trello::{TrelloService, TrelloConfig};
 use crate::services::efi_pay_service::EfiPayService;
 use crate::services::bitcoin_price::quote_service::QuoteService;
+use crate::services::b2pix_transfer_service::B2PixTransferService;
+use crate::events::typed_handler::TypedHandlerExt;
 
 pub async fn run() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
@@ -132,6 +137,9 @@ pub async fn run() -> anyhow::Result<()> {
     // Initialize quote service
     let quote_service = Arc::new(QuoteService::new());
 
+    // Initialize B2Pix transfer service
+    let b2pix_transfer_service = Arc::new(B2PixTransferService::new(Arc::clone(&config)));
+
     // Step 5: Now register all handlers to the shared registry
     // The registry is thread-safe and can be modified through Arc
     Arc::clone(&email_service).register_handlers(
@@ -156,6 +164,14 @@ pub async fn run() -> anyhow::Result<()> {
         Arc::clone(&advertisement_repository),
         Arc::clone(&config),
     )));
+
+    // Register automatic payment handler for payment requests
+    let automatic_payment_handler = AutomaticPaymentHandler::new(
+        Arc::clone(&payment_request_repository),
+        Arc::clone(&payment_request_service),
+        Arc::clone(&b2pix_transfer_service),
+    );
+    handler_registry.register(automatic_payment_handler.into_event_handler());
 
     // Register other system handlers
     // handler_registry.register(Arc::new(AuditLogHandler::new()));
@@ -201,6 +217,11 @@ pub async fn run() -> anyhow::Result<()> {
     task_registry.register(DisputeFavorBuyerTaskHandler::new(buy_service.clone()));
     task_registry.register(PaymentRequestTransactionVerifierTaskHandler::new(
         Arc::clone(&payment_request_repository),
+        Arc::clone(&config),
+    ));
+    task_registry.register(PendingAutomaticPaymentRetryTaskHandler::new(
+        Arc::clone(&payment_request_repository),
+        Arc::clone(&b2pix_transfer_service),
         Arc::clone(&config),
     ));
 

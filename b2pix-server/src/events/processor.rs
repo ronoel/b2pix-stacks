@@ -141,7 +141,8 @@ impl EventProcessor {
         };
 
         // Find the handler
-        let handler_name = endpoint.split("::").next().unwrap_or(&endpoint);
+        // Extract handler name by removing the "::handle" suffix from the endpoint
+        let handler_name = endpoint.strip_suffix("::handle").unwrap_or(&endpoint);
         let handlers = handler_registry.get_handlers_for(&event.event_name);
         let handler = handlers.iter().find(|h| h.name() == handler_name);
 

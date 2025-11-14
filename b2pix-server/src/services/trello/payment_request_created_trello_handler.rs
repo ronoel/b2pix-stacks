@@ -39,6 +39,16 @@ impl EventHandler for PaymentRequestCreatedTrelloHandler {
 
         let payment_event: PaymentRequestCreatedEvent = serde_json::from_value(event.event_data.clone())?;
 
+        // Only create Trello card for manual payment requests (status = "waiting")
+        if payment_event.status != "waiting" {
+            tracing::debug!(
+                payment_request_id = %payment_event.payment_request_id,
+                status = %payment_event.status,
+                "Skipping Trello card creation - status is not 'waiting'"
+            );
+            return Ok(());
+        }
+
         let card_title = format!(
             "B2PIX - Payment Request {} ({} {})",
             payment_event.payment_request_id,

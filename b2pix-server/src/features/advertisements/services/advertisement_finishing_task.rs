@@ -109,6 +109,7 @@ impl AdvertisementFinishingTaskHandler {
                     closed_advertisement.seller_address.clone(),
                     closed_advertisement.available_amount as u64,
                     description,
+                    true, // Attempt automatic payment first
                 ).await {
                     Ok(_payment_request) => {
                         // tracing::info!("Created payment request {} for closed advertisement {}", payment_request.id().as_str(), closed_advertisement.id);

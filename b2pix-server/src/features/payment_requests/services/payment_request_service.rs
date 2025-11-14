@@ -107,7 +107,10 @@ impl PaymentRequestService {
             .await
     }
 
-    /// Create a new payment request and Trello card
+    /// Create a new payment request
+    ///
+    /// # Arguments
+    /// * `attempt_automatic_payment` - If true, status will be PendingAutomaticPayment; if false, Waiting
     pub async fn create_payment_request(
         &self,
         source_type: SourceType,
@@ -115,6 +118,7 @@ impl PaymentRequestService {
         receiver_address: String,
         amount: u64,
         description: String,
+        attempt_automatic_payment: bool,
     ) -> Result<PaymentRequest, PaymentRequestError> {
         // Create the payment request
         let payment_request = PaymentRequest::new(
@@ -123,6 +127,7 @@ impl PaymentRequestService {
             receiver_address.clone(),
             amount,
             description.clone(),
+            attempt_automatic_payment,
         );
 
         // Save to repository
