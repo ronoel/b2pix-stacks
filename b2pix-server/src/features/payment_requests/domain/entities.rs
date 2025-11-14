@@ -65,7 +65,10 @@ impl PaymentRequestId {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PaymentStatus {
-    /// Payment is waiting to be processed
+    /// Payment is pending automatic payment attempt
+    #[serde(rename = "pending_automatic_payment")]
+    PendingAutomaticPayment,
+    /// Payment is waiting to be processed manually
     #[serde(rename = "waiting")]
     Waiting,
     /// Payment transaction is being processed (broadcasting)
@@ -80,13 +83,14 @@ pub enum PaymentStatus {
 
 impl Default for PaymentStatus {
     fn default() -> Self {
-        PaymentStatus::Waiting
+        PaymentStatus::PendingAutomaticPayment
     }
 }
 
 impl PaymentStatus {
     pub fn from_string(status: &str) -> Result<Self, String> {
         match status {
+            "pending_automatic_payment" => Ok(PaymentStatus::PendingAutomaticPayment),
             "waiting" => Ok(PaymentStatus::Waiting),
             "processing" => Ok(PaymentStatus::Processing),
             "broadcast" => Ok(PaymentStatus::Broadcast),
@@ -100,6 +104,7 @@ impl PaymentStatus {
 impl std::fmt::Display for PaymentStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            PaymentStatus::PendingAutomaticPayment => write!(f, "pending_automatic_payment"),
             PaymentStatus::Waiting => write!(f, "waiting"),
             PaymentStatus::Processing => write!(f, "processing"),
             PaymentStatus::Broadcast => write!(f, "broadcast"),
@@ -145,6 +150,8 @@ pub struct PaymentRequest {
     pub description: String,
     pub status: PaymentStatus,
     pub blockchain_tx_id: Option<String>,
+    pub failure_reason: Option<String>,
+    pub attempt_automatic_payment: bool,
     #[serde(with = "bson_datetime_compatible")]
     pub created_at: DateTime<Utc>,
     #[serde(with = "bson_datetime_compatible")]
@@ -158,8 +165,15 @@ impl PaymentRequest {
         receiver_address: String,
         amount: u64,
         description: String,
+        attempt_automatic_payment: bool,
     ) -> Self {
         let now = Utc::now();
+        let status = if attempt_automatic_payment {
+            PaymentStatus::PendingAutomaticPayment
+        } else {
+            PaymentStatus::Waiting
+        };
+
         Self {
             id: PaymentRequestId::new(),
             source_type,
@@ -167,8 +181,10 @@ impl PaymentRequest {
             receiver_address,
             amount,
             description,
-            status: PaymentStatus::default(),
+            status,
             blockchain_tx_id: None,
+            failure_reason: None,
+            attempt_automatic_payment,
             created_at: now,
             updated_at: now,
         }
@@ -203,6 +219,14 @@ impl PaymentRequest {
         &self.blockchain_tx_id
     }
 
+    pub fn failure_reason(&self) -> &Option<String> {
+        &self.failure_reason
+    }
+
+    pub fn attempt_automatic_payment(&self) -> bool {
+        self.attempt_automatic_payment
+    }
+
     pub fn created_at(&self) -> &DateTime<Utc> {
         &self.created_at
     }
@@ -219,6 +243,11 @@ impl PaymentRequest {
 
     pub fn set_blockchain_tx_id(&mut self, tx_id: String) {
         self.blockchain_tx_id = Some(tx_id);
+        self.updated_at = Utc::now();
+    }
+
+    pub fn set_failure_reason(&mut self, reason: String) {
+        self.failure_reason = Some(reason);
         self.updated_at = Utc::now();
     }
 }

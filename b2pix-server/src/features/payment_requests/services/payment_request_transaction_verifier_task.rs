@@ -159,12 +159,18 @@ impl PaymentRequestTransactionVerifierTaskHandler {
         }
 
         // Create a new payment request with the same information
+        // attempt_automatic_payment=false to avoid infinite retry loop
         let new_payment_request = crate::features::payment_requests::domain::entities::PaymentRequest::new(
             payment_request.source_type().clone(),
             payment_request.source_id().clone(),
             payment_request.receiver_address().to_string(),
             payment_request.amount(),
-            payment_request.description.clone(),
+            format!(
+                "Retry after blockchain transaction failure. Original: {}. TX: {}",
+                payment_request.id().as_str(),
+                transaction_id
+            ),
+            false, // Do NOT attempt automatic payment for retry
         );
 
         tracing::info!(

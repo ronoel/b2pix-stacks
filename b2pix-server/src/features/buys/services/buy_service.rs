@@ -759,6 +759,7 @@ impl BuyService {
                         updated_buy.address_buy.as_str().to_string(),
                         updated_buy.amount as u64,
                         description,
+                        true, // Attempt automatic payment first
                     ).await {
                         Ok(_payment_request) => {}
                         Err(e) => {
@@ -957,6 +958,7 @@ impl BuyService {
                     buy.address_buy.as_str().to_string(),
                     buy.amount as u64,
                     description,
+                    true, // Attempt automatic payment first
                 ).await {
                     Ok(_payment_request) => {}
                     Err(e) => {

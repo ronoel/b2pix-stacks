@@ -22,6 +22,8 @@ struct PaymentRequestDocument {
     pub status: String,
     pub is_active: bool,
     pub blockchain_tx_id: Option<String>,
+    pub failure_reason: Option<String>,
+    pub attempt_automatic_payment: bool,
     pub created_at: mongodb::bson::DateTime,
     pub updated_at: mongodb::bson::DateTime,
 }
@@ -31,8 +33,8 @@ impl From<&PaymentRequest> for PaymentRequestDocument {
         // Determine if this payment request is "active" based on status
         let is_active = matches!(
             payment_request.status(),
-            PaymentStatus::Waiting | PaymentStatus::Processing | 
-            PaymentStatus::Broadcast | PaymentStatus::Confirmed
+            PaymentStatus::PendingAutomaticPayment | PaymentStatus::Waiting |
+            PaymentStatus::Processing | PaymentStatus::Broadcast | PaymentStatus::Confirmed
         );
         
         Self {
@@ -45,6 +47,8 @@ impl From<&PaymentRequest> for PaymentRequestDocument {
             status: payment_request.status().to_string(),
             is_active,
             blockchain_tx_id: payment_request.blockchain_tx_id().clone(),
+            failure_reason: payment_request.failure_reason().clone(),
+            attempt_automatic_payment: payment_request.attempt_automatic_payment(),
             created_at: mongodb::bson::DateTime::from_millis(payment_request.created_at().timestamp_millis()),
             updated_at: mongodb::bson::DateTime::from_millis(payment_request.updated_at().timestamp_millis()),
         }
@@ -76,6 +80,8 @@ impl TryFrom<PaymentRequestDocument> for PaymentRequest {
             description: doc.description,
             status,
             blockchain_tx_id: doc.blockchain_tx_id,
+            failure_reason: doc.failure_reason,
+            attempt_automatic_payment: doc.attempt_automatic_payment,
             created_at,
             updated_at,
         })
@@ -276,8 +282,8 @@ impl PaymentRequestRepository for PaymentRequestRepositoryImpl {
         // Calculate is_active based on the new status
         let is_active = matches!(
             new_status,
-            PaymentStatus::Waiting | PaymentStatus::Processing | 
-            PaymentStatus::Broadcast | PaymentStatus::Confirmed
+            PaymentStatus::PendingAutomaticPayment | PaymentStatus::Waiting |
+            PaymentStatus::Processing | PaymentStatus::Broadcast | PaymentStatus::Confirmed
         );
 
         // Build atomic query - only update if status is in allowed list

@@ -17,6 +17,7 @@ pub struct Config {
     pub trello_api_key: String,
     pub trello_token: String,
     pub trello_list_id: String,
+    pub b2pix_api_key: String,
 }
 
 impl Config {
