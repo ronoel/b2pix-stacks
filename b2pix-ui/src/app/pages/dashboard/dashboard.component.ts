@@ -110,6 +110,32 @@ import { QuoteService } from '../../shared/api/quote.service';
             </div>
           </div>
 
+          <!-- BTC Pegging Section -->
+          <div class="action-group">
+            <h3 class="group-title">Peg BTC/sBTC</h3>
+            <div class="actions-grid compact">
+              <button class="action-btn pegging" (click)="goToBtcToSbtc()">
+                <div class="btn-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M7 16V4M7 4L3 8M7 4L11 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M17 8V20M17 20L21 16M17 20L13 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <span>BTC → sBTC</span>
+              </button>
+
+              <button class="action-btn pegging" (click)="goToSbtcToBtc()">
+                <div class="btn-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M7 8V20M7 20L3 16M7 20L11 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M17 16V4M17 4L21 8M17 4L13 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <span>sBTC → BTC</span>
+              </button>
+            </div>
+          </div>
+
           <!-- Admin Section -->
           @if (isManager()) {
             <div class="action-group">
@@ -437,6 +463,21 @@ import { QuoteService } from '../../shared/api/quote.service';
       background: #F3F4F6;
       border-color: #9CA3AF;
       color: #374151;
+    }
+
+    .action-btn.pegging {
+      background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
+      color: white;
+      border-color: #8B5CF6;
+    }
+
+    .action-btn.pegging:hover {
+      background: linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%);
+      border-color: #7C3AED;
+    }
+
+    .action-btn.pegging .btn-icon {
+      background: rgba(255, 255, 255, 0.2);
     }
 
     .btn-icon {
@@ -1024,6 +1065,14 @@ export class DashboardComponent implements OnInit {
 
   goToWalletManagement() {
     this.router.navigate(['/wallet']);
+  }
+
+  goToBtcToSbtc() {
+    this.router.navigate(['/btc-to-sbtc']);
+  }
+
+  goToSbtcToBtc() {
+    this.router.navigate(['/sbtc-to-btc']);
   }
 
   onTransactionClick(transaction: any) {
