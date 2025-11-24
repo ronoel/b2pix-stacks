@@ -12,7 +12,7 @@ This document explains how sBTC bridging works in the B2Pix application, coverin
 4. [Complete Transaction Example](#complete-transaction-example)
 5. [Edge Cases and Error Handling](#edge-cases-and-error-handling)
 6. [Architecture and Contract Details](#architecture-and-contract-details)
-7. [Testing Scenarios](#testing-scenarios)
+<!-- 7. [Testing Scenarios](#testing-scenarios) -->
 
 ---
 
@@ -103,13 +103,9 @@ import { Cl, Pc } from '@stacks/transactions';
 ### Contract Configuration
 
 ```typescript
-// Mainnet
+// Mainnet contracts
 SBTC_WITHDRAWAL_CONTRACT = 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-withdrawal'
 SBTC_TOKEN_CONTRACT = 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token'
-
-// Testnet
-SBTC_WITHDRAWAL_CONTRACT = 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.sbtc-withdrawal'
-SBTC_TOKEN_CONTRACT = 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.sbtc-token'
 ```
 
 ### State Management
@@ -248,13 +244,11 @@ private startStatusPolling() {
 }
 
 async checkWithdrawalStatus() {
-  // Query Emily API
-  const emiliyUrl = environment.network === 'mainnet'
-    ? 'https://sbtc-emily.com'
-    : 'https://emily-testnet.sbtc.tech';
+  // Query Emily API (mainnet)
+  const emilyUrl = 'https://sbtc-emily.com';
 
   const response = await fetch(
-    `${emiliyUrl}/withdrawal/sender/${this.stacksAddress()}`
+    `${emilyUrl}/withdrawal/sender/${this.stacksAddress()}`
   );
 
   const data: WithdrawalResponse[] = await response.json();
@@ -504,28 +498,24 @@ async initiateWithdrawal() {
 }
 ```
 
-### 7. Network Mismatch
-
-**Scenario:** User's wallet is on mainnet but app is configured for testnet
+### 7. Network Configuration
 
 ```typescript
-// Environment configuration check
-private readonly SBTC_WITHDRAWAL_CONTRACT = environment.network === 'mainnet'
-  ? 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-withdrawal'
-  : 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.sbtc-withdrawal';
+// Mainnet configuration
+private readonly SBTC_WITHDRAWAL_CONTRACT = 
+  'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-withdrawal';
 
 async initiateWithdrawal() {
-  // Stacks Connect will throw error if network mismatch
+  // Stacks Connect with mainnet network
   try {
     const result = await request('stx_callContract', {
       // ...
-      network: environment.network,
+      network: 'mainnet',
     });
   } catch (error) {
     if (error.message.includes('network')) {
       this.errorMessage.set(
-        'Erro de rede: Verifique se sua carteira está na rede correta ' +
-        `(${environment.network})`
+        'Erro de rede: Verifique se sua carteira está configurada para mainnet'
       );
     }
   }
@@ -630,7 +620,7 @@ After completion:
 - **High priority:** 10,000+ sats
 
 ---
-
+<!-- 
 ## Testing Scenarios
 
 ### Test Case 1: Successful Withdrawal
@@ -735,7 +725,7 @@ After completion:
 - ⚠️ Bitcoin transaction may never confirm
 - ✅ User can initiate new withdrawal with higher fee
 
----
+--- -->
 
 ## Component Lifecycle
 
@@ -790,10 +780,9 @@ reset() {
 
 ### Emily API Endpoints
 
-**Get Withdrawals by Sender:**
+**Get Withdrawals by Sender (Mainnet):**
 ```
 GET https://sbtc-emily.com/withdrawal/sender/<stacks-address>
-GET https://emily-testnet.sbtc.tech/withdrawal/sender/<stacks-address>
 ```
 
 **Response Schema:**
@@ -837,9 +826,10 @@ const addressInfo = getAddressInfo(address);
 
 ### 3. Network Awareness
 
-Ensure contract addresses match the network:
+Ensure contract addresses are configured for mainnet:
 ```typescript
-environment.network === 'mainnet' ? MAINNET_CONTRACT : TESTNET_CONTRACT
+const SBTC_WITHDRAWAL_CONTRACT = 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-withdrawal';
+const SBTC_TOKEN_CONTRACT = 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token';
 ```
 
 ### 4. Amount Bounds
@@ -850,7 +840,7 @@ if (this.amount < 10000) {
   throw new Error('Minimum 10,000 satoshis');
 }
 ```
-
+<!-- 
 ---
 
 ## Troubleshooting
@@ -883,14 +873,14 @@ if (this.amount < 10000) {
 ### Issue: Emily API Returns Empty Array
 
 **Possible Causes:**
-1. Wrong network (mainnet vs testnet)
-2. Incorrect Stacks address
-3. No withdrawals yet initiated
+1. Incorrect Stacks address
+2. No withdrawals yet initiated
+3. Emily API synchronization delay
 
 **Solutions:**
-- Verify `environment.network` setting
 - Check `stacksAddress` value
 - Verify transaction succeeded on Stacks
+- Wait a few minutes for API to index the transaction
 
 ### Issue: "Post Condition Failed" Error
 
@@ -934,7 +924,7 @@ if (this.amount < 10000) {
    - "Slow/Medium/Fast" presets
    - Dynamic fee calculation based on mempool
 
----
+--- -->
 
 ## References
 
