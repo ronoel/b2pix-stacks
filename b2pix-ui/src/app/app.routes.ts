@@ -92,6 +92,16 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'btc-to-sbtc',
+    loadComponent: () => import('./pages/btc-to-sbtc/btc-to-sbtc.component').then(m => m.BtcToSbtcComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'sbtc-to-btc',
+    loadComponent: () => import('./pages/sbtc-to-btc/sbtc-to-btc.component').then(m => m.SbtcToBtcComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: '**',
     redirectTo: ''
   }
