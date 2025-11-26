@@ -111,7 +111,8 @@ import { QuoteService } from '../../shared/api/quote.service';
           </div>
 
           <!-- BTC Pegging Section -->
-          <div class="action-group">
+           <!-- REMOVED THIS FUNCTION FROM THE USER TO TEST MORE -->
+          <!-- <div class="action-group">
             <h3 class="group-title">Peg BTC/sBTC</h3>
             <div class="actions-grid compact">
               <button class="action-btn pegging" (click)="goToBtcToSbtc()">
@@ -134,7 +135,7 @@ import { QuoteService } from '../../shared/api/quote.service';
                 <span>sBTC → BTC</span>
               </button>
             </div>
-          </div>
+          </div> -->
 
           <!-- Admin Section -->
           @if (isManager()) {
