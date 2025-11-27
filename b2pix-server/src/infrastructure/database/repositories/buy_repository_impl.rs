@@ -238,38 +238,38 @@ impl BuyRepository for BuyRepositoryImpl {
         Ok(buys)
     }
 
-    /// Mark a buy as paid by ID with optional PIX transaction ID
-    async fn mark_as_paid(&self, id: &BuyId, pix_id: Option<String>) -> Result<Option<Buy>, BuyError> {
+    /// Mark a buy as paid by ID with optional PIX confirmation code
+    async fn mark_as_paid(&self, id: &BuyId, pix_confirmation_code: Option<String>) -> Result<Option<Buy>, BuyError> {
         use mongodb::options::FindOneAndUpdateOptions;
         use mongodb::options::ReturnDocument;
 
-        let filter = doc! { 
+        let filter = doc! {
             "_id": id.as_object_id(),
             "status": "pending"
         };
-        
-        let mut update_doc = doc! { 
-            "$set": { 
+
+        let mut update_doc = doc! {
+            "$set": {
                 "status": "paid",
                 "updated_at": mongodb::bson::DateTime::now()
             }
         };
 
-        // Add pix_id to the update if provided
-        if let Some(pix_transaction_id) = pix_id {
+        // Add pix_confirmation_code to the update if provided
+        if let Some(confirmation_code) = pix_confirmation_code {
             update_doc.get_document_mut("$set")
                 .unwrap()
-                .insert("pix_id", pix_transaction_id);
+                .insert("pix_confirmation_code", confirmation_code);
         }
 
         let options = FindOneAndUpdateOptions::builder()
             .return_document(ReturnDocument::After)
             .build();
-        
+
         let result = self.collection
             .find_one_and_update(filter, update_doc, options)
             .await?;
-        
+
         Ok(result)
     }
 
@@ -364,12 +364,12 @@ impl BuyRepository for BuyRepositoryImpl {
         use mongodb::options::FindOneAndUpdateOptions;
         use mongodb::options::ReturnDocument;
 
-        let filter = doc! { 
+        let filter = doc! {
             "_id": id.as_object_id()
         };
-        
-        let update_doc = doc! { 
-            "$set": { 
+
+        let update_doc = doc! {
+            "$set": {
                 "status": "payment_confirmed",
                 "is_final": true,
                 "updated_at": mongodb::bson::DateTime::now()
@@ -379,11 +379,40 @@ impl BuyRepository for BuyRepositoryImpl {
         let options = FindOneAndUpdateOptions::builder()
             .return_document(ReturnDocument::After)
             .build();
-        
+
         let result = self.collection
             .find_one_and_update(filter, update_doc, options)
             .await?;
-        
+
+        Ok(result)
+    }
+
+    /// Mark a buy as payment confirmed with PIX end-to-end transaction ID
+    async fn mark_as_payment_confirmed_with_transaction(&self, id: &BuyId, end_to_end_id: &str) -> Result<Option<Buy>, BuyError> {
+        use mongodb::options::FindOneAndUpdateOptions;
+        use mongodb::options::ReturnDocument;
+
+        let filter = doc! {
+            "_id": id.as_object_id()
+        };
+
+        let update_doc = doc! {
+            "$set": {
+                "status": "payment_confirmed",
+                "is_final": true,
+                "pix_end_to_end_id": end_to_end_id,
+                "updated_at": mongodb::bson::DateTime::now()
+            }
+        };
+
+        let options = FindOneAndUpdateOptions::builder()
+            .return_document(ReturnDocument::After)
+            .build();
+
+        let result = self.collection
+            .find_one_and_update(filter, update_doc, options)
+            .await?;
+
         Ok(result)
     }
 

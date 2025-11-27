@@ -348,10 +348,10 @@ impl BuyService {
     pub async fn mark_as_paid(
         &self,
         buy_id: BuyId,
-        pix_id: Option<String>,
+        pix_confirmation_code: Option<String>,
     ) -> Result<Buy, ApiError> {
         // Call the repository to mark as paid
-        let updated_buy = self.buy_repository.mark_as_paid(&buy_id, pix_id).await
+        let updated_buy = self.buy_repository.mark_as_paid(&buy_id, pix_confirmation_code).await
             .map_err(|e| {
                 tracing::error!("Failed to mark buy as paid: {}", e);
                 ApiError::InternalServerError(format!("Failed to mark buy as paid: {}", e))
@@ -478,8 +478,8 @@ impl BuyService {
     /// This function:
     /// 1. Loads the advertisement related to the buy
     /// 2. Uses efi_client.query_pix with date range from buy.created_at to buy.updated_at
-    /// 3. Searches for PIX transactions with valor equal to buy.pay_value and end_to_end_id ending with buy.pix_id
-    /// 4. If found, changes buy status to PaymentConfirmed
+    /// 3. Searches for PIX transactions with valor equal to buy.pay_value and end_to_end_id ending with buy.pix_confirmation_code
+    /// 4. If found, changes buy status to PaymentConfirmed and stores the complete pix_end_to_end_id
     /// 5. Otherwise, increments buy.pix_verification_attempts
     /// 
     /// Note: This function logs all errors but does not return them
@@ -536,7 +536,7 @@ impl BuyService {
                         buy.amount,
                         buy.pay_value,
                         buy.pay_value as f64 / 100.0,
-                        buy.pix_id,
+                        buy.pix_confirmation_code,
                         seller_stacks_address,
                         start_date,
                         end_date,
@@ -560,18 +560,18 @@ impl BuyService {
         // Convert pay_value (in cents) to BRL string format for comparison
         let expected_value = format!("{:.2}", buy.pay_value as f64 / 100.0);
 
-        // Handle different cases based on whether we have a pix_id or not
-        let matching_pix = match buy.pix_id.as_ref() {
-            Some(pix_id) => {
+        // Handle different cases based on whether we have a pix_confirmation_code or not
+        let matching_pix = match buy.pix_confirmation_code.as_ref() {
+            Some(confirmation_code) => {
                 // Check if any PIX transaction matches our criteria (value + end_to_end_id)
-                // Case-insensitive comparison for pix_id
-                let pix_id_lower = pix_id.to_lowercase();
+                // Case-insensitive comparison for confirmation_code
+                let confirmation_code_lower = confirmation_code.to_lowercase();
                 pix_received.pix.iter().find(|pix| {
                     let value_matches = pix.valor == expected_value;
-                    let end_to_end_matches = pix.end_to_end_id.to_lowercase().ends_with(&pix_id_lower);
+                    let end_to_end_matches = pix.end_to_end_id.to_lowercase().ends_with(&confirmation_code_lower);
 
                     tracing::debug!("PIX check for buy {}: valor={}, expected={}, end_to_end_id={}, expected_suffix={}, value_match={}, end_match={}",
-                                  buy.id, pix.valor, expected_value, pix.end_to_end_id, pix_id, value_matches, end_to_end_matches);
+                                  buy.id, pix.valor, expected_value, pix.end_to_end_id, confirmation_code, value_matches, end_to_end_matches);
 
                     value_matches && end_to_end_matches
                 })
@@ -581,7 +581,7 @@ impl BuyService {
                 let value_matching_pix: Vec<_> = pix_received.pix.iter().filter(|pix| {
                     let value_matches = pix.valor == expected_value;
 
-                    tracing::debug!("PIX check for buy {} (no pix_id): valor={}, expected={}, value_match={}",
+                    tracing::debug!("PIX check for buy {} (no confirmation code): valor={}, expected={}, value_match={}",
                                   buy.id, pix.valor, expected_value, value_matches);
 
                     value_matches
@@ -591,7 +591,7 @@ impl BuyService {
                 if !value_matching_pix.is_empty() {
                     // Check if there are multiple PIX with the same value
                     if value_matching_pix.len() > 1 {
-                        tracing::error!("Found {} PIX transactions with matching value for buy {} but no pix_id to confirm which one. Sending to dispute immediately.",
+                        tracing::error!("Found {} PIX transactions with matching value for buy {} but no confirmation code to confirm which one. Sending to dispute immediately.",
                                       value_matching_pix.len(), buy.id);
 
                         // Mark buy as in dispute immediately
@@ -638,7 +638,7 @@ impl BuyService {
                                 Advertisement ID: {}\n\
                                 Amount: {} sats\n\
                                 Pay Value: {} cents (R$ {:.2})\n\
-                                PIX ID: None (NOT PROVIDED)\n\
+                                PIX Confirmation Code: None (NOT PROVIDED)\n\
                                 Query Period:\n\
                                   Start: {}\n\
                                   End: {}\n\
@@ -662,7 +662,7 @@ impl BuyService {
                     } else {
                         // Only one PIX found with matching value
                         let found_pix = value_matching_pix[0];
-                        tracing::warn!("Found PIX with matching value for buy {} but no pix_id to confirm. PIX end_to_end_id: {}",
+                        tracing::warn!("Found PIX with matching value for buy {} but no confirmation code to confirm. PIX end_to_end_id: {}",
                                       buy.id, found_pix.end_to_end_id);
 
                         // Mark buy as in dispute since we found a PIX but can't confirm it's the right one
@@ -707,12 +707,12 @@ impl BuyService {
                                 Advertisement ID: {}\n\
                                 Amount: {} sats\n\
                                 Pay Value: {} cents (R$ {:.2})\n\
-                                PIX ID: None (NOT PROVIDED)\n\
+                                PIX Confirmation Code: None (NOT PROVIDED)\n\
                                 Query Period:\n\
                                   Start: {}\n\
                                   End: {}\n\
                                 Found PIX Transaction: {} (valor: {})\n\
-                                Status: In Dispute - Found PIX with matching value but no pix_id to confirm\n\
+                                Status: In Dispute - Found PIX with matching value but no confirmation code to confirm\n\
                                 {}",
                                 buy.id,
                                 buy.advertisement_id,
@@ -739,17 +739,17 @@ impl BuyService {
         };
 
         if let Some(matching_pix) = matching_pix {
-            // Mark buy as payment confirmed
-            match self.buy_repository.mark_as_payment_confirmed(&buy.id).await {
+            // Mark buy as payment confirmed with the complete end-to-end transaction ID
+            match self.buy_repository.mark_as_payment_confirmed_with_transaction(&buy.id, &matching_pix.end_to_end_id).await {
                 Ok(Some(updated_buy)) => {
                     // Create PaymentRequest for the confirmed payment
                     let description = format!(
-                        "Payment for Buy ID: {}\nAdvertisement ID: {}\nAmount: {} sats\nPay Value: {} cents\nPIX ID: {:?}\nPIX Transaction: {}\nStatus: Payment confirmed via PIX verification",
+                        "Payment for Buy ID: {}\nAdvertisement ID: {}\nAmount: {} sats\nPay Value: {} cents\nPIX Confirmation Code: {:?}\nPIX Transaction: {}\nStatus: Payment confirmed via PIX verification",
                         updated_buy.id,
                         updated_buy.advertisement_id,
                         updated_buy.amount,
                         updated_buy.pay_value,
-                        updated_buy.pix_id,
+                        updated_buy.pix_confirmation_code,
                         matching_pix.end_to_end_id
                     );
 
@@ -786,12 +786,12 @@ impl BuyService {
             );
             if let Err(e) = TrelloCardService::new(trello_config).create_card(
                 format!("B2PIX - Buy {} Payment Confirmed", buy.id),
-                format!("Buy ID: {}\nAdvertisement ID: {}\nAmount: {}\nPay Value: {}\nPIX ID: {:?}\nPIX Transaction: {}\nStatus: Payment confirmed via PIX verification",
+                format!("Buy ID: {}\nAdvertisement ID: {}\nAmount: {}\nPay Value: {}\nPIX Confirmation Code: {:?}\nPIX Transaction: {}\nStatus: Payment confirmed via PIX verification",
                     buy.id,
                     buy.advertisement_id,
                     buy.amount,
                     buy.pay_value,
-                    buy.pix_id,
+                    buy.pix_confirmation_code,
                     matching_pix.end_to_end_id
                 )
             ).await {
@@ -799,13 +799,13 @@ impl BuyService {
             }
 
         } else {
-            let pix_id_info = match buy.pix_id.as_ref() {
-                Some(id) => format!("with pix_id {}", id),
-                None => "without pix_id".to_string(),
+            let confirmation_code_info = match buy.pix_confirmation_code.as_ref() {
+                Some(code) => format!("with confirmation code {}", code),
+                None => "without confirmation code".to_string(),
             };
 
             tracing::warn!("No matching PIX transaction found for buy {} {}. Marking as in dispute immediately.",
-                          buy.id, pix_id_info);
+                          buy.id, confirmation_code_info);
 
             // Mark buy as in dispute immediately (no retry attempts)
             match self.buy_repository.mark_as_in_dispute(&buy.id).await {
@@ -818,9 +818,9 @@ impl BuyService {
                 }
             }
 
-            let dispute_reason = match buy.pix_id.as_ref() {
+            let dispute_reason = match buy.pix_confirmation_code.as_ref() {
                 Some(_) => "In Dispute - No matching PIX transaction found",
-                None => "In Dispute - No matching PIX transaction found (no pix_id available)",
+                None => "In Dispute - No matching PIX transaction found (no confirmation code provided)",
             };
 
             // Build detailed PIX list for the Trello card
@@ -850,13 +850,13 @@ impl BuyService {
             );
             if let Err(e) = TrelloCardService::new(trello_config).create_card(
                 format!("B2PIX - Buy {} in Dispute", buy.id),
-                format!("Buy ID: {}\nAdvertisement ID: {}\nAmount: {} sats\nPay Value: {} cents (R$ {:.2})\nPIX ID: {:?}\nQuery Period:\n  Start: {}\n  End: {}\nStatus: {}{}",
+                format!("Buy ID: {}\nAdvertisement ID: {}\nAmount: {} sats\nPay Value: {} cents (R$ {:.2})\nPIX Confirmation Code: {:?}\nQuery Period:\n  Start: {}\n  End: {}\nStatus: {}{}",
                     buy.id,
                     buy.advertisement_id,
                     buy.amount,
                     buy.pay_value,
                     buy.pay_value as f64 / 100.0,
-                    buy.pix_id,
+                    buy.pix_confirmation_code,
                     start_date,
                     end_date,
                     dispute_reason,
@@ -944,12 +944,12 @@ impl BuyService {
             Ok(Some(buy)) => {
                 // Create PaymentRequest for the refund using the service
                 let description = format!(
-                    "Refund for Buy ID: {}\nAdvertisement ID: {}\nAmount: {} sats\nPay Value: {} cents\nPIX ID: {:?}\nStatus: Dispute resolved in favor of buyer",
+                    "Refund for Buy ID: {}\nAdvertisement ID: {}\nAmount: {} sats\nPay Value: {} cents\nPIX Confirmation Code: {:?}\nStatus: Dispute resolved in favor of buyer",
                     buy.id,
                     buy.advertisement_id,
                     buy.amount,
                     buy.pay_value,
-                    buy.pix_id
+                    buy.pix_confirmation_code
                 );
 
                 match self.payment_request_service.create_payment_request(

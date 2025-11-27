@@ -223,8 +223,10 @@ pub struct Buy {
     pub address_buy: CryptoAddress,
     /// PIX key for payment
     pub pix_key: String,
-    /// Optional PIX transaction ID
-    pub pix_id: Option<String>,
+    /// User-provided confirmation code (last 3 digits of PIX transaction)
+    pub pix_confirmation_code: Option<String>,
+    /// Complete PIX end-to-end transaction ID (found during payment verification)
+    pub pix_end_to_end_id: Option<String>,
     /// Buy status
     pub status: BuyStatus,
     /// Flag indicating if the buy is in a final state
@@ -274,7 +276,8 @@ impl Buy {
             pay_value,
             address_buy,
             pix_key,
-            pix_id: None,
+            pix_confirmation_code: None,
+            pix_end_to_end_id: None,
             status: BuyStatus::Pending,
             is_final: false, // Pending status is not final
             pix_verification_attempts: 0,
