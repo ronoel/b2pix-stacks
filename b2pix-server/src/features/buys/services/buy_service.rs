@@ -23,6 +23,36 @@ use crate::{
     services::{efi_pay_service::EfiPayService, trello::{TrelloCardService, TrelloConfig}},
 };
 
+/// Normalize PIX confirmation codes to avoid user confusion with ambiguous characters
+///
+/// Converts visually similar characters to their numeric equivalents:
+/// - O (letter) → 0 (zero)
+/// - I, L (letters) → 1 (one)
+/// - S (letter) → 5 (five)
+/// - Z (letter) → 2 (two)
+/// - B (letter) → 8 (eight)
+/// - G (letter) → 6 (six)
+///
+/// This helps users who might confuse characters like:
+/// - "O" and "0"
+/// - "I", "l", and "1"
+/// - etc.
+fn normalize_pix_code(code: &str) -> String {
+    code.to_uppercase()
+        .chars()
+        .map(|c| match c {
+            // Convert letters that look like numbers to numbers
+            'O' => '0',  // Letter O → Zero
+            'I' | 'L' => '1',  // Letters I/L → One
+            'S' => '5',  // Letter S → Five
+            'Z' => '2',  // Letter Z → Two
+            'B' => '8',  // Letter B → Eight
+            'G' => '6',  // Letter G → Six
+            _ => c,
+        })
+        .collect()
+}
+
 pub struct BuyService {
     buy_repository: Arc<dyn BuyRepository>,
     advertisement_repository: Arc<dyn AdvertisementRepository>,
@@ -564,14 +594,15 @@ impl BuyService {
         let matching_pix = match buy.pix_confirmation_code.as_ref() {
             Some(confirmation_code) => {
                 // Check if any PIX transaction matches our criteria (value + end_to_end_id)
-                // Case-insensitive comparison for confirmation_code
-                let confirmation_code_lower = confirmation_code.to_lowercase();
+                // Normalize both codes to avoid confusion with ambiguous characters (O/0, I/1/L, etc.)
+                let normalized_confirmation_code = normalize_pix_code(confirmation_code);
                 pix_received.pix.iter().find(|pix| {
                     let value_matches = pix.valor == expected_value;
-                    let end_to_end_matches = pix.end_to_end_id.to_lowercase().ends_with(&confirmation_code_lower);
+                    let normalized_end_to_end = normalize_pix_code(&pix.end_to_end_id);
+                    let end_to_end_matches = normalized_end_to_end.ends_with(&normalized_confirmation_code);
 
-                    tracing::debug!("PIX check for buy {}: valor={}, expected={}, end_to_end_id={}, expected_suffix={}, value_match={}, end_match={}",
-                                  buy.id, pix.valor, expected_value, pix.end_to_end_id, confirmation_code, value_matches, end_to_end_matches);
+                    tracing::debug!("PIX check for buy {}: valor={}, expected={}, end_to_end_id={}, normalized_end_to_end={}, confirmation_code={}, normalized_code={}, value_match={}, end_match={}",
+                                  buy.id, pix.valor, expected_value, pix.end_to_end_id, normalized_end_to_end, confirmation_code, normalized_confirmation_code, value_matches, end_to_end_matches);
 
                     value_matches && end_to_end_matches
                 })
