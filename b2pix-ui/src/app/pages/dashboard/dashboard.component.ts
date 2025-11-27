@@ -1219,6 +1219,10 @@ export class DashboardComponent implements OnInit {
 
       if (append) {
         this.isLoadingMore.set(true);
+      } else {
+        // When refreshing (not appending), also update balance and BTC price
+        this.loadBalance();
+        this.loadBtcPrice();
       }
 
       this.buyService.getBuysByAddress(currentAddress, {
@@ -1247,6 +1251,9 @@ export class DashboardComponent implements OnInit {
             // Replace with new buys (initial load)
             this.recentOrders.set(mappedBuys);
             this.currentPage.set(1);
+
+            // Clear and reload payment requests for the new transactions
+            this.paymentRequests.set(new Map());
           }
 
           // Check if there are more pages available
