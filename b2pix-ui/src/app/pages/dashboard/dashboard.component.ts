@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, inject, ViewEncapsulation } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, inject, ViewEncapsulation } from '@angular/core';
 import { BuyStatus } from '../../shared/models/buy.model';
 import { PaymentRequest, PaymentRequestStatus, PaymentSourceType } from '../../shared/models/payment-request.model';
 import { CommonModule } from '@angular/common';
@@ -942,7 +942,7 @@ import { QuoteService } from '../../shared/api/quote.service';
     }
   `]
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private userService = inject(UserService);
   private walletManagerService = inject(WalletManagerService);
@@ -968,11 +968,22 @@ export class DashboardComponent implements OnInit {
   isLoadingBalance = signal<boolean>(false);
   btcPriceInCents = signal<number>(0);
 
+  // Auto-refresh timer
+  private refreshTimeout: any = null;
+
   ngOnInit() {
     this.loadRecentOrders();
     this.walletAddress.set(this.walletManagerService.getSTXAddress() || '');
     this.loadBalance();
     this.loadBtcPrice();
+  }
+
+  ngOnDestroy() {
+    // Clear the refresh timeout when component is destroyed
+    if (this.refreshTimeout) {
+      clearTimeout(this.refreshTimeout);
+      this.refreshTimeout = null;
+    }
   }
 
   loadBalance() {
@@ -1258,6 +1269,11 @@ export class DashboardComponent implements OnInit {
 
           // Check if there are more pages available
           this.hasMoreBuys.set(response.has_more);
+
+          // Start auto-refresh if there are orders that need monitoring
+          if (!append) {
+            this.scheduleAutoRefresh();
+          }
         },
         error: (error) => {
           console.error('Error loading recent orders:', error);
@@ -1362,6 +1378,48 @@ export class DashboardComponent implements OnInit {
           this.addressCopied.set(false);
         }, 2000);
       });
+    }
+  }
+
+  /**
+   * Check if any orders need monitoring (have active statuses)
+   * Returns true if at least one order is not in a final state
+   */
+  private hasOrdersNeedingMonitoring(): boolean {
+    const orders = this.recentOrders();
+    if (orders.length === 0) {
+      return false;
+    }
+
+    // Final states that don't need monitoring
+    const finalStatuses = [
+      BuyStatus.Cancelled,
+      BuyStatus.Expired,
+      BuyStatus.PaymentConfirmed,
+      BuyStatus.Completed,
+      BuyStatus.DisputeResolvedBuyer,
+      BuyStatus.DisputeResolvedSeller
+    ];
+
+    // Check if any order is not in a final state
+    return orders.some(order => !finalStatuses.includes(order.status));
+  }
+
+  /**
+   * Schedule auto-refresh if there are orders needing monitoring
+   */
+  private scheduleAutoRefresh() {
+    // Clear any existing timeout
+    if (this.refreshTimeout) {
+      clearTimeout(this.refreshTimeout);
+      this.refreshTimeout = null;
+    }
+
+    // Only schedule if there are orders that need monitoring
+    if (this.hasOrdersNeedingMonitoring()) {
+      this.refreshTimeout = setTimeout(() => {
+        this.loadRecentOrders();
+      }, 5000); // 5 seconds
     }
   }
 
