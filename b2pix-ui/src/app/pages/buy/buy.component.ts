@@ -714,7 +714,7 @@ export class BuyComponent implements OnInit, OnDestroy {
     this.isLoadingListings.set(true);
     
     // Get ready advertisements with active_only filter
-    this.advertisementService.getReadyAdvertisements(true, 1, 50).subscribe({
+    this.advertisementService.getReadyAdvertisements(true, 1, 100).subscribe({
       next: (response: any) => {
         try {
           const mappedListings = this.mapAdvertisementsToListings(response.data);
