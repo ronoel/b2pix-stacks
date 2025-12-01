@@ -51,7 +51,7 @@ impl PeriodicTaskHandler for BuyPaymentVerificationTaskHandler {
     }
 
     fn interval(&self) -> Duration {
-        Duration::from_secs(60) // 1 minute interval
+        Duration::from_secs(20) // 20 seconds interval
     }
 
     async fn execute(&self) -> anyhow::Result<()> {

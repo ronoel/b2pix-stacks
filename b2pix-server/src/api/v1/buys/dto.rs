@@ -93,7 +93,7 @@ impl BuyCreatePayload {
 pub struct BuyPaidPayload {
     pub action: String,
     pub domain: String,
-    pub pix_id: String, // "NONE" if not provided
+    pub pix_confirmation_code: String, // "NONE" if not provided
     pub buy_id: String,
     pub timestamp: String,
 }
@@ -108,7 +108,7 @@ impl BuyPaidPayload {
         
         let action = lines[0].trim().to_string();
         let domain = lines[1].trim().to_string();
-        let pix_id = lines[2].trim().to_string();
+        let pix_confirmation_code = lines[2].trim().to_string();
         let buy_id = lines[3].trim().to_string();
         let timestamp = lines[4].trim().to_string();
 
@@ -133,17 +133,17 @@ impl BuyPaidPayload {
         Ok(BuyPaidPayload {
             action,
             domain,
-            pix_id,
+            pix_confirmation_code,
             buy_id,
             timestamp,
         })
     }
 
-    pub fn get_pix_id(&self) -> Option<String> {
-        if self.pix_id == "NONE" || self.pix_id.trim().is_empty() {
+    pub fn get_pix_confirmation_code(&self) -> Option<String> {
+        if self.pix_confirmation_code == "NONE" || self.pix_confirmation_code.trim().is_empty() {
             None
         } else {
-            Some(self.pix_id.clone())
+            Some(self.pix_confirmation_code.clone())
         }
     }
 }

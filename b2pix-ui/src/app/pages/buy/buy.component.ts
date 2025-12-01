@@ -8,15 +8,21 @@ import { LoadingService } from '../../services/loading.service';
 import { AdvertisementService } from '../../shared/api/advertisement.service';
 import { BuyService } from '../../shared/api/buy.service';
 import { InvitesService } from '../../shared/api/invites.service';
-import { OfferCardComponent } from '../../components/offer-card/offer-card.component';
 import { Advertisement } from '../../shared/models/advertisement.model';
 import { Buy } from '../../shared/models/buy.model';
 import { BitcoinListing } from '../../interfaces/transaction.interface';
 
+interface PriceRange {
+  advertisement: BitcoinListing;
+  minAmount: number;
+  maxAmount: number;
+  pricePerBtc: number;
+}
+
 @Component({
   selector: 'app-buy',
   standalone: true,
-  imports: [OfferCardComponent],
+  imports: [],
   template: `
     <div class="buy-page">
       <!-- Main Content -->
@@ -90,10 +96,10 @@ import { BitcoinListing } from '../../interfaces/transaction.interface';
           </div>
         </div>
 
-        <!-- Bitcoin Offers -->
+        <!-- Bitcoin Price Ranges -->
         <div class="offers-section">
           <div class="section-header">
-            <h2 class="section-title">Ofertas Disponíveis</h2>
+            <h2 class="section-title">Cotações Disponíveis</h2>
             <button class="btn btn-outline btn-sm" (click)="loadListings()">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                 <path d="M3 12C3 7.02944 7.02944 3 12 3C14.5755 3 16.9 4.15205 18.5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -104,13 +110,13 @@ import { BitcoinListing } from '../../interfaces/transaction.interface';
               Atualizar
             </button>
           </div>
-            
+
           @if (isLoadingListings()) {
             <div class="loading-state">
               <div class="loading-spinner"></div>
               <p>Buscando as melhores ofertas...</p>
             </div>
-          } @else if (listings().length === 0) {
+          } @else if (priceRanges().length === 0) {
             <div class="empty-state">
               <div class="empty-icon">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
@@ -124,16 +130,84 @@ import { BitcoinListing } from '../../interfaces/transaction.interface';
               <button class="btn btn-primary" (click)="loadListings()">Tentar Novamente</button>
             </div>
           } @else {
-            <div class="offers-grid">
-              @for (listing of listings(); track listing.id) {
-                <app-offer-card
-                  [listing]="listing"
-                  [currentAmount]="getCurrentAmount()"
-                  [isLowestPrice]="isLowestPrice(listing)"
-                  [isProcessing]="isProcessingPurchase()"
-                  [effectiveMaxPurchase]="getEffectiveMaxPurchase(listing)"
-                  (buyClick)="buyInstant($event)">
-                </app-offer-card>
+            <div class="price-ranges-container">
+              <div class="price-ranges-list">
+                @for (range of priceRanges(); track $index) {
+                  <div
+                    class="price-range-card"
+                    [class.active]="isRangeApplicable(range)"
+                  >
+                    <div class="range-header">
+                      <div class="range-amount">
+                        <span class="range-label">Para compras de:</span>
+                        <span class="range-value">
+                          R$ {{ formatCurrency(range.minAmount) }} - R$ {{ formatCurrency(range.maxAmount) }}
+                        </span>
+                      </div>
+                      @if (isRangeApplicable(range)) {
+                        <div class="active-badge">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                          </svg>
+                          Melhor preço
+                        </div>
+                      }
+                    </div>
+
+                    <div class="range-price">
+                      <span class="price-label">Preço do Bitcoin:</span>
+                      <span class="price-value">R$ {{ formatCurrency(range.pricePerBtc) }}/BTC</span>
+                    </div>
+
+                    @if (isRangeApplicable(range)) {
+                      <div class="range-details">
+                        <div class="detail-item">
+                          <span class="detail-label">Você está comprando:</span>
+                          <span class="detail-value">R$ {{ formatCurrency(getCurrentAmount()) }}</span>
+                        </div>
+                        <div class="detail-item">
+                          <span class="detail-label">Você receberá:</span>
+                          <span class="detail-value btc-amount">
+                            {{ formatBitcoinAmount(calculateBitcoinAmount(range.advertisement, getCurrentAmount())) }} BTC
+                          </span>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+
+              @if (getCurrentAmount() > 0 && getBestAdvertisementForAmount()) {
+                <div class="buy-action-container">
+                  <button
+                    class="btn btn-success btn-lg buy-btn"
+                    (click)="buyInstant(getBestAdvertisementForAmount()!)"
+                    [disabled]="isProcessingPurchase()"
+                  >
+                    @if (isProcessingPurchase()) {
+                      <div class="loading-spinner-sm"></div>
+                      Processando...
+                    } @else {
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                      </svg>
+                      Comprar Bitcoin com PIX
+                    }
+                  </button>
+                </div>
+              } @else if (getCurrentAmount() > 0) {
+                <div class="buy-action-container">
+                  <div class="info-message">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                      <path d="M12 16V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M12 8H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Nenhuma oferta disponível para este valor. Tente outro valor.</span>
+                  </div>
+                </div>
               }
             </div>
           }
@@ -338,10 +412,215 @@ import { BitcoinListing } from '../../interfaces/transaction.interface';
     /* Offers Section */
     .offers-section { margin-bottom: 32px; }
 
-    .offers-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    .price-ranges-container {
+      display: flex;
+      flex-direction: column;
       gap: 24px;
+    }
+
+    .price-ranges-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .price-range-card {
+      background: #FFFFFF;
+      border: 2px solid #E5E7EB;
+      border-radius: 16px;
+      padding: 20px;
+      transition: all 0.3s ease;
+    }
+
+    .price-range-card.active {
+      border-color: #16A34A;
+      background: #F0FDF4;
+      box-shadow: 0 4px 12px 0 rgb(22 163 74 / 0.15);
+      transform: scale(1.02);
+    }
+
+    .range-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+      gap: 16px;
+    }
+
+    .range-amount {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .range-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: #6B7280;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .range-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1F2937;
+    }
+
+    .active-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: linear-gradient(135deg, #16A34A 0%, #15803D 100%);
+      color: white;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+      box-shadow: 0 4px 6px -1px rgb(22 163 74 / 0.4);
+      white-space: nowrap;
+    }
+
+    .active-badge svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .range-price {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 16px;
+      background: #F9FAFB;
+      border-radius: 12px;
+      margin-bottom: 12px;
+    }
+
+    .price-range-card.active .range-price {
+      background: #DCFCE7;
+      border: 1px solid #BBF7D0;
+    }
+
+    .price-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: #6B7280;
+    }
+
+    .price-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #F59E0B;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    }
+
+    .range-details {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 16px;
+      background: #FFFFFF;
+      border-radius: 12px;
+      border: 2px solid #BBF7D0;
+    }
+
+    .detail-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .detail-label {
+      font-size: 14px;
+      color: #6B7280;
+      font-weight: 500;
+    }
+
+    .detail-value {
+      font-size: 16px;
+      font-weight: 700;
+      color: #1F2937;
+    }
+
+    .detail-value.btc-amount {
+      color: #16A34A;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    }
+
+    .buy-action-container {
+      position: sticky;
+      bottom: 0;
+      padding: 20px;
+      background: #FFFFFF;
+      border: 2px solid #E5E7EB;
+      border-radius: 16px;
+      box-shadow: 0 -4px 12px 0 rgb(0 0 0 / 0.05);
+    }
+
+    .buy-btn {
+      width: 100%;
+      padding: 18px 24px;
+      font-size: 18px;
+      font-weight: 700;
+      border-radius: 12px;
+      background: #16A34A !important;
+      color: #FFFFFF !important;
+      border: 2px solid #16A34A !important;
+      box-shadow: 0 4px 12px 0 rgb(22 163 74 / 0.4);
+      text-shadow: 0 1px 2px rgb(0 0 0 / 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .buy-btn:hover:not(:disabled) {
+      background: #15803D !important;
+      border-color: #15803D !important;
+      box-shadow: 0 6px 16px 0 rgb(21 128 61 / 0.5);
+      transform: translateY(-2px);
+    }
+
+    .buy-btn:disabled {
+      background: #9CA3AF !important;
+      border-color: #9CA3AF !important;
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .loading-spinner-sm {
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #FFFFFF;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .info-message {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      background: #FEF3C7;
+      border-radius: 12px;
+      border: 2px solid #FCD34D;
+      color: #92400E;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .info-message svg {
+      flex-shrink: 0;
+      color: #D97706;
     }
 
     .empty-state {
@@ -660,9 +939,19 @@ import { BitcoinListing } from '../../interfaces/transaction.interface';
         grid-template-columns: repeat(2, 1fr);
       }
 
-      .offers-grid {
-        grid-template-columns: 1fr;
-        gap: 16px;
+      .range-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .active-badge {
+        align-self: flex-start;
+      }
+
+      .detail-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
       }
 
       .modal-actions {
@@ -673,11 +962,32 @@ import { BitcoinListing } from '../../interfaces/transaction.interface';
         margin: 8px;
         max-height: calc(100vh - 16px);
       }
+
+      .buy-btn {
+        font-size: 16px;
+        padding: 16px 20px;
+      }
     }
 
     @media (max-width: 480px) {
       .quick-amounts {
         grid-template-columns: 1fr;
+      }
+
+      .range-value {
+        font-size: 16px;
+      }
+
+      .price-value {
+        font-size: 20px;
+      }
+
+      .price-range-card {
+        padding: 16px;
+      }
+
+      .price-range-card.active {
+        transform: scale(1.01);
       }
     }
   `]
@@ -706,23 +1016,28 @@ export class BuyComponent implements OnInit, OnDestroy {
   // Buy record from API
   buyRecord = signal<Buy | null>(null);
 
+  // Price ranges for the new UX
+  priceRanges = signal<PriceRange[]>([]);
+
   ngOnInit() {
     this.loadListings();
   }
 
   loadListings() {
     this.isLoadingListings.set(true);
-    
+
     // Get ready advertisements with active_only filter
-    this.advertisementService.getReadyAdvertisements(true, 1, 50).subscribe({
+    this.advertisementService.getReadyAdvertisements(true, 1, 100).subscribe({
       next: (response: any) => {
         try {
           const mappedListings = this.mapAdvertisementsToListings(response.data);
           this.listings.set(mappedListings);
+          this.calculateAndSetPriceRanges(mappedListings);
           this.isLoadingListings.set(false);
         } catch (error) {
           console.error('Error mapping advertisements:', error);
           this.listings.set([]);
+          this.priceRanges.set([]);
           this.isLoadingListings.set(false);
         }
       },
@@ -735,6 +1050,7 @@ export class BuyComponent implements OnInit, OnDestroy {
           url: error.url
         });
         this.listings.set([]);
+        this.priceRanges.set([]);
         this.isLoadingListings.set(false);
       },
       complete: () => {
@@ -780,6 +1096,85 @@ export class BuyComponent implements OnInit, OnDestroy {
    */
   private formatSellerName(address: string): string {
     return `Vendedor ${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+  }
+
+  /**
+   * Calculates price ranges where each advertisement is the best option
+   * This creates a simplified view showing the best price for each amount range
+   */
+  private calculateAndSetPriceRanges(listings: BitcoinListing[]): void {
+    if (listings.length === 0) {
+      this.priceRanges.set([]);
+      return;
+    }
+
+    // Collect all breakpoints (min and max values from all listings)
+    const breakpoints = new Set<number>();
+    for (const listing of listings) {
+      breakpoints.add(listing.minPurchase);
+      breakpoints.add(listing.maxPurchase);
+    }
+
+    const sortedBreakpoints = Array.from(breakpoints).sort((a, b) => a - b);
+    const ranges: PriceRange[] = [];
+
+    // For each segment between breakpoints, find the best price
+    for (let i = 0; i < sortedBreakpoints.length - 1; i++) {
+      const rangeStart = sortedBreakpoints[i];
+      const rangeEnd = sortedBreakpoints[i + 1];
+      const midPoint = (rangeStart + rangeEnd) / 2;
+
+      // Find all listings that cover this range
+      const applicableListings = listings.filter(l =>
+        l.minPurchase <= midPoint && l.maxPurchase >= midPoint
+      );
+
+      if (applicableListings.length > 0) {
+        // Get the one with the best (lowest) price
+        const bestListing = applicableListings.reduce((best, current) =>
+          current.pricePerBtc < best.pricePerBtc ? current : best
+        );
+
+        // Check if we can merge with the previous range
+        const lastRange = ranges[ranges.length - 1];
+        if (lastRange && lastRange.advertisement.id === bestListing.id) {
+          // Extend the previous range
+          lastRange.maxAmount = rangeEnd;
+        } else {
+          // Add new range
+          ranges.push({
+            advertisement: bestListing,
+            minAmount: rangeStart,
+            maxAmount: rangeEnd,
+            pricePerBtc: bestListing.pricePerBtc
+          });
+        }
+      }
+    }
+
+    this.priceRanges.set(ranges);
+  }
+
+  /**
+   * Gets the best advertisement for the current amount
+   */
+  getBestAdvertisementForAmount(): BitcoinListing | null {
+    const amount = this.getCurrentAmount();
+    if (amount <= 0) return null;
+
+    const applicableRange = this.priceRanges().find(
+      range => amount >= range.minAmount && amount <= range.maxAmount
+    );
+
+    return applicableRange ? applicableRange.advertisement : null;
+  }
+
+  /**
+   * Checks if a price range is applicable for the current amount
+   */
+  isRangeApplicable(range: PriceRange): boolean {
+    const amount = this.getCurrentAmount();
+    return amount > 0 && amount >= range.minAmount && amount <= range.maxAmount;
   }
 
   // New simplified interface methods

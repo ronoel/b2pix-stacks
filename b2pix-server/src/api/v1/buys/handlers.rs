@@ -140,7 +140,7 @@ pub async fn mark_buy_as_paid(
     // Call the buy service to mark as paid
     let updated_buy = handlers.buy_service.mark_as_paid(
         buy_id,
-        parsed_payload.get_pix_id(),
+        parsed_payload.get_pix_confirmation_code(),
     ).await.map_err(|e| {
         tracing::error!("Failed to mark buy as paid: {}", e);
         ApiError::InternalServerError(format!("Failed to mark buy as paid: {}", e))

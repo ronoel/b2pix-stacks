@@ -19,8 +19,8 @@ pub trait BuyRepository: Send + Sync {
     /// Find all pending buys created more than the specified number of minutes ago
     async fn find_pending_older_than_minutes(&self, minutes: i64) -> Result<Vec<Buy>, BuyError>;
 
-    /// Mark a buy as paid by ID with optional PIX transaction ID
-    async fn mark_as_paid(&self, id: &BuyId, pix_id: Option<String>) -> Result<Option<Buy>, BuyError>;
+    /// Mark a buy as paid by ID with optional PIX confirmation code
+    async fn mark_as_paid(&self, id: &BuyId, pix_confirmation_code: Option<String>) -> Result<Option<Buy>, BuyError>;
     
     /// Mark a buy as dispute resolved seller
     async fn mark_as_dispute_resolved_seller(&self, id: &BuyId) -> Result<Option<Buy>, BuyError>;
@@ -33,6 +33,9 @@ pub trait BuyRepository: Send + Sync {
 
     /// Mark a buy as payment confirmed
     async fn mark_as_payment_confirmed(&self, id: &BuyId) -> Result<Option<Buy>, BuyError>;
+
+    /// Mark a buy as payment confirmed with PIX end-to-end transaction ID
+    async fn mark_as_payment_confirmed_with_transaction(&self, id: &BuyId, end_to_end_id: &str) -> Result<Option<Buy>, BuyError>;
 
     /// Mark a buy as in dispute
     async fn mark_as_in_dispute(&self, id: &BuyId) -> Result<Option<Buy>, BuyError>;
