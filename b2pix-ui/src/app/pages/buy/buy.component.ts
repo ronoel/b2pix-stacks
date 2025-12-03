@@ -1030,21 +1030,33 @@ export class BuyComponent implements OnInit, OnDestroy {
   // Quote polling (silent - for dynamic pricing)
   currentQuotePrice = signal<number | null>(null);
   private quoteSubscription?: Subscription;
+  private hasReceivedFirstQuote = false;
 
   ngOnInit() {
+    // Show loading state while waiting for first quote
+    this.isLoadingListings.set(true);
+    // Start quote polling - listings will load after first quote arrives
     this.startSilentQuotePolling();
-    this.loadListings();
   }
 
   /**
    * Start silent 30-second quote polling (no UI indication to buyers)
+   * Listings are loaded after the first quote arrives to ensure dynamic pricing works correctly
    */
   private startSilentQuotePolling(): void {
     this.quoteSubscription = this.quoteService.getBtcPriceStream().subscribe({
       next: (quote) => {
         const priceInCents = parseInt(quote.price, 10);
         this.currentQuotePrice.set(priceInCents);
-        this.updateDynamicPrices(); // Update prices silently
+
+        // Load listings after first quote arrives (ensures dynamic pricing has the quote available)
+        if (!this.hasReceivedFirstQuote) {
+          this.hasReceivedFirstQuote = true;
+          this.loadListings();
+        } else {
+          // Subsequent quotes just update dynamic prices silently
+          this.updateDynamicPrices();
+        }
       },
       error: (err) => {
         // Silent failure - just keep last known prices
