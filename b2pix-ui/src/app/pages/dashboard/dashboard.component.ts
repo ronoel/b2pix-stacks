@@ -361,7 +361,8 @@ import { QuoteService } from '../../shared/api/quote.service';
     .balance-loading {
       display: flex;
       justify-content: flex-end;
-      padding: 12px 0;
+      align-items: center;
+      min-height: 72px;
     }
 
     .wallet-info {
@@ -989,7 +990,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
   loadBalance() {
     const address = this.walletManagerService.getSTXAddress();
     if (address) {
-      this.isLoadingBalance.set(true);
+      // Only show loading spinner if there's no balance loaded yet
+      const hasExistingBalance = this.sBtcBalance() !== BigInt(0);
+      if (!hasExistingBalance) {
+        this.isLoadingBalance.set(true);
+      }
+      
       this.sBTCTokenService.getBalance().subscribe({
         next: (balance) => {
           this.sBtcBalance.set(balance);
