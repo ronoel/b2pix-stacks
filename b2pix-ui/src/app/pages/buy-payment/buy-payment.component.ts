@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, OnDestroy, signal, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { LoadingService } from '../../services/loading.service';
@@ -9,7 +9,7 @@ import { Buy } from '../../shared/models/buy.model';
 @Component({
   selector: 'app-buy-payment',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="buy-payment-page">

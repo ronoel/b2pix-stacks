@@ -1,12 +1,12 @@
 import { Component, inject, signal, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 
 @Component({
   selector: 'app-embedded-wallet-create',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   template: `
     <div class="wallet-create-container">
       @if (currentStep() === 'method') {

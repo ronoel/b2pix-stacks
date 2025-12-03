@@ -1,5 +1,5 @@
 import { Component, inject, signal, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { InvitesService, SendInviteResponse } from '../../shared/api/invites.service';
@@ -8,7 +8,7 @@ import { LoadingService } from '../../services/loading.service';
 @Component({
   selector: 'app-send-invite',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="send-invite-page">

@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, signal, inject, ViewEncapsulation } from '@angular/core';
 import { BuyStatus } from '../../shared/models/buy.model';
 import { PaymentRequest, PaymentRequestStatus, PaymentSourceType } from '../../shared/models/payment-request.model';
-import { CommonModule } from '@angular/common';
+
 import { Router } from '@angular/router';
 import { UserService } from '../../services/user.service';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
@@ -16,7 +16,7 @@ import { QuoteService } from '../../shared/api/quote.service';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, TransactionCardComponent],
+  imports: [TransactionCardComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="dashboard">

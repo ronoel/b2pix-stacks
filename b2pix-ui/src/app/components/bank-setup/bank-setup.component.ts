@@ -1,5 +1,5 @@
 import { Component, inject, Input, Output, EventEmitter } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { LoadingService } from '../../services/loading.service';
 import { BankAccountService } from '../../shared/api/bank-account.service';
@@ -20,7 +20,7 @@ interface SetupResult {
 @Component({
   selector: 'app-bank-setup',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   template: `
     <div class="bank-setup">
       <!-- Step Indicator -->

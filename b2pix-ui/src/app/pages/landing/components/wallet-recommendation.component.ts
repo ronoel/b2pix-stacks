@@ -1,11 +1,11 @@
 import { Component, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 export type WalletRecommendation = 'external' | 'embedded' | 'import';
 
 @Component({
   selector: 'app-wallet-recommendation',
-  imports: [CommonModule],
+  imports: [],
   standalone: true,
   template: `
     <div class="wallet-recommendation-section">

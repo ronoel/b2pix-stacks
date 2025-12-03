@@ -1,5 +1,5 @@
 import { Component, OnInit, signal, inject, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
@@ -10,7 +10,7 @@ import { environment } from '../../../environments/environment';
 @Component({
   selector: 'app-btc-to-sbtc',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="btc-pegging-container">

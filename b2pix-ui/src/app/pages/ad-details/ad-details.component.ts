@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, signal, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router, ActivatedRoute } from '@angular/router';
 import { Advertisement, AdvertisementStatus, Deposit } from '../../shared/models/advertisement.model';
 import { Buy } from '../../shared/models/buy.model';
@@ -19,12 +19,11 @@ import { DepositsModalComponent } from './components/deposits-modal.component';
   selector: 'app-ad-details',
   standalone: true,
   imports: [
-    CommonModule,
     ListingCardComponent,
     RefundSectionComponent,
     BuysListComponent,
     DepositsModalComponent
-  ],
+],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="ad-details-modern">

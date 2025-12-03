@@ -1,5 +1,5 @@
 import { Component, inject, effect, ViewEncapsulation, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router } from '@angular/router';
 import { WalletService } from '../../libs/wallet.service';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
@@ -15,7 +15,6 @@ import { EmbeddedWalletImportComponent } from '../../components/embedded-wallet-
 @Component({
   selector: 'app-landing',
   imports: [
-    CommonModule,
     LandingFeaturesComponent,
     HowItWorksComponent,
     TrustSectionComponent,
@@ -24,7 +23,7 @@ import { EmbeddedWalletImportComponent } from '../../components/embedded-wallet-
     EmbeddedWalletCreateComponent,
     EmbeddedWalletUnlockComponent,
     EmbeddedWalletImportComponent
-  ],
+],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="landing-page">

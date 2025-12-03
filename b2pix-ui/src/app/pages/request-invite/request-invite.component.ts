@@ -1,5 +1,5 @@
 import { Component, inject, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { UserService } from '../../services/user.service';
@@ -9,7 +9,7 @@ import { InviteRequest, InviteResponse } from '../../interfaces/user.interface';
 @Component({
   selector: 'app-request-invite',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   template: `
     <div class="request-page">
       <div class="container">

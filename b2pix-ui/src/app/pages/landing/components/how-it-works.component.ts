@@ -1,9 +1,9 @@
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 @Component({
   selector: 'app-how-it-works',
-  imports: [CommonModule],
+  imports: [],
   standalone: true,
   template: `
     <div class="how-it-works-section">

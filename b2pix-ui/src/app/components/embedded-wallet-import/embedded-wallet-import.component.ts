@@ -1,12 +1,12 @@
 import { Component, OnInit, inject, signal, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 
 @Component({
   selector: 'app-embedded-wallet-import',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   template: `
     <div class="import-container">
       <div class="import-card">

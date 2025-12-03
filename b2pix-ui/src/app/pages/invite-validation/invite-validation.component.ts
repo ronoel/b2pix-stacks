@@ -1,5 +1,5 @@
 import { Component, inject, signal, ViewEncapsulation, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { InvitesService } from '../../shared/api/invites.service';
@@ -7,7 +7,7 @@ import { InvitesService } from '../../shared/api/invites.service';
 @Component({
   selector: 'app-invite-validation',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="invite-validation-page">

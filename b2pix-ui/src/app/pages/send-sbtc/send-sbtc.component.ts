@@ -1,5 +1,5 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
@@ -11,7 +11,7 @@ import { QuoteService } from '../../shared/api/quote.service';
 @Component({
   selector: 'app-send-sbtc',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   template: `
     <div class="send-sbtc-page">
       <div class="container">

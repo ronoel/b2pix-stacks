@@ -1,5 +1,5 @@
 import { Component, OnInit, signal, inject, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
@@ -19,7 +19,7 @@ interface WithdrawalResponse {
 @Component({
   selector: 'app-sbtc-to-btc',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="btc-pegging-container">

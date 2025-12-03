@@ -1,10 +1,10 @@
 import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-landing-features',
-  imports: [CommonModule],
+  imports: [],
   standalone: true,
   template: `
     <div class="features">
