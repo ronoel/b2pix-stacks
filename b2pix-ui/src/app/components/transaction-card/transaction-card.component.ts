@@ -39,8 +39,8 @@ export interface TransactionCardData {
             <span class="transaction-id">#{{ transaction.id.slice(-8) }}</span>
           </div>
         </div>
-        <div class="status-badge" [ngClass]="getStatusClass(transaction.status)">
-          {{ getStatusLabel(transaction.status) }}
+        <div class="status-badge" [ngClass]="getDisplayStatusClass()">
+          {{ getDisplayStatusLabel() }}
         </div>
       </div>
 
@@ -72,66 +72,40 @@ export interface TransactionCardData {
         </div>
       }
 
-      @if (transaction.status === 'payment_confirmed' || transaction.status === 'dispute_resolved_buyer') {
-        <div class="payment-request-section">
-          @if (!paymentRequest) {
-            <button
-              class="btn-view-payment"
-              (click)="onLoadPaymentRequest($event)"
-              [disabled]="isLoadingPayment"
-            >
-              @if (isLoadingPayment) {
-                <div class="loading-spinner-sm"></div>
-                Carregando...
-              } @else {
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 2V22" stroke="currentColor" stroke-width="2"/>
-                  <path d="M17 5H9.5C8.11929 5 7 6.11929 7 7.5V7.5C7 8.88071 8.11929 10 9.5 10H14.5C15.8807 10 17 11.1193 17 12.5V12.5C17 13.8807 15.8807 15 14.5 15H7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                Ver Detalhes do Pagamento
+      @if (shouldShowPaymentDetails()) {
+        @if (paymentRequest) {
+          <div class="payment-details-inline">
+            <div class="payment-info-compact">
+              <div class="payment-item">
+                <span class="payment-label">Pagamento:</span>
+                <span class="payment-value">{{ formatSats(paymentRequest.amount.toString()) }} sats</span>
+              </div>
+              @if (paymentRequest.blockchain_tx_id) {
+                <div class="payment-item full">
+                  <span class="payment-label">Transação:</span>
+                  <a
+                    [href]="getBlockchainExplorerUrl(paymentRequest.blockchain_tx_id)"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="blockchain-link"
+                  >
+                    {{ formatTransactionId(paymentRequest.blockchain_tx_id) }}
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <polyline points="15,3 21,3 21,9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <line x1="10" y1="14" x2="21" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </a>
+                </div>
               }
-            </button>
-          } @else {
-            <div class="payment-request-details">
-              <div class="payment-header">
-                <h4>Detalhes do Pagamento</h4>
-                <span class="payment-status-badge" [ngClass]="getPaymentRequestStatusClass(paymentRequest.status)">
-                  {{ getPaymentRequestStatusLabel(paymentRequest.status) }}
-                </span>
-              </div>
-              <div class="payment-info-grid">
-                <div class="payment-info-item">
-                  <span class="info-label">Valor:</span>
-                  <span class="info-value">{{ formatSats(paymentRequest.amount.toString()) }} sats</span>
-                </div>
-                <div class="payment-info-item">
-                  <span class="info-label">Data:</span>
-                  <span class="info-value">{{ formatDateTime(paymentRequest.created_at) }}</span>
-                </div>
-                @if (paymentRequest.blockchain_tx_id) {
-                  <div class="payment-info-item full-width">
-                    <span class="info-label">Transação:</span>
-                    <span class="info-value">
-                      <a
-                        [href]="getBlockchainExplorerUrl(paymentRequest.blockchain_tx_id)"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="blockchain-link-small"
-                      >
-                        {{ formatTransactionId(paymentRequest.blockchain_tx_id) }}
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" class="external-link-icon">
-                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                          <polyline points="15,3 21,3 21,9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                          <line x1="10" y1="14" x2="21" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                      </a>
-                    </span>
-                  </div>
-                }
-              </div>
             </div>
-          }
-        </div>
+          </div>
+        } @else if (isLoadingPayment) {
+          <div class="payment-loading">
+            <div class="loading-spinner-sm"></div>
+            <span>Carregando detalhes do pagamento...</span>
+          </div>
+        }
       }
     </div>
   `,
@@ -294,139 +268,74 @@ export interface TransactionCardData {
       color: #3B82F6;
     }
 
-    /* Payment Request Section */
-    .payment-request-section {
+    /* Payment Details Inline (Compact) */
+    .payment-details-inline {
       margin-top: 12px;
       padding-top: 12px;
       border-top: 1px solid #F3F4F6;
     }
 
-    .btn-view-payment {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 16px;
-      background: #EFF6FF;
-      color: #1E40AF;
-      border: 1px solid #BFDBFE;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      width: 100%;
-      justify-content: center;
-    }
-
-    .btn-view-payment:hover:not(:disabled) {
-      background: #DBEAFE;
-      border-color: #93C5FD;
-      transform: translateY(-1px);
-    }
-
-    .btn-view-payment:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    .payment-request-details {
-      background: #F9FAFB;
-      border: 1px solid #E5E7EB;
-      border-radius: 8px;
-      padding: 12px;
-    }
-
-    .payment-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid #E5E7EB;
-    }
-
-    .payment-header h4 {
-      font-size: 13px;
-      font-weight: 600;
-      color: #1F2937;
-      margin: 0;
-    }
-
-    .payment-status-badge {
-      padding: 4px 10px;
-      border-radius: 9999px;
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.025em;
-    }
-
-    .payment-status-badge.pending {
-      background: #FEF3C7;
-      color: #B45309;
-      border: 1px solid #FDE68A;
-    }
-
-    .payment-status-badge.completed {
-      background: #DCFCE7;
-      color: #166534;
-      border: 1px solid #BBF7D0;
-    }
-
-    .payment-status-badge.failed {
-      background: #FEE2E2;
-      color: #DC2626;
-      border: 1px solid #FECACA;
-    }
-
-    .payment-info-grid {
+    .payment-info-compact {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px;
+      gap: 8px 16px;
     }
 
-    .payment-info-item {
+    .payment-item {
       display: flex;
       flex-direction: column;
       gap: 2px;
     }
 
-    .payment-info-item.full-width {
+    .payment-item.full {
       grid-column: 1 / -1;
     }
 
-    .payment-info-item .info-label {
-      font-size: 11px;
+    .payment-label {
+      font-size: 12px;
       color: #6B7280;
       font-weight: 500;
     }
 
-    .payment-info-item .info-value {
-      font-size: 12px;
+    .payment-value {
+      font-size: 13px;
       color: #1F2937;
       font-weight: 600;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
     }
 
-    /* Blockchain Link */
-    .blockchain-link-small {
+    .blockchain-link {
       display: inline-flex;
       align-items: center;
-      gap: 3px;
+      gap: 4px;
       color: #3B82F6;
       text-decoration: none;
       font-weight: 600;
-      font-size: 11px;
+      font-size: 12px;
       transition: all 0.2s ease;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
     }
 
-    .blockchain-link-small:hover {
+    .blockchain-link:hover {
       color: #2563EB;
       text-decoration: underline;
     }
 
-    .blockchain-link-small .external-link-icon {
-      margin-left: 1px;
+    .blockchain-link svg {
       opacity: 0.7;
+      flex-shrink: 0;
+    }
+
+    .payment-loading {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+      padding: 10px;
+      background: #F9FAFB;
+      border-radius: 8px;
+      color: #6B7280;
+      font-size: 12px;
     }
 
     /* Responsive Design */
@@ -490,13 +399,20 @@ export interface TransactionCardData {
         font-size: 11px;
       }
 
-      .payment-info-grid {
+      .payment-info-compact {
         grid-template-columns: 1fr;
       }
 
-      .btn-view-payment {
-        font-size: 12px;
-        padding: 8px 12px;
+      .payment-item {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .payment-item.full {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
       }
     }
   `]
@@ -506,7 +422,6 @@ export class TransactionCardComponent {
   @Input() paymentRequest?: PaymentRequest | null;
   @Input() isLoadingPayment = false;
   @Output() cardClick = new EventEmitter<TransactionCardData>();
-  @Output() loadPaymentRequest = new EventEmitter<string>();
 
   onCardClick() {
     if (this.transaction.status === BuyStatus.Pending) {
@@ -514,14 +429,37 @@ export class TransactionCardComponent {
     }
   }
 
-  onLoadPaymentRequest(event: Event) {
-    event.stopPropagation();
-    this.loadPaymentRequest.emit(this.transaction.id);
+  /**
+   * Check if payment details should be shown (only for specific statuses)
+   */
+  shouldShowPaymentDetails(): boolean {
+    return this.transaction.status === BuyStatus.PaymentConfirmed ||
+           this.transaction.status === BuyStatus.DisputeResolvedBuyer;
+  }
+
+  /**
+   * Get the status class to display (payment request status if available, otherwise buy status)
+   */
+  getDisplayStatusClass(): string {
+    if (this.shouldShowPaymentDetails() && this.paymentRequest) {
+      return this.getPaymentRequestStatusClass(this.paymentRequest.status);
+    }
+    return this.getStatusClass(this.transaction.status);
+  }
+
+  /**
+   * Get the status label to display (payment request status if available, otherwise buy status)
+   */
+  getDisplayStatusLabel(): string {
+    if (this.shouldShowPaymentDetails() && this.paymentRequest) {
+      return this.getPaymentRequestStatusLabel(this.paymentRequest.status);
+    }
+    return this.getStatusLabel(this.transaction.status);
   }
 
   getStatusClass(status: BuyStatus): string {
     switch (status) {
-      case BuyStatus.Completed:
+      // case BuyStatus.Completed:
       case BuyStatus.PaymentConfirmed:
       case BuyStatus.DisputeFavorBuyer:
       case BuyStatus.DisputeResolvedBuyer:
@@ -550,8 +488,8 @@ export class TransactionCardComponent {
         return 'Verificando Pagamento';
       case BuyStatus.PaymentConfirmed:
         return 'Pagamento Confirmado';
-      case BuyStatus.Completed:
-        return 'Concluída';
+      // case BuyStatus.Completed:
+      //   return 'Concluída';
       case BuyStatus.Cancelled:
         return 'Cancelada';
       case BuyStatus.Expired:

@@ -198,7 +198,6 @@ import { QuoteService } from '../../shared/api/quote.service';
                   [paymentRequest]="paymentRequests().get(transaction.id)"
                   [isLoadingPayment]="loadingPaymentRequest() === transaction.id"
                   (cardClick)="onTransactionClick($event)"
-                  (loadPaymentRequest)="loadPaymentRequest($event)"
                 />
               }
             </div>
@@ -361,8 +360,7 @@ import { QuoteService } from '../../shared/api/quote.service';
     .balance-loading {
       display: flex;
       justify-content: flex-end;
-      align-items: center;
-      min-height: 72px;
+      padding: 12px 0;
     }
 
     .wallet-info {
@@ -1147,7 +1145,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   getStatusClass(status: BuyStatus): string {
     switch (status) {
-      case BuyStatus.Completed:
+      // case BuyStatus.Completed:
       case BuyStatus.PaymentConfirmed:
       case BuyStatus.DisputeFavorBuyer:
       case BuyStatus.DisputeResolvedBuyer:
@@ -1176,8 +1174,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
         return 'Verificando Pagamento';
       case BuyStatus.PaymentConfirmed:
         return 'Pagamento Confirmado';
-      case BuyStatus.Completed:
-        return 'Concluída';
+      // case BuyStatus.Completed:
+      //   return 'Concluída';
       case BuyStatus.Cancelled:
         return 'Cancelada';
       case BuyStatus.Expired:
@@ -1271,6 +1269,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
             // Clear and reload payment requests for the new transactions
             this.paymentRequests.set(new Map());
+
+            // Automatically load payment requests for specific statuses
+            this.loadPaymentRequestsForCompletedBuys(mappedBuys);
           }
 
           // Check if there are more pages available
@@ -1307,6 +1308,21 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const transactionId = txId.startsWith('0x') ? txId : `0x${txId}`;
     const chain = environment.network === 'mainnet' ? 'mainnet' : 'testnet';
     return `https://explorer.hiro.so/txid/${transactionId}?chain=${chain}`;
+  }
+
+  /**
+   * Automatically load payment requests for buys with specific statuses
+   * Only loads for PaymentConfirmed and DisputeResolvedBuyer statuses
+   */
+  private loadPaymentRequestsForCompletedBuys(buys: any[]) {
+    const buysNeedingPaymentInfo = buys.filter(buy =>
+      buy.status === BuyStatus.PaymentConfirmed ||
+      buy.status === BuyStatus.DisputeResolvedBuyer
+    );
+
+    buysNeedingPaymentInfo.forEach(buy => {
+      this.loadPaymentRequest(buy.id);
+    });
   }
 
   loadPaymentRequest(buyId: string) {
@@ -1402,7 +1418,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       BuyStatus.Cancelled,
       BuyStatus.Expired,
       BuyStatus.PaymentConfirmed,
-      BuyStatus.Completed,
+      // BuyStatus.Completed,
       BuyStatus.DisputeResolvedBuyer,
       BuyStatus.DisputeResolvedSeller
     ];
