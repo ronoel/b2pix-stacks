@@ -5,7 +5,7 @@ import { switchMap, catchError, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { BoltContractSBTCService } from '../../libs/bolt-contract-sbtc.service';
 import { WalletService } from '../../libs/wallet.service';
-import { Advertisement, AdvertisementStatus, Deposit } from '../models/advertisement.model';
+import { Advertisement, AdvertisementStatus, Deposit, PricingMode } from '../models/advertisement.model';
 import { SignedRequest } from '../models/api.model';
 
 export interface CreateAdvertisementRequest {
@@ -13,6 +13,7 @@ export interface CreateAdvertisementRequest {
     price: bigint
     minAmount: number  // Minimum purchase amount in cents
     maxAmount: number  // Maximum purchase amount in cents
+    pricingMode: PricingMode  // 'fixed' or 'dynamic'
 }
 
 export interface GetAdvertisementsParams {
@@ -59,7 +60,8 @@ export class AdvertisementService {
         return this.http.post<Advertisement>(`${this.apiUrl}/v1/advertisements`, {
           transaction: transactionSerialized,
           min_amount: request.minAmount,
-          max_amount: request.maxAmount
+          max_amount: request.maxAmount,
+          pricing_mode: request.pricingMode
         });
       }),
       catchError((transferError: any) => {

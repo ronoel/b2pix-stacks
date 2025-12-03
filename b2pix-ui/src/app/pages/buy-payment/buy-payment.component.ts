@@ -92,9 +92,19 @@ import { Buy } from '../../shared/models/buy.model';
             <div class="payment-card">
               <!-- Amount Section -->
               <div class="amount-section">
-                <p class="amount-label">Valor exato a pagar:</p>
-                <div class="payment-amount">R$ {{ formatCurrency(getTotalFiatAmount()) }}</div>
-                <p class="amount-help">Pague exatamente este valor via PIX</p>
+                <div class="amount-row">
+                  <div class="amount-item">
+                    <p class="amount-label">Valor exato a pagar:</p>
+                    <div class="payment-amount">R$ {{ formatCurrency(getTotalFiatAmount()) }}</div>
+                    <p class="amount-help">Pague exatamente este valor via PIX</p>
+                  </div>
+                  <div class="amount-divider"></div>
+                  <div class="amount-item">
+                    <p class="amount-label">Você receberá:</p>
+                    <div class="btc-amount">{{ formatBTC(getBtcAmount()) }} <span class="btc-unit">BTC</span></div>
+                    <p class="amount-help">{{ formatSats(getBtcAmountInSats()) }} satoshis</p>
+                  </div>
+                </div>
               </div>
 
               <!-- PIX Key Section -->
@@ -408,8 +418,24 @@ import { Buy } from '../../shared/models/buy.model';
       padding: 24px;
       background: #F9FAFB;
       border-radius: 12px;
-      text-align: center;
       border: 1px solid #E5E7EB;
+    }
+
+    .amount-row {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .amount-item {
+      text-align: center;
+    }
+
+    .amount-divider {
+      width: 2px;
+      height: 80px;
+      background: linear-gradient(to bottom, transparent, #D1D5DB, transparent);
     }
 
     .amount-label {
@@ -424,6 +450,21 @@ import { Buy } from '../../shared/models/buy.model';
       font-weight: 700;
       color: #F59E0B;
       margin: 0 0 8px 0;
+    }
+
+    .btc-amount {
+      font-size: 32px;
+      font-weight: 700;
+      color: #1E40AF;
+      margin: 0 0 8px 0;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    }
+
+    .btc-unit {
+      font-size: 20px;
+      font-weight: 600;
+      color: #6B7280;
+      margin-left: 4px;
     }
 
     .amount-help {
@@ -802,6 +843,22 @@ import { Buy } from '../../shared/models/buy.model';
         padding: 20px;
       }
 
+      .amount-row {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+
+      .amount-divider {
+        width: 100%;
+        height: 2px;
+        background: linear-gradient(to right, transparent, #D1D5DB, transparent);
+      }
+
+      .payment-amount,
+      .btc-amount {
+        font-size: 28px;
+      }
+
       .pix-key-container {
         flex-direction: column;
       }
@@ -945,6 +1002,25 @@ export class BuyPaymentComponent implements OnInit, OnDestroy {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     }).format(value);
+  }
+
+  getBtcAmountInSats(): number {
+    const buy = this.buyData();
+    if (!buy) return 0;
+    return Number(buy.amount);
+  }
+
+  getBtcAmount(): number {
+    const sats = this.getBtcAmountInSats();
+    return sats / 100000000; // Convert sats to BTC
+  }
+
+  formatBTC(amount: number): string {
+    return amount.toFixed(8);
+  }
+
+  formatSats(sats: number): string {
+    return new Intl.NumberFormat('pt-BR').format(sats);
   }
 
   onTransactionIdChange(transactionId: string) {

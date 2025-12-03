@@ -5,7 +5,7 @@ use crate::{
     config::Config,
     features::{
         advertisements::{
-            domain::entities::AdvertisementId, ports::repositories::AdvertisementRepository,
+            domain::entities::{AdvertisementId, PricingMode}, ports::repositories::AdvertisementRepository,
         },
         buys::{
             domain::entities::{Buy, BuyId, BuyStatus},
@@ -20,7 +20,11 @@ use crate::{
     },
     infrastructure::storage::GcsManager,
     publisher::EventPublisher,
-    services::{efi_pay_service::EfiPayService, trello::{TrelloCardService, TrelloConfig}},
+    services::{
+        efi_pay_service::EfiPayService,
+        bitcoin_price::quote_service::QuoteService,
+        trello::{TrelloCardService, TrelloConfig}
+    },
 };
 
 /// Normalize PIX confirmation codes to avoid user confusion with ambiguous characters
@@ -61,6 +65,7 @@ pub struct BuyService {
     event_publisher: Arc<EventPublisher>,
     config: Arc<Config>,
     efi_pay_service: Arc<EfiPayService>,
+    quote_service: Arc<QuoteService>,
 }
 
 impl BuyService {
@@ -72,6 +77,7 @@ impl BuyService {
         event_publisher: Arc<EventPublisher>,
         config: Arc<Config>,
         efi_pay_service: Arc<EfiPayService>,
+        quote_service: Arc<QuoteService>,
     ) -> Self {
         Self {
             buy_repository,
@@ -81,6 +87,7 @@ impl BuyService {
             event_publisher,
             config,
             efi_pay_service,
+            quote_service,
         }
     }
 
@@ -88,6 +95,7 @@ impl BuyService {
         &self,
         advertisement_id: AdvertisementId,
         pay_value: u128,
+        quoted_price: u128,
         address_buy: CryptoAddress,
     ) -> Result<Buy, ApiError> {
         // Validate pay_value
@@ -97,7 +105,14 @@ impl BuyService {
             ));
         }
 
-        // First, get the advertisement to calculate the amount
+        // Validate quoted_price
+        if quoted_price == 0 {
+            return Err(ApiError::BadRequest(
+                "Price must be greater than zero".to_string(),
+            ));
+        }
+
+        // First, get the advertisement
         let advertisement = self
             .advertisement_repository
             .find_by_id(&advertisement_id)
@@ -107,10 +122,50 @@ impl BuyService {
             })?
             .ok_or(ApiError::NotFound)?;
 
-        // Calculate the amount based on pay_value and advertisement price
+        // Validate price based on pricing mode
+        let validated_price = match &advertisement.pricing_mode {
+            PricingMode::Fixed { price } => {
+                // For fixed pricing: quoted price must match exactly
+                if quoted_price != *price {
+                    return Err(ApiError::BadRequest(format!(
+                        "Price mismatch: expected {}, got {}",
+                        price, quoted_price
+                    )));
+                }
+                *price
+            }
+            PricingMode::Dynamic { percentage_offset } => {
+                // For dynamic pricing: get current market price and validate
+                let market_price = self.quote_service.get_bitcoin_price().await
+                    .map_err(|e| {
+                        tracing::error!("Failed to get Bitcoin price: {}", e);
+                        ApiError::BadRequest(format!("Quote service unavailable: {}", e))
+                    })?;
+
+                // Calculate base price with percentage offset
+                let offset_multiplier = 1.0 + (percentage_offset / 100.0);
+                let base_price = (market_price as f64 * offset_multiplier) as u128;
+
+                // Calculate minimum allowed price with -0.3% tolerance
+                let min_allowed_price = (base_price as f64 * 0.997) as u128;
+
+                // Validate that quoted price is >= minimum
+                if quoted_price < min_allowed_price {
+                    return Err(ApiError::BadRequest(format!(
+                        "Price below minimum: quoted {}, minimum allowed {} (current market: {})",
+                        quoted_price, min_allowed_price, market_price
+                    )));
+                }
+
+                // Use the quoted price (which is validated to be within tolerance)
+                quoted_price
+            }
+        };
+
+        // Calculate the amount based on pay_value and validated price
         // pay_value = (amount * price / 100_000_000)
         // So: amount = pay_value * 100_000_000 / price
-        let amount = pay_value * 100_000_000 / advertisement.price;
+        let amount = pay_value * 100_000_000 / validated_price;
 
         // Reserve funds from advertisement (atomic operation)
         let advertisement = self
@@ -134,7 +189,7 @@ impl BuyService {
         let buy = match Buy::new(
             advertisement_id.clone(),
             amount,
-            advertisement.price,
+            validated_price,
             0, // No fee for now
             pay_value,
             address_buy,

@@ -94,13 +94,19 @@ pub enum AdvertisementError {
     
     #[error("Invalid amount range: max amount must be greater than or equal to min amount")]
     InvalidAmountRange,
-    
+
+    #[error("Invalid percentage offset: must be between -100% and +1000%")]
+    InvalidPercentageOffset,
+
+    #[error("Market price required for dynamic pricing")]
+    MarketPriceRequired,
+
     #[error("Insufficient funds")]
     InsufficientFunds,
-    
+
     #[error("Advertisement not found")]
     NotFound,
-    
+
     #[error("Invalid status transition")]
     InvalidStatusTransition,
     
@@ -259,13 +265,26 @@ pub enum BuyError {
     
     #[error("Invalid price: must be positive")]
     InvalidPrice,
-    
+
+    #[error("Price mismatch: expected {expected}, got {provided}")]
+    PriceMismatch { expected: u128, provided: u128 },
+
+    #[error("Price below minimum: quoted {quoted}, minimum allowed {minimum} (current market: {current_market})")]
+    PriceBelowMinimum {
+        quoted: u128,
+        minimum: u128,
+        current_market: u128,
+    },
+
+    #[error("Quote service unavailable: {0}")]
+    QuoteServiceUnavailable(String),
+
     #[error("Invalid fee: must be non-negative")]
     InvalidFee,
-    
+
     #[error("Invalid PIX key: {0}")]
     InvalidPixKey(String),
-    
+
     #[error("Buy not found")]
     NotFound,
     

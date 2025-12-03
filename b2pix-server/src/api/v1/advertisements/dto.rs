@@ -9,6 +9,7 @@ pub struct CreateAdvertisementRequest {
     pub transaction: String,
     pub min_amount: i64,
     pub max_amount: i64,
+    pub pricing_mode: String, // "fixed" or "dynamic"
 }
 
 /// Response for update operations
@@ -90,7 +91,9 @@ pub struct AdvertisementResponse {
     pub seller_address: String,
     pub token: String,
     pub currency: String,
-    pub price: u128,
+    pub pricing_mode: String,           // "fixed" or "dynamic"
+    pub price: Option<u128>,             // For fixed pricing (in cents)
+    pub percentage_offset: Option<f64>,  // For dynamic pricing (e.g., 3.15 or -2.5)
     pub total_deposited: u128,
     pub available_amount: u128,
     pub min_amount: i64,
@@ -164,12 +167,23 @@ impl From<AdvertisementDeposit> for DepositResponse {
 
 impl From<Advertisement> for AdvertisementResponse {
     fn from(advertisement: Advertisement) -> Self {
+        use crate::features::advertisements::domain::entities::PricingMode;
+
+        let (pricing_mode_str, price, percentage_offset) = match &advertisement.pricing_mode {
+            PricingMode::Fixed { price } => ("fixed".to_string(), Some(*price), None),
+            PricingMode::Dynamic { percentage_offset } => {
+                ("dynamic".to_string(), None, Some(*percentage_offset))
+            }
+        };
+
         Self {
             id: advertisement.id.to_string(),
             seller_address: advertisement.seller_address.as_str().to_string(),
             token: advertisement.token.as_str().to_string(),
             currency: advertisement.currency.as_str().to_string(),
-            price: advertisement.price,
+            pricing_mode: pricing_mode_str,
+            price,
+            percentage_offset,
             total_deposited: advertisement.total_deposited,
             available_amount: advertisement.available_amount,
             min_amount: advertisement.min_amount,

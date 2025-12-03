@@ -2,21 +2,28 @@ import { Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
 // import { CommonModule } from '@angular/common';
 // import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { TransactionService } from '../../services/transaction.service';
 import { UserService } from '../../services/user.service';
 import { LoadingService } from '../../services/loading.service';
 import { AdvertisementService } from '../../shared/api/advertisement.service';
 import { BuyService } from '../../shared/api/buy.service';
 import { InvitesService } from '../../shared/api/invites.service';
+import { QuoteService } from '../../shared/api/quote.service';
 import { Advertisement } from '../../shared/models/advertisement.model';
 import { Buy } from '../../shared/models/buy.model';
 import { BitcoinListing } from '../../interfaces/transaction.interface';
+import { PricingUtils } from '../../shared/utils/pricing.utils';
 
 interface PriceRange {
   advertisement: BitcoinListing;
   minAmount: number;
   maxAmount: number;
   pricePerBtc: number;
+}
+
+interface ExtendedBitcoinListing extends BitcoinListing {
+  _advertisement?: Advertisement; // Store original advertisement for reference
 }
 
 @Component({
@@ -1000,10 +1007,11 @@ export class BuyComponent implements OnInit, OnDestroy {
   private advertisementService = inject(AdvertisementService);
   private buyService = inject(BuyService);
   private invitesService = inject(InvitesService);
+  private quoteService = inject(QuoteService);
 
   // Core signals
-  listings = signal<BitcoinListing[]>([]);
-  selectedListing = signal<BitcoinListing | null>(null);
+  listings = signal<ExtendedBitcoinListing[]>([]);
+  selectedListing = signal<ExtendedBitcoinListing | null>(null);
   isLoadingListings = signal(false);
 
   // Simplified purchase flow
@@ -1019,8 +1027,59 @@ export class BuyComponent implements OnInit, OnDestroy {
   // Price ranges for the new UX
   priceRanges = signal<PriceRange[]>([]);
 
+  // Quote polling (silent - for dynamic pricing)
+  currentQuotePrice = signal<number | null>(null);
+  private quoteSubscription?: Subscription;
+
   ngOnInit() {
+    this.startSilentQuotePolling();
     this.loadListings();
+  }
+
+  /**
+   * Start silent 30-second quote polling (no UI indication to buyers)
+   */
+  private startSilentQuotePolling(): void {
+    this.quoteSubscription = this.quoteService.getBtcPriceStream().subscribe({
+      next: (quote) => {
+        const priceInCents = parseInt(quote.price, 10);
+        this.currentQuotePrice.set(priceInCents);
+        this.updateDynamicPrices(); // Update prices silently
+      },
+      error: (err) => {
+        // Silent failure - just keep last known prices
+        console.error('Quote polling error (silent):', err);
+      }
+    });
+  }
+
+  /**
+   * Update only dynamic advertisement prices (silent background update)
+   */
+  private updateDynamicPrices(): void {
+    const quote = this.currentQuotePrice();
+    if (!quote) return;
+
+    const updatedListings = this.listings().map(listing => {
+      const ad = listing._advertisement;
+      if (!ad) return listing;
+
+      // Only update if dynamic mode
+      if (ad.pricing_mode === 'dynamic') {
+        const newPrice = PricingUtils.getEffectivePrice(ad, quote);
+        if (newPrice) {
+          // Update the pricePerBtc in the listing (convert cents to BRL)
+          return { ...listing, pricePerBtc: Math.floor(newPrice / 100) };
+        }
+      }
+
+      return listing;
+    });
+
+    this.listings.set(updatedListings);
+
+    // Recalculate price ranges with updated prices
+    this.calculateAndSetPriceRanges(updatedListings);
   }
 
   loadListings() {
@@ -1060,22 +1119,39 @@ export class BuyComponent implements OnInit, OnDestroy {
 
   /**
    * Maps Advertisement objects to BitcoinListing objects for compatibility
+   * Handles both fixed and dynamic pricing
    */
-  private mapAdvertisementsToListings(advertisements: Advertisement[]): BitcoinListing[] {
+  private mapAdvertisementsToListings(advertisements: Advertisement[]): ExtendedBitcoinListing[] {
+    const currentQuote = this.currentQuotePrice();
+
     return advertisements.map(ad => {
-      // API returns price in cents per Bitcoin
-      const priceCentsPerBtc = ad.price;
       const availableAmountSats = ad.available_amount;
-      
+
+      // Calculate effective price in cents
+      let priceCentsPerBtc: number;
+
+      if (ad.pricing_mode === 'fixed') {
+        priceCentsPerBtc = ad.price!;
+      } else {
+        // Dynamic pricing
+        const effectivePrice = PricingUtils.getEffectivePrice(ad, currentQuote);
+        if (effectivePrice) {
+          priceCentsPerBtc = effectivePrice;
+        } else {
+          // Fallback if quote not available yet - skip this ad or use 0
+          priceCentsPerBtc = 0;
+        }
+      }
+
       // Convert from cents per Bitcoin to BRL per Bitcoin for display
       // price_cents_per_btc / 100_cents_per_real = price_reais_per_btc
       const pricePerBtc = Math.floor(priceCentsPerBtc / 100);
-      
+
       // Convert min/max amounts from cents to reais
       const minPurchaseReais = ad.min_amount / 100;
       const maxPurchaseReais = ad.max_amount / 100;
-      
-      const mapped = {
+
+      const mapped: ExtendedBitcoinListing = {
         id: ad.id,
         sellerId: ad.seller_address,
         sellerName: this.formatSellerName(ad.seller_address),
@@ -1084,11 +1160,12 @@ export class BuyComponent implements OnInit, OnDestroy {
         minPurchase: minPurchaseReais, // Use the min_amount from API (converted from cents)
         maxPurchase: maxPurchaseReais, // Use the max_amount from API (converted from cents)
         pixKey: 'PIX disponível', // Placeholder since PIX key isn't in Advertisement model
-        createdAt: new Date(ad.created_at)
+        createdAt: new Date(ad.created_at),
+        _advertisement: ad // Store original advertisement for reference
       };
-      
+
       return mapped;
-    });
+    }).filter(listing => listing.pricePerBtc > 0); // Filter out ads without valid price
   }
 
   /**
@@ -1265,13 +1342,40 @@ export class BuyComponent implements OnInit, OnDestroy {
 
     if (!listing || amount <= 0) return;
 
+    // Get the original advertisement to determine pricing mode
+    const advertisement = listing._advertisement;
+    if (!advertisement) {
+      alert('Erro: informações do anúncio não encontradas.');
+      return;
+    }
+
+    // Calculate quoted price in cents based on pricing mode
+    let quotedPriceCents: number;
+
+    if (advertisement.pricing_mode === 'fixed') {
+      quotedPriceCents = advertisement.price!;
+    } else {
+      // Dynamic pricing - use current quote
+      const currentQuote = this.currentQuotePrice();
+      if (!currentQuote) {
+        alert('Cotação indisponível. Por favor, aguarde.');
+        return;
+      }
+      const effectivePrice = PricingUtils.getEffectivePrice(advertisement, currentQuote);
+      if (!effectivePrice) {
+        alert('Não foi possível calcular o preço. Tente novamente.');
+        return;
+      }
+      quotedPriceCents = effectivePrice;
+    }
+
     this.isProcessingPurchase.set(true);
     this.loadingService.show('Iniciando compra...');
 
     // Calculate the total amount in cents for the API
     const payAmountCents = Math.round(amount * 100);
 
-    this.buyService.startBuy(payAmountCents, listing.id).subscribe({
+    this.buyService.startBuy(payAmountCents, listing.id, quotedPriceCents).subscribe({
       next: (buyResponse: any) => {
         this.buyRecord.set(buyResponse);
         this.isProcessingPurchase.set(false);
@@ -1285,7 +1389,21 @@ export class BuyComponent implements OnInit, OnDestroy {
         console.error('Erro ao iniciar compra:', error);
         this.isProcessingPurchase.set(false);
         this.loadingService.hide();
-        alert('Erro ao iniciar a compra. Tente novamente.');
+
+        // Handle specific error cases
+        if (error.message === 'PRICE_MISMATCH' || error.message === 'PRICE_TOO_LOW') {
+          // Price changed - refresh listings
+          this.loadListings();
+          this.showConfirmationModal.set(false);
+          alert('O preço mudou. Por favor, selecione novamente.');
+        } else if (error.message === 'QUOTE_UNAVAILABLE') {
+          alert('Sistema de cotação temporariamente indisponível. Tente novamente em alguns instantes.');
+        } else if (error.message && error.message.includes('cancelada')) {
+          // User cancelled signature - don't show error
+          this.showConfirmationModal.set(false);
+        } else {
+          alert('Erro ao iniciar a compra. Tente novamente.');
+        }
       }
     });
   }
@@ -1334,6 +1452,9 @@ export class BuyComponent implements OnInit, OnDestroy {
   readonly SATS_PER_BTC = 100000000n; // 100 million satoshis per bitcoin as BigInt
 
   ngOnDestroy() {
-    // Component cleanup if needed
+    // Unsubscribe from quote polling
+    if (this.quoteSubscription) {
+      this.quoteSubscription.unsubscribe();
+    }
   }
 }

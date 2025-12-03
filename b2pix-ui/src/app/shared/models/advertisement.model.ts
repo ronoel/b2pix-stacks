@@ -40,12 +40,16 @@ export interface Deposit {
     confirmed_at: string | null;
 }
 
+export type PricingMode = 'fixed' | 'dynamic';
+
 export interface Advertisement {
     id: string;
     seller_address: string;
     token: string;
     currency: string;
-    price: number;  // Price in cents per Bitcoin (BRL cents per 1 BTC)
+    pricing_mode: PricingMode;
+    price?: number;  // Price in cents per Bitcoin (only present if pricing_mode === 'fixed')
+    percentage_offset?: number;  // Percentage offset (only present if pricing_mode === 'dynamic', e.g., 3.15 or -2.5)
     total_deposited: number;  // Total amount deposited in sats
     available_amount: number;  // Available amount in sats
     min_amount: number;  // Minimum purchase amount in cents (BRL)
@@ -54,4 +58,11 @@ export interface Advertisement {
     is_active: boolean;
     created_at: string;
     updated_at: string;
+}
+
+export interface CreateAdvertisementRequest {
+    transaction: string;
+    min_amount: number;
+    max_amount: number;
+    pricing_mode: PricingMode;
 }

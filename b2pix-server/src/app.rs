@@ -118,6 +118,9 @@ pub async fn run() -> anyhow::Result<()> {
     let buy_repository: Arc<dyn crate::features::buys::ports::repositories::BuyRepository> =
         Arc::new(BuyRepositoryImpl::new(&db));
 
+    // Initialize quote service (needed before buy_service)
+    let quote_service = Arc::new(QuoteService::new());
+
     let buy_service = Arc::new(buy_service::BuyService::new(
         Arc::clone(&buy_repository),
         Arc::clone(&advertisement_repository),
@@ -126,6 +129,7 @@ pub async fn run() -> anyhow::Result<()> {
         Arc::clone(&event_publisher),
         Arc::clone(&config),
         Arc::clone(&efi_pay_service),
+        Arc::clone(&quote_service),
     ));
 
     // Initialize email service
@@ -133,9 +137,6 @@ pub async fn run() -> anyhow::Result<()> {
 
     // Initialize trello service
     let trello_service = TrelloService::new();
-
-    // Initialize quote service
-    let quote_service = Arc::new(QuoteService::new());
 
     // Initialize B2Pix transfer service
     let b2pix_transfer_service = Arc::new(B2PixTransferService::new(Arc::clone(&config)));

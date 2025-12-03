@@ -35,6 +35,7 @@ pub struct BuyCreatePayload {
     pub action: String,
     pub domain: String,
     pub pay_value: u128,
+    pub price: u128,                  // User's current price understanding
     pub address_buy: String,
     pub advertisement_id: String,
     pub timestamp: String,
@@ -43,18 +44,20 @@ pub struct BuyCreatePayload {
 impl BuyCreatePayload {
     pub fn parse(payload: &str) -> Result<Self, String> {
         let lines: Vec<&str> = payload.split('\n').collect();
-        
-        if lines.len() != 6 {
-            return Err("Payload must contain exactly 6 lines".to_string());
+
+        if lines.len() != 7 {
+            return Err("Payload must contain exactly 7 lines".to_string());
         }
-        
+
         let action = lines[0].trim().to_string();
         let domain = lines[1].trim().to_string();
         let pay_value: u128 = lines[2].trim().to_string().parse()
             .map_err(|e| format!("Invalid pay_value format: {}", e))?;
-        let address_buy = lines[3].trim().to_string();
-        let advertisement_id = lines[4].trim().to_string();
-        let timestamp = lines[5].trim().to_string();
+        let price: u128 = lines[3].trim().to_string().parse()
+            .map_err(|e| format!("Invalid price format: {}", e))?;
+        let address_buy = lines[4].trim().to_string();
+        let advertisement_id = lines[5].trim().to_string();
+        let timestamp = lines[6].trim().to_string();
 
         // Validate action
         if action != "B2PIX - Comprar" {
@@ -66,6 +69,11 @@ impl BuyCreatePayload {
             return Err("Pay value must be greater than zero".to_string());
         }
 
+        // Validate price is greater than zero
+        if price == 0 {
+            return Err("Price must be greater than zero".to_string());
+        }
+
         // Validate domain
         ValidationService::validate_domain(&domain)
             .map_err(|e| format!("Domain validation failed: {}", e))?;
@@ -74,15 +82,16 @@ impl BuyCreatePayload {
         // Validate Stacks address format
         ValidationService::validate_stacks_address(&address_buy)
             .map_err(|e| format!("Address validation failed: {}", e))?;
-        
+
         // Validate timestamp
         ValidationService::validate_timestamp(&timestamp)
             .map_err(|e| format!("Timestamp validation failed: {}", e))?;
-        
+
         Ok(BuyCreatePayload {
             action,
             domain,
             pay_value,
+            price,
             address_buy,
             advertisement_id,
             timestamp,

@@ -131,7 +131,7 @@ impl AdvertisementStatus {
     /// Check if status can transition to the target status
     pub fn can_transition_to(&self, target: &AdvertisementStatus) -> bool {
         use AdvertisementStatus::*;
-        
+
         match (self, target) {
             // From Draft
             (Draft, Pending) => true,
@@ -191,6 +191,49 @@ impl AdvertisementStatus {
     }
 }
 
+/// Advertisement pricing mode
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum PricingMode {
+    /// Fixed price in cents per BTC
+    Fixed {
+        #[serde(with = "u128_as_i64")]
+        price: u128,
+    },
+    /// Dynamic price based on market price with percentage offset
+    /// Offset examples: 3.15 = +3.15%, -2.5 = -2.5%
+    Dynamic {
+        percentage_offset: f64,
+    },
+}
+
+impl PricingMode {
+    /// Get the effective price for this pricing mode
+    /// For Fixed mode: returns the stored price
+    /// For Dynamic mode: calculates price based on market_price + offset
+    pub fn get_effective_price(&self, market_price: Option<u128>) -> Result<u128, AdvertisementError> {
+        match self {
+            PricingMode::Fixed { price } => Ok(*price),
+            PricingMode::Dynamic { percentage_offset } => {
+                let market = market_price.ok_or(AdvertisementError::MarketPriceRequired)?;
+                let offset_multiplier = 1.0 + (percentage_offset / 100.0);
+                let effective_price = (market as f64 * offset_multiplier) as u128;
+                Ok(effective_price)
+            }
+        }
+    }
+
+    /// Check if this is a dynamic pricing mode
+    pub fn is_dynamic(&self) -> bool {
+        matches!(self, PricingMode::Dynamic { .. })
+    }
+
+    /// Check if this is a fixed pricing mode
+    pub fn is_fixed(&self) -> bool {
+        matches!(self, PricingMode::Fixed { .. })
+    }
+}
+
 /// Represents a cryptocurrency sale advertisement
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Advertisement {
@@ -202,9 +245,8 @@ pub struct Advertisement {
     pub token: String,
     /// Fiat currency (e.g., "BRL", "USD")
     pub currency: String,
-    /// Price per token unit (in cents)
-    #[serde(with = "u128_as_i64")]
-    pub price: u128,
+    /// Pricing mode (fixed or dynamic)
+    pub pricing_mode: PricingMode,
     /// Total amount of tokens deposited (sum of all confirmed deposits)
     #[serde(with = "u128_as_i64")]
     pub total_deposited: u128,
@@ -235,13 +277,25 @@ impl Advertisement {
         seller_address: String,
         token: String,
         currency: String,
-        price: u128,
+        pricing_mode: PricingMode,
         pix_key: String,
         min_amount: i64,
         max_amount: i64,
     ) -> Result<Self, AdvertisementError> {
-        if price == 0 {
-            return Err(AdvertisementError::InvalidPrice);
+        // Validate pricing mode
+        match &pricing_mode {
+            PricingMode::Fixed { price } => {
+                if *price == 0 {
+                    return Err(AdvertisementError::InvalidPrice);
+                }
+            }
+            PricingMode::Dynamic { percentage_offset } => {
+                // Allow any percentage offset (positive or negative)
+                // Validate reasonable range (-100% to +1000%)
+                if *percentage_offset < -100.0 || *percentage_offset > 1000.0 {
+                    return Err(AdvertisementError::InvalidPercentageOffset);
+                }
+            }
         }
 
         if min_amount <= 0 {
@@ -263,7 +317,7 @@ impl Advertisement {
             seller_address,
             token,
             currency,
-            price,
+            pricing_mode,
             total_deposited: 0, // Will be updated when deposits are confirmed
             available_amount: 0, // Will be updated when deposits are confirmed
             min_amount,
@@ -303,12 +357,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_advertisement_new_with_valid_amounts() {
+    fn test_advertisement_new_with_valid_amounts_fixed() {
         let result = Advertisement::new(
             "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh".to_string(),
             "BTC".to_string(),
             "BRL".to_string(),
-            100_000, // price: 1000.00 BRL
+            PricingMode::Fixed { price: 100_000 }, // price: 1000.00 BRL
             "user@example.com".to_string(),
             10_000, // min_amount: 100.00 BRL
             50_000, // max_amount: 500.00 BRL
@@ -322,6 +376,30 @@ mod tests {
         assert_eq!(advertisement.available_amount, 0);
         assert_eq!(advertisement.status, AdvertisementStatus::Draft);
         assert!(advertisement.is_active);
+        assert!(matches!(advertisement.pricing_mode, PricingMode::Fixed { .. }));
+    }
+
+    #[test]
+    fn test_advertisement_new_with_valid_amounts_dynamic() {
+        let result = Advertisement::new(
+            "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh".to_string(),
+            "BTC".to_string(),
+            "BRL".to_string(),
+            PricingMode::Dynamic { percentage_offset: 5.15 }, // +5.15% above market
+            "user@example.com".to_string(),
+            10_000, // min_amount: 100.00 BRL
+            50_000, // max_amount: 500.00 BRL
+        );
+
+        assert!(result.is_ok());
+        let advertisement = result.unwrap();
+        assert_eq!(advertisement.min_amount, 10_000);
+        assert_eq!(advertisement.max_amount, 50_000);
+        assert_eq!(advertisement.total_deposited, 0);
+        assert_eq!(advertisement.available_amount, 0);
+        assert_eq!(advertisement.status, AdvertisementStatus::Draft);
+        assert!(advertisement.is_active);
+        assert!(matches!(advertisement.pricing_mode, PricingMode::Dynamic { .. }));
     }
 
     #[test]
@@ -330,7 +408,7 @@ mod tests {
             "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh".to_string(),
             "BTC".to_string(),
             "BRL".to_string(),
-            100_000,
+            PricingMode::Fixed { price: 100_000 },
             "user@example.com".to_string(),
             -1, // negative min_amount
             50_000,
@@ -345,7 +423,7 @@ mod tests {
             "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh".to_string(),
             "BTC".to_string(),
             "BRL".to_string(),
-            100_000,
+            PricingMode::Fixed { price: 100_000 },
             "user@example.com".to_string(),
             0, // zero min_amount
             50_000,
@@ -360,7 +438,7 @@ mod tests {
             "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh".to_string(),
             "BTC".to_string(),
             "BRL".to_string(),
-            100_000,
+            PricingMode::Fixed { price: 100_000 },
             "user@example.com".to_string(),
             10_000,
             -1, // negative max_amount
@@ -375,7 +453,7 @@ mod tests {
             "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh".to_string(),
             "BTC".to_string(),
             "BRL".to_string(),
-            100_000,
+            PricingMode::Fixed { price: 100_000 },
             "user@example.com".to_string(),
             10_000,
             0, // zero max_amount
@@ -390,7 +468,7 @@ mod tests {
             "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh".to_string(),
             "BTC".to_string(),
             "BRL".to_string(),
-            100_000,
+            PricingMode::Fixed { price: 100_000 },
             "user@example.com".to_string(),
             50_000, // min_amount: 500.00 BRL
             10_000, // max_amount: 100.00 BRL (less than min)
@@ -405,7 +483,7 @@ mod tests {
             "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh".to_string(),
             "BTC".to_string(),
             "BRL".to_string(),
-            100_000,
+            PricingMode::Fixed { price: 100_000 },
             "user@example.com".to_string(),
             30_000, // min_amount: 300.00 BRL
             30_000, // max_amount: 300.00 BRL (equal to min)
@@ -415,5 +493,45 @@ mod tests {
         let advertisement = result.unwrap();
         assert_eq!(advertisement.min_amount, 30_000);
         assert_eq!(advertisement.max_amount, 30_000);
+    }
+
+    #[test]
+    fn test_advertisement_new_with_invalid_percentage_offset() {
+        let result = Advertisement::new(
+            "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh".to_string(),
+            "BTC".to_string(),
+            "BRL".to_string(),
+            PricingMode::Dynamic { percentage_offset: 1500.0 }, // 1500% is invalid (> 1000%)
+            "user@example.com".to_string(),
+            10_000,
+            50_000,
+        );
+
+        assert!(matches!(result, Err(AdvertisementError::InvalidPercentageOffset)));
+    }
+
+    #[test]
+    fn test_pricing_mode_get_effective_price_fixed() {
+        let pricing_mode = PricingMode::Fixed { price: 500_000 };
+        let effective_price = pricing_mode.get_effective_price(None).unwrap();
+        assert_eq!(effective_price, 500_000);
+    }
+
+    #[test]
+    fn test_pricing_mode_get_effective_price_dynamic() {
+        let pricing_mode = PricingMode::Dynamic { percentage_offset: 5.0 };
+        let market_price = 400_000u128; // R$ 4000.00
+        let effective_price = pricing_mode.get_effective_price(Some(market_price)).unwrap();
+        // 400_000 * 1.05 = 420_000
+        assert_eq!(effective_price, 420_000);
+    }
+
+    #[test]
+    fn test_pricing_mode_get_effective_price_dynamic_negative_offset() {
+        let pricing_mode = PricingMode::Dynamic { percentage_offset: -3.15 };
+        let market_price = 400_000u128; // R$ 4000.00
+        let effective_price = pricing_mode.get_effective_price(Some(market_price)).unwrap();
+        // 400_000 * 0.9685 = 387_400
+        assert_eq!(effective_price, 387_400);
     }
 }

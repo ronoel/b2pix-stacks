@@ -1,6 +1,7 @@
 import { Component, Input, Output, EventEmitter, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Advertisement, AdvertisementStatus } from '../../shared/models/advertisement.model';
+import { PricingUtils } from '../../shared/utils/pricing.utils';
 
 @Component({
   selector: 'app-listing-card',
@@ -30,8 +31,13 @@ import { Advertisement, AdvertisementStatus } from '../../shared/models/advertis
           <span class="amount-value">{{ formatBTC(ad.total_deposited) }} BTC</span>
         </div>
         <div class="listing-price">
-          <span class="price-label">Preço:</span>
-          <span class="price-value">{{ formatPriceCurrency(ad.price) }}</span>
+          <div class="price-header">
+            <span class="price-label">Preço:</span>
+            <span class="pricing-mode-badge" [ngClass]="getPricingModeBadgeClass()">
+              {{ getPricingModeLabel() }}
+            </span>
+          </div>
+          <span class="price-value">{{ getPriceDisplay() }}</span>
         </div>
         <div class="listing-limits">
           <span class="limits-label">Limites:</span>
@@ -141,6 +147,44 @@ import { Advertisement, AdvertisementStatus } from '../../shared/models/advertis
       display: flex;
       flex-direction: column;
       gap: 4px;
+    }
+
+    .price-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .pricing-mode-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .pricing-mode-badge.badge-fixed {
+      background: #DBEAFE;
+      color: #1E40AF;
+    }
+
+    .pricing-mode-badge.badge-dynamic {
+      background: #E0E7FF;
+      color: #4F46E5;
+    }
+
+    .pricing-mode-badge.badge-discount {
+      background: #DCFCE7;
+      color: #166534;
+    }
+
+    .pricing-mode-badge.badge-premium {
+      background: #FEF3C7;
+      color: #92400E;
     }
 
     .amount-label,
@@ -395,8 +439,15 @@ export class ListingCardComponent {
   getProgressPercentage(): number {
     const total = this.ad.total_deposited;
     const available = this.ad.available_amount;
-    if (total === 0) return 0;
-    return Math.round(((total - available) / total) * 100);
+    const sold = total - available;
+
+    if (total === 0) {
+      return 0;
+    }
+
+    // Round to 1 decimal place to show small percentages like 0.1%, 0.5%, etc.
+    const percentage = Math.round((sold / total) * 1000) / 10;
+    return percentage;
   }
 
   getSoldAmount(): number {
@@ -409,5 +460,32 @@ export class ListingCardComponent {
     if (percentage >= 67) return 'progress-warning';  // 67-90%: Orange (low availability)
     if (percentage >= 34) return 'progress-moderate'; // 34-66%: Yellow (medium availability)
     return 'progress-good';                            // 0-33%: Green (plenty available)
+  }
+
+  // Pricing Mode Methods
+  getPricingModeLabel(): string {
+    if (this.ad.pricing_mode === 'fixed') {
+      return 'Fixo';
+    }
+    const offset = this.ad.percentage_offset || 0;
+    const sign = offset >= 0 ? '+' : '';
+    return `${sign}${offset.toFixed(2)}%`;
+  }
+
+  getPricingModeBadgeClass(): string {
+    if (this.ad.pricing_mode === 'fixed') {
+      return 'badge-fixed';
+    }
+    const offset = this.ad.percentage_offset || 0;
+    if (offset < 0) return 'badge-discount';  // Discount
+    if (offset > 2) return 'badge-premium';    // High premium
+    return 'badge-dynamic';                     // Normal
+  }
+
+  getPriceDisplay(): string {
+    if (this.ad.pricing_mode === 'fixed') {
+      return this.formatPriceCurrency(this.ad.price!);
+    }
+    return 'Dinâmico';
   }
 }

@@ -35,7 +35,13 @@ import { Advertisement, AdvertisementStatus } from '../../../shared/models/adver
           <div class="listing-main-info">
             <div class="listing-price">
               <span class="price-label">Preço por Bitcoin:</span>
-              <span class="price-value">{{ formatPriceCurrency(advertisement().price) }}</span>
+              <span class="price-value">
+                @if (advertisement().pricing_mode === 'fixed') {
+                  {{ formatPriceCurrency(advertisement().price!) }}
+                } @else {
+                  Dinâmico ({{ (advertisement().percentage_offset ?? 0) > 0 ? '+' : '' }}{{ advertisement().percentage_offset ?? 0 }}%)
+                }
+              </span>
             </div>
             <div class="detail-item">
               <span class="amount-label">Quantidade:</span>
@@ -366,8 +372,16 @@ export class ListingCardComponent {
   }
 
   getProgressPercentage(ad: Advertisement): number {
-    if (ad.total_deposited === 0) return 0;
-    const sold = ad.total_deposited - ad.available_amount;
-    return Math.round((sold / ad.total_deposited) * 100);
+    const total = ad.total_deposited;
+    const available = ad.available_amount;
+    const sold = total - available;
+
+    if (total === 0) {
+      return 0;
+    }
+
+    // Round to 1 decimal place to show small percentages like 0.1%, 0.5%, etc.
+    const percentage = Math.round((sold / total) * 1000) / 10;
+    return percentage;
   }
 }

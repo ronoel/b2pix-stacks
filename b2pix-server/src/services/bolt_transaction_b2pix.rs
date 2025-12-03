@@ -25,12 +25,20 @@ where
     s.parse().map_err(serde::de::Error::custom)
 }
 
+fn deserialize_string_to_i128<'de, D>(deserializer: D) -> Result<i128, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    s.parse().map_err(serde::de::Error::custom)
+}
+
 #[derive(serde::Deserialize, Debug)]
 pub struct TransactionDetailResponse {
     pub sender: String,
     pub recipient: String,
-    #[serde(deserialize_with = "deserialize_string_to_u128")]
-    pub price: u128,
+    #[serde(deserialize_with = "deserialize_string_to_i128")]
+    pub price: i128,
     pub currency: String,
     #[serde(deserialize_with = "deserialize_string_to_u128")]
     pub amount: u128,
@@ -41,8 +49,8 @@ pub struct BroadcastResponse {
     pub txid: String,
     pub sender: String,
     pub recipient: String,
-    #[serde(deserialize_with = "deserialize_string_to_u128")]
-    pub price: u128,
+    #[serde(deserialize_with = "deserialize_string_to_i128")]
+    pub price: i128,
     pub currency: String,
     #[serde(deserialize_with = "deserialize_string_to_u128")]
     pub amount: u128,

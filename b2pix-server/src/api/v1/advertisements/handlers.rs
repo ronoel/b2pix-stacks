@@ -70,6 +70,7 @@ pub async fn create_advertisement(
             request.transaction.as_str(),
             request.min_amount,
             request.max_amount,
+            request.pricing_mode,
         )
         .await
         .map_err(|e| {

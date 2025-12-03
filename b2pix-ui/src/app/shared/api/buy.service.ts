@@ -22,10 +22,13 @@ export class BuyService {
 
   /**
    * Start a buy order with wallet signature
+   * @param payValue Amount in BRL cents
+   * @param advertisementId Advertisement ID
+   * @param quotedPrice Quoted price in BRL cents per BTC (for validation)
    */
-  startBuy(payValue: number, advertisementId: string): Observable<Buy> {
+  startBuy(payValue: number, advertisementId: string, quotedPrice: number): Observable<Buy> {
     const addressBuy = this.walletService.getSTXAddress();
-    const payload = `B2PIX - Comprar\n${environment.domain}\n${payValue}\n${addressBuy}\n${advertisementId}\n${this.getTimestamp()}`;
+    const payload = `B2PIX - Comprar\n${environment.domain}\n${payValue}\n${quotedPrice}\n${addressBuy}\n${advertisementId}\n${this.getTimestamp()}`;
 
     return from(this.walletService.signMessage(payload)).pipe(
       switchMap(signedMessage => {
@@ -35,6 +38,31 @@ export class BuyService {
           payload
         };
         return this.http.post<Buy>(`${this.apiUrl}/v1/buys`, data);
+      }),
+      catchError((error: any) => {
+        console.error('Error in startBuy:', error);
+
+        // Handle specific error cases
+        if (error.error?.message) {
+          const errorMsg = error.error.message;
+
+          if (errorMsg.includes('Price mismatch')) {
+            throw new Error('PRICE_MISMATCH');
+          }
+          if (errorMsg.includes('Price below minimum')) {
+            throw new Error('PRICE_TOO_LOW');
+          }
+          if (errorMsg.includes('Quote service unavailable')) {
+            throw new Error('QUOTE_UNAVAILABLE');
+          }
+        }
+
+        // User cancelled signature
+        if (error.message && error.message.includes('User denied')) {
+          throw new Error('Assinatura cancelada pelo usuário');
+        }
+
+        throw error;
       })
     );
   }

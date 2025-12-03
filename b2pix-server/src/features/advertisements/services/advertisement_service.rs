@@ -79,7 +79,10 @@ impl AdvertisementService {
         serialized_transaction: &str,
         min_amount: i64,
         max_amount: i64,
+        pricing_mode_str: String,
     ) -> Result<Advertisement, ApiError> {
+        use crate::features::advertisements::domain::entities::PricingMode;
+
         let transaction_detail: TransactionDetailResponse =
             get_detail_transaction(&serialized_transaction, Arc::clone(&self.config))
                 .await
@@ -101,6 +104,33 @@ impl AdvertisementService {
                 transaction_detail.recipient
             )));
         }
+
+        // Interpret the price field based on pricing_mode
+        let pricing_mode = match pricing_mode_str.to_lowercase().as_str() {
+            "fixed" => {
+                // For fixed mode, price is the fixed price in cents (must be positive)
+                if transaction_detail.price <= 0 {
+                    return Err(ApiError::BadRequest(
+                        "Fixed price must be positive".to_string()
+                    ));
+                }
+                PricingMode::Fixed {
+                    price: transaction_detail.price as u128,
+                }
+            }
+            "dynamic" => {
+                // For dynamic mode, price is the percentage offset in basis points
+                // e.g., 315 => 3.15%, -500 => -5.00%, 0 => 0%
+                let percentage_offset = transaction_detail.price as f64 / 100.0;
+                PricingMode::Dynamic { percentage_offset }
+            }
+            _ => {
+                return Err(ApiError::BadRequest(format!(
+                    "Invalid pricing_mode: {}. Must be 'fixed' or 'dynamic'",
+                    pricing_mode_str
+                )));
+            }
+        };
 
         // Get invite by sender address to retrieve banking credentials
         let sender_address = StacksAddress::from_string(transaction_detail.sender.clone());
@@ -151,7 +181,7 @@ impl AdvertisementService {
             transaction_detail.sender,
             "BTC".to_string(), // Assuming BTC for simplicity, adjust as needed
             transaction_detail.currency,
-            transaction_detail.price,
+            pricing_mode,
             pix_key, // Use the PIX key (either existing or newly created)
             min_amount,
             max_amount,
@@ -287,10 +317,31 @@ impl AdvertisementService {
                         }
                     }
                     "price" => {
+                        use crate::features::advertisements::domain::entities::PricingMode;
+                        // For price sorting, we can only sort fixed-price advertisements
+                        // Dynamic ads don't have a fixed price to sort by
                         if sort_order_num == Some(-1) {
-                            advertisements.sort_by(|a, b| b.price.cmp(&a.price));
+                            advertisements.sort_by(|a, b| {
+                                match (&a.pricing_mode, &b.pricing_mode) {
+                                    (PricingMode::Fixed { price: price_a }, PricingMode::Fixed { price: price_b }) => {
+                                        price_b.cmp(price_a)
+                                    }
+                                    (PricingMode::Fixed { .. }, PricingMode::Dynamic { .. }) => std::cmp::Ordering::Less,
+                                    (PricingMode::Dynamic { .. }, PricingMode::Fixed { .. }) => std::cmp::Ordering::Greater,
+                                    (PricingMode::Dynamic { .. }, PricingMode::Dynamic { .. }) => std::cmp::Ordering::Equal,
+                                }
+                            });
                         } else {
-                            advertisements.sort_by(|a, b| a.price.cmp(&b.price));
+                            advertisements.sort_by(|a, b| {
+                                match (&a.pricing_mode, &b.pricing_mode) {
+                                    (PricingMode::Fixed { price: price_a }, PricingMode::Fixed { price: price_b }) => {
+                                        price_a.cmp(price_b)
+                                    }
+                                    (PricingMode::Fixed { .. }, PricingMode::Dynamic { .. }) => std::cmp::Ordering::Less,
+                                    (PricingMode::Dynamic { .. }, PricingMode::Fixed { .. }) => std::cmp::Ordering::Greater,
+                                    (PricingMode::Dynamic { .. }, PricingMode::Dynamic { .. }) => std::cmp::Ordering::Equal,
+                                }
+                            });
                         }
                     }
                     "total_deposited" | "total_amount" => {
@@ -354,10 +405,31 @@ impl AdvertisementService {
                             }
                         }
                         "price" => {
+                            use crate::features::advertisements::domain::entities::PricingMode;
+                            // For price sorting, we can only sort fixed-price advertisements
+                            // Dynamic ads don't have a fixed price to sort by
                             if sort_order_num == Some(-1) {
-                                advertisements.sort_by(|a, b| b.price.cmp(&a.price));
+                                advertisements.sort_by(|a, b| {
+                                    match (&a.pricing_mode, &b.pricing_mode) {
+                                        (PricingMode::Fixed { price: price_a }, PricingMode::Fixed { price: price_b }) => {
+                                            price_b.cmp(price_a)
+                                        }
+                                        (PricingMode::Fixed { .. }, PricingMode::Dynamic { .. }) => std::cmp::Ordering::Less,
+                                        (PricingMode::Dynamic { .. }, PricingMode::Fixed { .. }) => std::cmp::Ordering::Greater,
+                                        (PricingMode::Dynamic { .. }, PricingMode::Dynamic { .. }) => std::cmp::Ordering::Equal,
+                                    }
+                                });
                             } else {
-                                advertisements.sort_by(|a, b| a.price.cmp(&b.price));
+                                advertisements.sort_by(|a, b| {
+                                    match (&a.pricing_mode, &b.pricing_mode) {
+                                        (PricingMode::Fixed { price: price_a }, PricingMode::Fixed { price: price_b }) => {
+                                            price_a.cmp(price_b)
+                                        }
+                                        (PricingMode::Fixed { .. }, PricingMode::Dynamic { .. }) => std::cmp::Ordering::Less,
+                                        (PricingMode::Dynamic { .. }, PricingMode::Fixed { .. }) => std::cmp::Ordering::Greater,
+                                        (PricingMode::Dynamic { .. }, PricingMode::Dynamic { .. }) => std::cmp::Ordering::Equal,
+                                    }
+                                });
                             }
                         }
                         "total_deposited" | "total_amount" => {
