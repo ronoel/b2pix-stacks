@@ -93,9 +93,21 @@ impl PaymentRequestTransactionVerifierTaskHandler {
             }
             TransactionStatus::AbortByPostCondition
             | TransactionStatus::AbortByResponse
-            | TransactionStatus::DroppedReplaceByFee
-            | TransactionStatus::UnknownStatus => {
+            | TransactionStatus::DroppedReplaceByFee => {
                 self.update_to_failed(payment_request, transaction_id, status).await;
+            }
+            TransactionStatus::UnknownStatus => {
+                // UnknownStatus means the API returned a status we don't recognize
+                // This does NOT mean the transaction failed - it could be a new status type
+                // or temporary parsing issue. Keep the payment request as Broadcast and retry.
+                tracing::warn!(
+                    "Payment transaction {} has unknown status for PaymentRequest {}. \
+                    Will retry on next verification cycle. This could indicate a new status \
+                    type from the Stacks API that needs to be added to TransactionStatus enum.",
+                    transaction_id,
+                    payment_request.id().as_str()
+                );
+                // Do not change status - keep as Broadcast to retry later
             }
         }
     }
