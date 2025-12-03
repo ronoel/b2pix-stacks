@@ -238,16 +238,12 @@ interface ExtendedBitcoinListing extends BitcoinListing {
                 <div class="modal-content">
                   <div class="purchase-summary">
                     <div class="summary-item">
-                      <span class="label">Você está comprando:</span>
+                      <span class="label">Você receberá:</span>
                       <span class="value">{{ formatBitcoinAmount(calculateBitcoinAmount(selectedListing()!, getCurrentAmount())) }} BTC</span>
                     </div>
                     <div class="summary-item">
                       <span class="label">Por:</span>
                       <span class="value strong">R$ {{ formatCurrency(getCurrentAmount()) }}</span>
-                    </div>
-                    <div class="summary-item">
-                      <span class="label">Taxa de câmbio:</span>
-                      <span class="value">R$ {{ formatCurrency(selectedListing()!.pricePerBtc) }}/BTC</span>
                     </div>
                   </div>
 
@@ -256,26 +252,13 @@ interface ExtendedBitcoinListing extends BitcoinListing {
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                         <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                       </svg>
-                      <h4>Importante!</h4>
+                      <h4>Importante - Leia antes de continuar!</h4>
                     </div>
-                    <div class="instruction-content">
-                      <p>Após realizar o pagamento via PIX, você precisará informar os <strong>3 últimos caracteres</strong> do ID da transação que aparecem no comprovante.</p>
-                      <div class="instruction-example">
-                        <span class="example-label">Exemplo:</span>
-                        <span class="example-text">Se o ID for E000-12A9Z7, informe <span class="highlight-chars">9Z7</span></span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="payment-info">
-                    <div class="info-badge info-badge-blue">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                        <path d="M12 16V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M12 8H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                      <span>Certifique-se de ter saldo suficiente para realizar o PIX de <strong>R$ {{ formatCurrency(getCurrentAmount()) }}</strong></span>
-                    </div>
+                    <ul class="instruction-list">
+                      <li><strong>Abra seu aplicativo bancário agora</strong> - você terá apenas <strong>3 minutos</strong> após confirmar</li>
+                      <li>Tenha <strong>saldo disponível</strong> de R$ {{ formatCurrency(getCurrentAmount()) }}</li>
+                      <li>Após o PIX, informe os <strong>3 últimos caracteres</strong> do ID da transação (ex: E000-12A<span class="highlight-chars-inline">9Z7</span>)</li>
+                    </ul>
                   </div>
 
                   <div class="confirmation-checkbox">
@@ -286,7 +269,7 @@ interface ExtendedBitcoinListing extends BitcoinListing {
                         (change)="toggleInstructionConfirmation($any($event.target).checked)"
                       >
                       <span class="checkbox-custom"></span>
-                      <span class="checkbox-text">Li e estou ciente das instruções. Tenho saldo para realizar o PIX.</span>
+                      <span class="checkbox-text">Li as instruções e estou com meu banco aberto e pronto</span>
                     </label>
                   </div>
 
@@ -709,23 +692,24 @@ interface ExtendedBitcoinListing extends BitcoinListing {
     }
 
     .modal-content {
-      padding: 24px;
+      padding: 20px;
     }
 
     .purchase-summary {
-      margin-bottom: 24px;
+      margin-bottom: 20px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #E5E7EB;
     }
 
     .summary-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 0;
-      border-bottom: 1px solid #E5E7EB;
+      padding: 8px 0;
     }
 
-    .summary-item:last-child {
-      border-bottom: none;
+    .summary-item:first-child {
+      padding-top: 0;
     }
 
     .summary-item .label {
@@ -747,8 +731,8 @@ interface ExtendedBitcoinListing extends BitcoinListing {
     }
 
     .important-instructions {
-      margin-bottom: 24px;
-      padding: 20px;
+      margin-bottom: 20px;
+      padding: 18px;
       background: #FEF3C7;
       border: 2px solid #FCD34D;
       border-radius: 12px;
@@ -757,8 +741,8 @@ interface ExtendedBitcoinListing extends BitcoinListing {
     .instruction-header {
       display: flex;
       align-items: center;
-      gap: 12px;
-      margin-bottom: 12px;
+      gap: 10px;
+      margin-bottom: 14px;
     }
 
     .instruction-header svg {
@@ -768,84 +752,58 @@ interface ExtendedBitcoinListing extends BitcoinListing {
 
     .instruction-header h4 {
       margin: 0;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
       color: #92400E;
     }
 
-    .instruction-content p {
-      margin: 0 0 12px 0;
+    .instruction-list {
+      margin: 0;
+      padding-left: 20px;
+      list-style: none;
+    }
+
+    .instruction-list li {
+      position: relative;
       font-size: 14px;
       color: #78350F;
-      line-height: 1.5;
+      line-height: 1.6;
+      margin-bottom: 10px;
+      padding-left: 8px;
     }
 
-    .instruction-example {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      padding: 12px;
-      background: #FFFBEB;
-      border-radius: 8px;
-      border: 1px solid #FDE68A;
+    .instruction-list li:last-child {
+      margin-bottom: 0;
     }
 
-    .example-label {
-      font-size: 12px;
-      font-weight: 600;
+    .instruction-list li::before {
+      content: '•';
+      position: absolute;
+      left: -12px;
+      color: #D97706;
+      font-weight: bold;
+      font-size: 18px;
+    }
+
+    .instruction-list li strong {
       color: #92400E;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      font-weight: 700;
     }
 
-    .example-text {
-      font-size: 13px;
-      color: #78350F;
-    }
-
-    .highlight-chars {
+    .highlight-chars-inline {
       background: #F59E0B;
       color: #FFFFFF;
-      padding: 3px 8px;
-      border-radius: 6px;
+      padding: 2px 6px;
+      border-radius: 4px;
       font-weight: 700;
       font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-      letter-spacing: 1px;
-    }
-
-    .payment-info {
-      margin-bottom: 24px;
-    }
-
-    .info-badge {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 16px;
-      background: #EFF6FF;
-      border-radius: 12px;
-      border: 1px solid #BFDBFE;
-      font-size: 14px;
-      color: #1F2937;
-    }
-
-    .info-badge svg {
-      color: #1E40AF;
-      flex-shrink: 0;
-    }
-
-    .info-badge-blue {
-      background: #EFF6FF;
-      border-color: #BFDBFE;
-    }
-
-    .info-badge-blue svg {
-      color: #1E40AF;
+      letter-spacing: 0.5px;
+      font-size: 13px;
     }
 
     .confirmation-checkbox {
-      margin-bottom: 24px;
-      padding: 16px;
+      margin-bottom: 20px;
+      padding: 14px;
       background: #F9FAFB;
       border-radius: 12px;
       border: 1px solid #E5E7EB;
@@ -968,6 +926,35 @@ interface ExtendedBitcoinListing extends BitcoinListing {
       .confirmation-modal {
         margin: 8px;
         max-height: calc(100vh - 16px);
+      }
+
+      .modal-content {
+        padding: 16px;
+      }
+
+      .modal-header {
+        padding: 16px;
+      }
+
+      .important-instructions {
+        padding: 14px;
+      }
+
+      .instruction-header h4 {
+        font-size: 14px;
+      }
+
+      .instruction-list li {
+        font-size: 13px;
+        margin-bottom: 8px;
+      }
+
+      .confirmation-checkbox {
+        padding: 12px;
+      }
+
+      .checkbox-text {
+        font-size: 13px;
       }
 
       .buy-btn {
