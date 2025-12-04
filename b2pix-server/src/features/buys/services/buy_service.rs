@@ -7,6 +7,7 @@ use crate::{
         advertisements::{
             domain::entities::{AdvertisementId, PricingMode}, ports::repositories::AdvertisementRepository,
         },
+        bank_credentials::ports::BankCredentialsRepository,
         buys::{
             domain::entities::{Buy, BuyId, BuyStatus},
             ports::repositories::BuyRepository,
@@ -60,6 +61,7 @@ fn normalize_pix_code(code: &str) -> String {
 pub struct BuyService {
     buy_repository: Arc<dyn BuyRepository>,
     advertisement_repository: Arc<dyn AdvertisementRepository>,
+    bank_credentials_repository: Arc<dyn BankCredentialsRepository>,
     invite_repository: Arc<dyn InviteRepository>,
     payment_request_service: Arc<PaymentRequestService>,
     event_publisher: Arc<EventPublisher>,
@@ -72,6 +74,7 @@ impl BuyService {
     pub fn new(
         buy_repository: Arc<dyn BuyRepository>,
         advertisement_repository: Arc<dyn AdvertisementRepository>,
+        bank_credentials_repository: Arc<dyn BankCredentialsRepository>,
         invite_repository: Arc<dyn InviteRepository>,
         payment_request_service: Arc<PaymentRequestService>,
         event_publisher: Arc<EventPublisher>,
@@ -82,6 +85,7 @@ impl BuyService {
         Self {
             buy_repository,
             advertisement_repository,
+            bank_credentials_repository,
             invite_repository,
             payment_request_service,
             event_publisher,
@@ -113,7 +117,7 @@ impl BuyService {
         }
 
         // First, get the advertisement
-        let advertisement = self
+        let mut advertisement = self
             .advertisement_repository
             .find_by_id(&advertisement_id)
             .await
@@ -121,6 +125,77 @@ impl BuyService {
                 ApiError::InternalServerError(format!("Failed to find advertisement: {}", e))
             })?
             .ok_or(ApiError::NotFound)?;
+
+        // Get seller address for bank credentials lookup
+        let seller_address = StacksAddress::from_string(advertisement.seller_address.clone());
+
+        // Get latest bank credentials for the seller
+        let bank_credentials = self.bank_credentials_repository
+            .find_latest_by_address(&seller_address)
+            .await
+            .map_err(|e| {
+                tracing::error!("Failed to find bank credentials for seller {}: {}", seller_address, e);
+                ApiError::InternalServerError(format!("Failed to find bank credentials: {}", e))
+            })?
+            .ok_or_else(|| {
+                tracing::error!("No bank credentials found for seller: {}", seller_address);
+                ApiError::BadRequest("No bank credentials found for seller.".to_string())
+            })?;
+
+        // Check if PIX key needs refresh (time-based OR credentials changed)
+        if advertisement.needs_pix_key_refresh(bank_credentials.id()) {
+            let refresh_reason = if advertisement.has_different_credentials(bank_credentials.id()) {
+                "new bank credentials detected"
+            } else {
+                "PIX key older than 15 minutes"
+            };
+
+            tracing::info!(
+                "Refreshing PIX key for advertisement {} (reason: {})",
+                advertisement_id,
+                refresh_reason
+            );
+
+            // Get EFI client and refresh PIX key
+            let efi_client = self.efi_pay_service
+                .get_efi_client(&seller_address)
+                .await
+                .map_err(|e| {
+                    tracing::error!("Failed to get EFI Pay client during PIX key refresh: {:?}", e);
+                    ApiError::InternalServerError("Failed to initialize banking client".to_string())
+                })?;
+
+            let oauth_response = efi_client.authenticate().await
+                .map_err(|e| {
+                    tracing::error!("EFI Pay authentication failed during PIX key refresh: {:?}", e);
+                    ApiError::BadRequest("Failed to authenticate with bank.".to_string())
+                })?;
+
+            let new_pix_key = efi_client.get_or_create_pix_key(&oauth_response.access_token)
+                .await
+                .map_err(|e| {
+                    tracing::error!("Failed to get or create PIX key during refresh: {}", e);
+                    ApiError::BadRequest(format!("Failed to refresh PIX key: {}", e))
+                })?;
+
+            // Update advertisement with new PIX key
+            advertisement.refresh_pix_key(new_pix_key, bank_credentials.id().clone());
+
+            // Save updated advertisement
+            self.advertisement_repository
+                .save(&advertisement)
+                .await
+                .map_err(|e| {
+                    tracing::error!("Failed to save advertisement after PIX key refresh: {}", e);
+                    ApiError::InternalServerError(format!("Failed to save advertisement: {}", e))
+                })?;
+
+            tracing::info!(
+                "Successfully refreshed PIX key for advertisement {} (reason: {})",
+                advertisement_id,
+                refresh_reason
+            );
+        }
 
         // Validate price based on pricing mode
         let validated_price = match &advertisement.pricing_mode {
@@ -180,10 +255,7 @@ impl BuyService {
             })?
             .ok_or(ApiError::NotFound)?;
 
-        tracing::warn!("TO-DO: Get a new fresh PIX key");
         // tracing::warn!("TO-DO: Must allow only one buy per advertisement per buyer");
-
-        // The pay_value is already provided, no need to calculate it
 
         // Create buy order - if this fails, we need to refund
         let buy = match Buy::new(

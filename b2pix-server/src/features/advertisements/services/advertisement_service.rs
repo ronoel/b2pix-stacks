@@ -15,6 +15,7 @@ use crate::{
             ports::repositories::AdvertisementRepository,
             services::AdvertisementCreateHandler,
         },
+        bank_credentials::ports::BankCredentialsRepository,
         invites::{
             ports::repositories::InviteRepository,
             domain::entities::BankStatus,
@@ -34,6 +35,7 @@ use crate::{
 pub struct AdvertisementService {
     advertisement_repository: Arc<dyn AdvertisementRepository>,
     invite_repository: Arc<dyn InviteRepository>,
+    bank_credentials_repository: Arc<dyn BankCredentialsRepository>,
     event_publisher: Arc<EventPublisher>,
     config: Arc<Config>,
     efi_pay_service: Arc<EfiPayService>,
@@ -43,6 +45,7 @@ impl AdvertisementService {
     pub fn new(
         advertisement_repository: Arc<dyn AdvertisementRepository>,
         invite_repository: Arc<dyn InviteRepository>,
+        bank_credentials_repository: Arc<dyn BankCredentialsRepository>,
         event_publisher: Arc<EventPublisher>,
         config: Arc<Config>,
         efi_pay_service: Arc<EfiPayService>,
@@ -50,6 +53,7 @@ impl AdvertisementService {
         Self {
             advertisement_repository,
             invite_repository,
+            bank_credentials_repository,
             event_publisher,
             config,
             efi_pay_service,
@@ -152,6 +156,19 @@ impl AdvertisementService {
             return Err(ApiError::BadRequest("Banking setup is not complete. Please complete bank setup first.".to_string()));
         }
 
+        // Get latest bank credentials for the seller
+        let bank_credentials = self.bank_credentials_repository
+            .find_latest_by_address(&sender_address)
+            .await
+            .map_err(|e| {
+                tracing::error!("Failed to find bank credentials for address {}: {}", sender_address, e);
+                ApiError::InternalServerError(format!("Failed to find bank credentials: {}", e))
+            })?
+            .ok_or_else(|| {
+                tracing::error!("No bank credentials found for address: {}", sender_address);
+                ApiError::BadRequest("No bank credentials found for this address.".to_string())
+            })?;
+
         // Get EFI Pay client using the service
         let efi_client = self.efi_pay_service
             .get_efi_client(&sender_address)
@@ -175,7 +192,7 @@ impl AdvertisementService {
                 tracing::error!("Failed to get or create PIX key: {}", e);
                 ApiError::BadRequest(format!("Failed to get or create PIX key: {}", e))
             })?;
-        
+
 
         let advertisement: Advertisement = Advertisement::new(
             transaction_detail.sender,
@@ -183,6 +200,7 @@ impl AdvertisementService {
             transaction_detail.currency,
             pricing_mode,
             pix_key, // Use the PIX key (either existing or newly created)
+            Some(bank_credentials.id().clone()), // Store the credentials ID
             min_amount,
             max_amount,
         )

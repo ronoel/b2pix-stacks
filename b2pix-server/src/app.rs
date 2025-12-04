@@ -94,6 +94,7 @@ pub async fn run() -> anyhow::Result<()> {
     let advertisement_service = Arc::new(AdvertisementService::new(
         Arc::clone(&advertisement_repository),
         Arc::clone(&invite_repository),
+        Arc::clone(&bank_credentials_repository),
         Arc::clone(&event_publisher),
         Arc::clone(&config),
         Arc::clone(&efi_pay_service),
@@ -124,6 +125,7 @@ pub async fn run() -> anyhow::Result<()> {
     let buy_service = Arc::new(buy_service::BuyService::new(
         Arc::clone(&buy_repository),
         Arc::clone(&advertisement_repository),
+        Arc::clone(&bank_credentials_repository),
         Arc::clone(&invite_repository),
         Arc::clone(&payment_request_service),
         Arc::clone(&event_publisher),

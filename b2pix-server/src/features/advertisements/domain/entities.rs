@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use mongodb::bson::oid::ObjectId;
 use chrono::{DateTime, Utc};
 use crate::common::errors::AdvertisementError;
+use crate::features::bank_credentials::domain::entities::BankCredentialsId;
 
 // Custom serialization/deserialization for u128 as i64 for MongoDB compatibility
 mod u128_as_i64 {
@@ -52,6 +53,13 @@ mod bson_datetime_to_chrono {
         DateTime::from_timestamp_millis(timestamp_millis)
             .ok_or_else(|| serde::de::Error::custom("Invalid timestamp"))
     }
+}
+
+/// Default value for pix_key_refreshed_at when deserializing old records
+fn default_pix_key_refreshed_at() -> DateTime<Utc> {
+    // Return epoch time for old records without this field
+    // This will trigger a refresh on first buy attempt
+    DateTime::from_timestamp(0, 0).unwrap()
 }
 
 /// Unique identifier for an advertisement
@@ -263,6 +271,11 @@ pub struct Advertisement {
     pub is_active: bool,
     /// PIX key for payment processing
     pub pix_key: String,
+    /// Timestamp when PIX key was last refreshed
+    #[serde(with = "bson_datetime_to_chrono", default = "default_pix_key_refreshed_at")]
+    pub pix_key_refreshed_at: DateTime<Utc>,
+    /// Bank credentials ID used to generate the current PIX key
+    pub bank_credentials_id: Option<BankCredentialsId>,
     /// Creation timestamp
     #[serde(with = "bson_datetime_to_chrono")]
     pub created_at: DateTime<Utc>,
@@ -279,6 +292,7 @@ impl Advertisement {
         currency: String,
         pricing_mode: PricingMode,
         pix_key: String,
+        bank_credentials_id: Option<BankCredentialsId>,
         min_amount: i64,
         max_amount: i64,
     ) -> Result<Self, AdvertisementError> {
@@ -325,6 +339,8 @@ impl Advertisement {
             status: AdvertisementStatus::Draft,
             is_active: true, // Draft status is active
             pix_key,
+            pix_key_refreshed_at: now, // Set to now when PIX key is created
+            bank_credentials_id,
             created_at: now,
             updated_at: now,
         })
@@ -350,6 +366,35 @@ impl Advertisement {
         self.updated_at = Utc::now();
         Ok(())
     }
+
+    /// Check if PIX key needs refresh based on time (older than 15 minutes)
+    pub fn is_pix_key_expired(&self) -> bool {
+        let now = Utc::now();
+        let age_minutes = (now - self.pix_key_refreshed_at).num_minutes();
+        age_minutes >= 15
+    }
+
+    /// Check if PIX key needs refresh based on bank credentials
+    /// Returns true if the provided credentials_id is different from the stored one
+    pub fn has_different_credentials(&self, credentials_id: &BankCredentialsId) -> bool {
+        match &self.bank_credentials_id {
+            Some(stored_id) => stored_id != credentials_id,
+            None => true, // No credentials stored, so it's different
+        }
+    }
+
+    /// Check if PIX key needs refresh (time-based OR credentials changed)
+    pub fn needs_pix_key_refresh(&self, current_credentials_id: &BankCredentialsId) -> bool {
+        self.is_pix_key_expired() || self.has_different_credentials(current_credentials_id)
+    }
+
+    /// Refresh PIX key with new value, timestamp, and credentials ID
+    pub fn refresh_pix_key(&mut self, new_pix_key: String, credentials_id: BankCredentialsId) {
+        self.pix_key = new_pix_key;
+        self.pix_key_refreshed_at = Utc::now();
+        self.bank_credentials_id = Some(credentials_id);
+        self.updated_at = Utc::now();
+    }
 }
 
 #[cfg(test)]
@@ -364,6 +409,7 @@ mod tests {
             "BRL".to_string(),
             PricingMode::Fixed { price: 100_000 }, // price: 1000.00 BRL
             "user@example.com".to_string(),
+            None, // bank_credentials_id
             10_000, // min_amount: 100.00 BRL
             50_000, // max_amount: 500.00 BRL
         );
@@ -387,6 +433,7 @@ mod tests {
             "BRL".to_string(),
             PricingMode::Dynamic { percentage_offset: 5.15 }, // +5.15% above market
             "user@example.com".to_string(),
+            None, // bank_credentials_id
             10_000, // min_amount: 100.00 BRL
             50_000, // max_amount: 500.00 BRL
         );
@@ -410,6 +457,7 @@ mod tests {
             "BRL".to_string(),
             PricingMode::Fixed { price: 100_000 },
             "user@example.com".to_string(),
+            None, // bank_credentials_id
             -1, // negative min_amount
             50_000,
         );
@@ -425,6 +473,7 @@ mod tests {
             "BRL".to_string(),
             PricingMode::Fixed { price: 100_000 },
             "user@example.com".to_string(),
+            None, // bank_credentials_id
             0, // zero min_amount
             50_000,
         );
@@ -440,6 +489,7 @@ mod tests {
             "BRL".to_string(),
             PricingMode::Fixed { price: 100_000 },
             "user@example.com".to_string(),
+            None, // bank_credentials_id
             10_000,
             -1, // negative max_amount
         );
@@ -455,6 +505,7 @@ mod tests {
             "BRL".to_string(),
             PricingMode::Fixed { price: 100_000 },
             "user@example.com".to_string(),
+            None, // bank_credentials_id
             10_000,
             0, // zero max_amount
         );
@@ -470,6 +521,7 @@ mod tests {
             "BRL".to_string(),
             PricingMode::Fixed { price: 100_000 },
             "user@example.com".to_string(),
+            None, // bank_credentials_id
             50_000, // min_amount: 500.00 BRL
             10_000, // max_amount: 100.00 BRL (less than min)
         );
@@ -485,6 +537,7 @@ mod tests {
             "BRL".to_string(),
             PricingMode::Fixed { price: 100_000 },
             "user@example.com".to_string(),
+            None, // bank_credentials_id
             30_000, // min_amount: 300.00 BRL
             30_000, // max_amount: 300.00 BRL (equal to min)
         );
@@ -503,6 +556,7 @@ mod tests {
             "BRL".to_string(),
             PricingMode::Dynamic { percentage_offset: 1500.0 }, // 1500% is invalid (> 1000%)
             "user@example.com".to_string(),
+            None, // bank_credentials_id
             10_000,
             50_000,
         );
