@@ -99,17 +99,17 @@ interface SetupResult {
               <div class="instruction-content">
                 <h4>Criar nova aplicação</h4>
                 <p>Vá em <strong>Aplicações → Criar Aplicação</strong></p>
-                <p>Nome da aplicação: <span class="highlight">B2PIX</span></p>
+                <p>Escolha um nome para a aplicação</p>
               </div>
             </div>
 
             <div class="instruction-item">
               <div class="instruction-number">4</div>
               <div class="instruction-content">
-                <h4>Configurar permissões da API PIX</h4>
+                <h4>Selecione o escopo "API PIX"</h4>
                 <p>Selecione os itens nas colunas "Produção" e "Homologação":</p>
                 <ul class="permissions-list">
-                  <li>✓ Consultar Pix</li>
+                  <li>✓ Consultar PIX</li>
                   <li>✓ Alterar Chaves aleatórias</li>
                   <li>✓ Consultar Chaves aleatórias</li>
                 </ul>
@@ -220,7 +220,7 @@ interface SetupResult {
               <div class="instruction-content">
                 <h4>Novo certificado</h4>
                 <p>Clique em <strong>"Criar Novo Certificado"</strong></p>
-                <p>Nome do certificado: <span class="highlight">B2PIX</span></p>
+                <p>Escolha um nome para o certificado</p>
                 <p>Clique em <strong>"CRIAR"</strong></p>
               </div>
             </div>

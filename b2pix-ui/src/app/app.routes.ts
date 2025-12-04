@@ -29,7 +29,7 @@ export const routes: Routes = [
   },
   {
     path: 'buy/:id',
-    loadComponent: () => import('./pages/buy-payment/buy-payment.component').then(m => m.BuyPaymentComponent),
+    loadComponent: () => import('./pages/buy-details/buy-details.component').then(m => m.BuyDetailsComponent),
     canActivate: [authGuard]
   },
   {
