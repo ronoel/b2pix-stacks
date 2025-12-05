@@ -47,7 +47,7 @@ export class QuoteService {
   getBtcPriceStream(): Observable<QuoteResponse> {
     return timer(0, 30000).pipe( // 0ms initial delay, then every 30 seconds
       switchMap(() => this.getBtcPrice()),
-      shareReplay(1) // Share subscription among multiple consumers
+      shareReplay({ bufferSize: 1, refCount: true }) // Share subscription with automatic cleanup when refCount = 0
     );
   }
 
