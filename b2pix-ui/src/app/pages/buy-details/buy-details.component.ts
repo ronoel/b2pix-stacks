@@ -1071,7 +1071,7 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
 
     this.paymentTimer = setInterval(() => {
       this.updatePaymentTimeLeft(buy);
-    }, 1000);
+    }, 5000);
   }
 
   private updatePaymentTimeLeft(buy: Buy) {
