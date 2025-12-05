@@ -7,14 +7,12 @@ import { PaymentRequestService } from '../../shared/api/payment-request.service'
 import { Buy, BuyStatus } from '../../shared/models/buy.model';
 import { PaymentRequest, PaymentRequestStatus, PaymentSourceType } from '../../shared/models/payment-request.model';
 import { environment } from '../../../environments/environment';
-import * as QRCode from 'qrcode';
 import { PaymentFormComponent } from './payment-form.component';
-import { QrCodeModalComponent } from './qr-code-modal.component';
 
 @Component({
   selector: 'app-buy-details',
   standalone: true,
-  imports: [CommonModule, PaymentFormComponent, QrCodeModalComponent],
+  imports: [CommonModule, PaymentFormComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="buy-details-page">
@@ -62,7 +60,6 @@ import { QrCodeModalComponent } from './qr-code-modal.component';
               [pixKey]="buyData()!.pix_key"
               [canConfirm]="canConfirmPayment()"
               (copyPix)="copyPixKey()"
-              (showQR)="showQRCode()"
               (confirm)="confirmPayment()"
               (cancel)="cancelPurchase()"
               (transactionIdChanged)="onTransactionIdChange($event)"
@@ -203,13 +200,53 @@ import { QrCodeModalComponent } from './qr-code-modal.component';
         }
       </div>
 
-      <!-- QR Code Modal -->
-      <app-qr-code-modal
-        [show]="showQRCodeModal()"
-        [qrCodeDataUrl]="qrCodeDataUrl()"
-        [pixKey]="buyData()?.pix_key || ''"
-        (close)="hideQRCode()"
-      />
+      <!-- Time Warning Modal -->
+      @if (showTimeWarningModal()) {
+        <div class="warning-modal-overlay" (click)="closeTimeWarningModal()">
+          <div class="warning-modal-content" (click)="$event.stopPropagation()">
+            <div class="warning-modal-header">
+              <div class="warning-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                  <path d="M12 8V12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  <path d="M12 16H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <h3 class="warning-modal-title">Atenção: Tempo Restante</h3>
+            </div>
+            <div class="warning-modal-body">
+              <div class="warning-timer">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                  <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <div class="warning-timer-display">{{ getFormattedTime() }}</div>
+              </div>
+              <p class="warning-message-text">
+                Resta menos de <strong>1 minuto</strong> para concluir o pagamento.
+              </p>
+              <p class="warning-suggestion">
+                Se você ainda não está pronto para realizar o pagamento, recomendamos cancelar esta compra e iniciar uma nova quando estiver preparado.
+              </p>
+            </div>
+            <div class="warning-modal-footer">
+              <button class="btn btn-outline btn-cancel-warning" (click)="cancelFromWarningModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Cancelar Compra
+              </button>
+              <button class="btn btn-primary btn-continue" (click)="closeTimeWarningModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                </svg>
+                Continuar
+              </button>
+            </div>
+          </div>
+        </div>
+      }
     </div>
   `,
   styles: [`
@@ -636,6 +673,164 @@ import { QrCodeModalComponent } from './qr-code-modal.component';
       font-size: 12px;
     }
 
+    /* Time Warning Modal */
+    .warning-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1001;
+      padding: 20px;
+      backdrop-filter: blur(4px);
+    }
+
+    .warning-modal-content {
+      background: #FFFFFF;
+      border-radius: 16px;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.2), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+      animation: warningModalSlideIn 0.3s ease-out;
+    }
+
+    @keyframes warningModalSlideIn {
+      from {
+        transform: scale(0.95) translateY(-20px);
+        opacity: 0;
+      }
+      to {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .warning-modal-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      padding: 32px 24px 24px;
+      border-bottom: 1px solid #FEE2E2;
+      background: linear-gradient(135deg, #FEF2F2 0%, #FFFFFF 100%);
+      border-radius: 16px 16px 0 0;
+    }
+
+    .warning-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #FEE2E2 0%, #FEF2F2 100%);
+      border-radius: 50%;
+      color: #DC2626;
+      box-shadow: 0 4px 12px 0 rgb(220 38 38 / 0.2);
+    }
+
+    .warning-modal-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #991B1B;
+      margin: 0;
+      text-align: center;
+    }
+
+    .warning-modal-body {
+      padding: 32px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .warning-timer {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 24px;
+      background: linear-gradient(135deg, #FEF3C7 0%, #FEF9E7 100%);
+      border: 2px solid #F59E0B;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px 0 rgb(245 158 11 / 0.2);
+    }
+
+    .warning-timer svg {
+      color: #D97706;
+      flex-shrink: 0;
+    }
+
+    .warning-timer-display {
+      font-size: 32px;
+      font-weight: 700;
+      color: #92400E;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      letter-spacing: 2px;
+    }
+
+    .warning-message-text {
+      text-align: center;
+      color: #1F2937;
+      font-size: 16px;
+      line-height: 1.6;
+      margin: 0;
+      font-weight: 500;
+    }
+
+    .warning-message-text strong {
+      color: #DC2626;
+      font-weight: 700;
+    }
+
+    .warning-suggestion {
+      text-align: center;
+      color: #6B7280;
+      font-size: 14px;
+      line-height: 1.6;
+      margin: 0;
+      padding: 16px;
+      background: #F9FAFB;
+      border-radius: 8px;
+      border-left: 4px solid #F59E0B;
+    }
+
+    .warning-modal-footer {
+      padding: 20px 24px;
+      border-top: 1px solid #E5E7EB;
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .btn-cancel-warning {
+      color: #DC2626;
+      border-color: #FEE2E2;
+      background: #FFFFFF;
+      flex: 1;
+    }
+
+    .btn-cancel-warning:hover {
+      background: #FEF2F2;
+      border-color: #FCA5A5;
+      color: #991B1B;
+    }
+
+    .btn-continue {
+      flex: 1;
+      background: #1E40AF;
+      color: #FFFFFF;
+      border-color: #1E40AF;
+    }
+
+    .btn-continue:hover {
+      background: #1D4ED8;
+      border-color: #1D4ED8;
+    }
+
     /* Responsive Design */
     @media (max-width: 768px) {
       .container {
@@ -674,6 +869,69 @@ import { QrCodeModalComponent } from './qr-code-modal.component';
       .details-actions button {
         width: 100%;
       }
+
+      .warning-modal-overlay {
+        padding: 16px;
+      }
+
+      .warning-modal-content {
+        max-width: 100%;
+      }
+
+      .warning-modal-header {
+        padding: 24px 20px 20px;
+      }
+
+      .warning-icon {
+        width: 64px;
+        height: 64px;
+      }
+
+      .warning-icon svg {
+        width: 36px;
+        height: 36px;
+      }
+
+      .warning-modal-title {
+        font-size: 18px;
+      }
+
+      .warning-modal-body {
+        padding: 24px 20px;
+      }
+
+      .warning-timer {
+        padding: 12px 16px;
+        gap: 12px;
+      }
+
+      .warning-timer svg {
+        width: 24px;
+        height: 24px;
+      }
+
+      .warning-timer-display {
+        font-size: 24px;
+      }
+
+      .warning-message-text {
+        font-size: 15px;
+      }
+
+      .warning-suggestion {
+        font-size: 13px;
+        padding: 12px;
+      }
+
+      .warning-modal-footer {
+        flex-direction: column;
+        padding: 16px 20px;
+      }
+
+      .btn-cancel-warning,
+      .btn-continue {
+        width: 100%;
+      }
     }
   `]
 })
@@ -693,9 +951,10 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   transactionId = signal('');
   noTransactionId = signal(false);
 
-  // QR code state
-  showQRCodeModal = signal(false);
-  qrCodeDataUrl = signal<string | null>(null);
+  // Timer warning modal state
+  showTimeWarningModal = signal(false);
+  private hasShownTimeWarning = false;
+  private hasShownTimeoutAlert = false;
 
   // Timer for payment (for pending status)
   paymentTimeLeft = signal(0);
@@ -823,6 +1082,12 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
 
     this.paymentTimeLeft.set(timeLeftSeconds);
 
+    // Show warning modal when less than 1 minute remaining (only once)
+    if (timeLeftSeconds > 0 && timeLeftSeconds < 60 && !this.hasShownTimeWarning) {
+      this.hasShownTimeWarning = true;
+      this.showTimeWarningModal.set(true);
+    }
+
     if (timeLeftSeconds <= 0) {
       this.clearPaymentTimer();
       this.handlePaymentTimeout();
@@ -837,7 +1102,12 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   }
 
   handlePaymentTimeout() {
-    alert('O tempo de pagamento foi excedido. Sua compra foi cancelada.');
+    // Only show alert once
+    if (!this.hasShownTimeoutAlert) {
+      this.hasShownTimeoutAlert = true;
+      alert('O tempo de pagamento foi excedido. Sua compra foi cancelada.');
+    }
+
     // Reload buy data to show expired state instead of redirecting
     const buyId = this.buyData()?.id;
     if (buyId) {
@@ -919,33 +1189,13 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     }
   }
 
-  async showQRCode() {
-    const buy = this.buyData();
-    if (!buy?.pix_key) {
-      return;
-    }
-
-    try {
-      // Generate QR code as data URL
-      const dataUrl = await QRCode.toDataURL(buy.pix_key, {
-        width: 300,
-        margin: 2,
-        color: {
-          dark: '#1E40AF',
-          light: '#FFFFFF'
-        }
-      });
-
-      this.qrCodeDataUrl.set(dataUrl);
-      this.showQRCodeModal.set(true);
-    } catch (error) {
-      console.error('Error generating QR code:', error);
-      alert('Erro ao gerar QR Code. Tente novamente.');
-    }
+  closeTimeWarningModal() {
+    this.showTimeWarningModal.set(false);
   }
 
-  hideQRCode() {
-    this.showQRCodeModal.set(false);
+  cancelFromWarningModal() {
+    this.showTimeWarningModal.set(false);
+    this.cancelPurchase();
   }
 
   confirmPayment(event?: Event) {

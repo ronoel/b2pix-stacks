@@ -46,26 +46,15 @@ import { FormsModule } from '@angular/forms';
           </div>
           <div class="pix-key-container-highlight">
             <input type="text" readonly [value]="pixKey" class="pix-key-input-highlight">
-            <div class="pix-buttons-group">
-              <button type="button" class="btn-copy-highlight" (click)="copyPix.emit()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
-                  <path d="M5 15H4C2.89543 15 2 14.1046 2 13V4C2 2.89543 2.89543 2 4 2H13C14.1046 2 15 2.89543 15 4V5" stroke="currentColor" stroke-width="2"/>
-                </svg>
-                Copiar
-              </button>
-              <button type="button" class="btn-qrcode-highlight" (click)="showQR.emit()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <rect x="3" y="3" width="7" height="7" stroke="currentColor" stroke-width="2" rx="1"/>
-                  <rect x="14" y="3" width="7" height="7" stroke="currentColor" stroke-width="2" rx="1"/>
-                  <rect x="3" y="14" width="7" height="7" stroke="currentColor" stroke-width="2" rx="1"/>
-                  <rect x="14" y="14" width="7" height="7" stroke="currentColor" stroke-width="2" rx="1"/>
-                </svg>
-                QR Code
-              </button>
-            </div>
+            <button type="button" class="btn-copy-highlight" (click)="copyPix.emit()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
+                <path d="M5 15H4C2.89543 15 2 14.1046 2 13V4C2 2.89543 2.89543 2 4 2H13C14.1046 2 15 2.89543 15 4V5" stroke="currentColor" stroke-width="2"/>
+              </svg>
+              Copiar
+            </button>
           </div>
-          <p class="pix-help-text">Use esta chave PIX para fazer o pagamento ou escaneie o QR Code</p>
+          <p class="pix-help-text">Use esta chave PIX para fazer o pagamento</p>
         </div>
 
         <!-- Transaction ID Section - HIGHLIGHTED -->
@@ -301,32 +290,23 @@ import { FormsModule } from '@angular/forms';
       box-shadow: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
     }
 
-    .pix-buttons-group {
-      display: flex;
-      gap: 8px;
-      flex-shrink: 0;
-    }
-
-    .btn-copy-highlight,
-    .btn-qrcode-highlight {
+    .btn-copy-highlight {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
       padding: 16px 24px;
+      background: #3B82F6;
+      color: #FFFFFF;
+      border: 2px solid #2563EB;
       border-radius: 10px;
       font-size: 14px;
       font-weight: 700;
       cursor: pointer;
       transition: all 0.2s ease;
-      white-space: nowrap;
-    }
-
-    .btn-copy-highlight {
-      background: #3B82F6;
-      color: #FFFFFF;
-      border: 2px solid #2563EB;
       box-shadow: 0 2px 8px 0 rgb(59 130 246 / 0.3);
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     .btn-copy-highlight:hover {
@@ -334,20 +314,6 @@ import { FormsModule } from '@angular/forms';
       border-color: #1E40AF;
       transform: translateY(-1px);
       box-shadow: 0 4px 12px 0 rgb(37 99 235 / 0.4);
-    }
-
-    .btn-qrcode-highlight {
-      background: #FFFFFF;
-      color: #3B82F6;
-      border: 2px solid #3B82F6;
-      box-shadow: 0 2px 8px 0 rgb(59 130 246 / 0.15);
-    }
-
-    .btn-qrcode-highlight:hover {
-      background: #EFF6FF;
-      border-color: #2563EB;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px 0 rgb(59 130 246 / 0.25);
     }
 
     .pix-help-text {
@@ -669,14 +635,8 @@ import { FormsModule } from '@angular/forms';
         flex-direction: column;
       }
 
-      .pix-buttons-group {
-        flex-direction: row;
+      .btn-copy-highlight {
         width: 100%;
-      }
-
-      .btn-copy-highlight,
-      .btn-qrcode-highlight {
-        flex: 1;
         padding: 14px 16px;
         font-size: 13px;
         justify-content: center;
@@ -700,7 +660,6 @@ export class PaymentFormComponent {
   @Input() canConfirm = false;
 
   @Output() copyPix = new EventEmitter<void>();
-  @Output() showQR = new EventEmitter<void>();
   @Output() confirm = new EventEmitter<void>();
   @Output() cancel = new EventEmitter<void>();
   @Output() transactionIdChanged = new EventEmitter<string>();
