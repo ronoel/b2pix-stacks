@@ -581,16 +581,18 @@ impl BuyService {
         Ok(cancelled_buy)
     }
 
-    /// Processes pending buys older than 15 minutes and expires them
+    /// Processes pending buys that have passed their expires_at timestamp and expires them
+    /// Note: expires_at is set to 3 minutes from creation (see Buy::new in domain/entities.rs)
     pub async fn process_pending(&self) -> Result<(), ApiError> {
-        // Find all pending buys older than 15 minutes
+        // Find all pending buys that have passed their expires_at timestamp
+        // The parameter is ignored - the repository queries expires_at < now() directly
         let old_pending_buys = self
             .buy_repository
-            .find_pending_older_than_minutes(15)
+            .find_pending_older_than_minutes(0) // Parameter is deprecated and ignored
             .await
             .map_err(|e| {
-                tracing::error!("Failed to find pending buys older than 15 minutes: {}", e);
-                ApiError::InternalServerError(format!("Failed to find old pending buys: {}", e))
+                tracing::error!("Failed to find expired pending buys: {}", e);
+                ApiError::InternalServerError(format!("Failed to find expired pending buys: {}", e))
             })?;
 
         if old_pending_buys.is_empty() {

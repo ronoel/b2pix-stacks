@@ -105,12 +105,17 @@ impl BuyRepositoryImpl {
                 .build());
         }
 
-        // 6. Index on expires_at for finding expiring buys
-        if !existing_index_names.contains("expires_at_index") {
+        // 6. Partial index on expires_at for finding expired pending buys efficiently
+        // This index is used by the expiration task to quickly find buys that need to be expired
+        if !existing_index_names.contains("expires_at_pending_index") {
             indexes.push(IndexModel::builder()
                 .keys(doc! { "expires_at": 1 })
                 .options(IndexOptions::builder()
-                    .name("expires_at_index".to_string())
+                    .name("expires_at_pending_index".to_string())
+                    .partial_filter_expression(doc! {
+                        "status": "pending",
+                        "is_final": false
+                    })
                     .build())
                 .build());
         }
@@ -221,20 +226,24 @@ impl BuyRepository for BuyRepositoryImpl {
     }
 
     async fn find_pending_older_than_minutes(&self, minutes: i64) -> Result<Vec<Buy>, BuyError> {
-        let cutoff_time = chrono::Utc::now() - chrono::Duration::minutes(minutes);
-        
-        // Use simplified filter to avoid DateTime conversion issues
-        let filter = doc! { "status": "pending" };
+        // Query directly against expires_at field (which is set at Buy creation)
+        // This is more efficient than calculating from created_at
+        // Uses the partial index "expires_at_pending_index" for optimal performance
+        let now = mongodb::bson::DateTime::now();
+
+        let filter = doc! {
+            "status": "pending",
+            "is_final": false,
+            "expires_at": { "$lt": now }
+        };
+
         let mut cursor = self.collection.find(filter, None).await?;
         let mut buys = Vec::new();
-        
+
         while let Some(buy) = cursor.try_next().await? {
-            // Filter in Rust code instead of MongoDB query
-            if buy.created_at < cutoff_time {
-                buys.push(buy);
-            }
+            buys.push(buy);
         }
-        
+
         Ok(buys)
     }
 

@@ -11,6 +11,7 @@ export interface TransactionCardData {
   pricePerBtc: string;
   status: BuyStatus;
   createdAt: string;
+  expiresAt?: string;
 }
 
 @Component({
@@ -245,6 +246,18 @@ export class TransactionCardComponent {
     this.cardClick.emit(this.transaction);
   }
 
+  /**
+   * Check if a transaction is actually expired (expiresAt has passed)
+   * even if the server status still shows as pending
+   */
+  private isTransactionExpired(): boolean {
+    if (!this.transaction || !this.transaction.expiresAt) return false;
+
+    const now = new Date();
+    const expiresAt = new Date(this.transaction.expiresAt);
+    return now.getTime() > expiresAt.getTime();
+  }
+
   getDisplayStatusClass(): string {
     return this.getStatusClass(this.transaction.status);
   }
@@ -254,6 +267,11 @@ export class TransactionCardComponent {
   }
 
   getStatusClass(status: BuyStatus): string {
+    // Check if it's pending but actually expired
+    if (status === BuyStatus.Pending && this.isTransactionExpired()) {
+      return 'warning';
+    }
+
     switch (status) {
       // case BuyStatus.Completed:
       case BuyStatus.PaymentConfirmed:
@@ -277,6 +295,11 @@ export class TransactionCardComponent {
   }
 
   getStatusLabel(status: BuyStatus): string {
+    // Check if it's pending but actually expired
+    if (status === BuyStatus.Pending && this.isTransactionExpired()) {
+      return 'Expirada';
+    }
+
     switch (status) {
       case BuyStatus.Pending:
         return 'Pendente';

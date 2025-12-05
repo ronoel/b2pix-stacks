@@ -1,6 +1,5 @@
 import { Component, inject, OnInit, OnDestroy, signal, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { LoadingService } from '../../services/loading.service';
 import { BuyService } from '../../shared/api/buy.service';
@@ -8,11 +7,14 @@ import { PaymentRequestService } from '../../shared/api/payment-request.service'
 import { Buy, BuyStatus } from '../../shared/models/buy.model';
 import { PaymentRequest, PaymentRequestStatus, PaymentSourceType } from '../../shared/models/payment-request.model';
 import { environment } from '../../../environments/environment';
+import * as QRCode from 'qrcode';
+import { PaymentFormComponent } from './payment-form.component';
+import { QrCodeModalComponent } from './qr-code-modal.component';
 
 @Component({
   selector: 'app-buy-details',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, PaymentFormComponent, QrCodeModalComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="buy-details-page">
@@ -53,134 +55,19 @@ import { environment } from '../../../environments/environment';
         } @else if (buyData()) {
           <!-- Payment Form for Pending Status -->
           @if (isPendingPayment()) {
-            <div class="payment-container">
-              <!-- Timer Warning -->
-              <div class="timer-warning">
-                <div class="timer-icon-wrapper">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                    <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </div>
-                <div class="timer-content">
-                  <p class="timer-label">Tempo restante para pagamento:</p>
-                  <div class="timer-display">{{ getFormattedTime() }}</div>
-                </div>
-              </div>
-
-              <div class="payment-card">
-                <!-- Amount Section -->
-                <div class="amount-section">
-                  <div class="amount-row">
-                    <div class="amount-item">
-                      <p class="amount-label">Valor exato a pagar:</p>
-                      <div class="payment-amount">R$ {{ formatCurrency(getTotalFiatAmount()) }}</div>
-                      <p class="amount-help">Pague exatamente este valor via PIX</p>
-                    </div>
-                    <div class="amount-divider"></div>
-                    <div class="amount-item">
-                      <p class="amount-label">Você receberá:</p>
-                      <div class="btc-amount">{{ formatBTC(getBtcAmount()) }} <span class="btc-unit">BTC</span></div>
-                      <p class="amount-help">{{ formatSats(getBtcAmountInSats()) }} satoshis</p>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- PIX Key Section -->
-                <div class="pix-section">
-                  <label class="pix-label">Chave PIX do vendedor:</label>
-                  <div class="pix-key-container">
-                    <input type="text" readonly [value]="buyData()!.pix_key" class="pix-key-input">
-                    <button type="button" class="btn btn-primary btn-sm" (click)="copyPixKey()">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
-                        <path d="M5 15H4C2.89543 15 2 14.1046 2 13V4C2 2.89543 2.89543 2 4 2H13C14.1046 2 15 2.89543 15 4V5" stroke="currentColor" stroke-width="2"/>
-                      </svg>
-                      Copiar
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Transaction ID Section -->
-                <div class="transaction-id-section">
-                  <div class="instruction-box">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                      <path d="M12 16V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M12 8H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    <p>Após realizar o pagamento, informe os <strong>3 últimos caracteres</strong> do ID da transação que aparecem no comprovante PIX.</p>
-                  </div>
-
-                  <div class="form-group">
-                    <label for="transactionId" class="form-label">ID da Transação (3 últimos caracteres)</label>
-                    <input
-                      type="text"
-                      id="transactionId"
-                      maxlength="3"
-                      [value]="transactionId()"
-                      (input)="onTransactionIdChange($any($event.target).value)"
-                      [disabled]="noTransactionId()"
-                      class="form-input transaction-input"
-                      [class.disabled]="noTransactionId()"
-                      placeholder="Ex: 9Z7"
-                      autocomplete="off"
-                    >
-                    @if (transactionId().length > 0 && !canConfirmPayment() && !noTransactionId()) {
-                      <div class="error-message">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                          <path d="M15 9L9 15M9 9L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                        Informe exatamente 3 caracteres (letras e/ou números)
-                      </div>
-                    }
-                  </div>
-
-                  <div class="checkbox-group">
-                    <label class="checkbox-label">
-                      <input
-                        type="checkbox"
-                        [checked]="noTransactionId()"
-                        (change)="onNoTransactionIdChange($any($event.target).checked)"
-                      >
-                      <span class="checkbox-custom"></span>
-                      <span class="checkbox-text">Não encontrei o ID da transação no comprovante</span>
-                    </label>
-                    @if (noTransactionId()) {
-                      <div class="warning-message">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                          <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                        <span>Isso pode atrasar a validação do seu pagamento</span>
-                      </div>
-                    }
-                  </div>
-                </div>
-
-                <!-- Action Buttons -->
-                <div class="action-buttons">
-                  <button type="button" class="btn btn-outline cancel-btn" (click)="cancelPurchase()">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    Cancelar Compra
-                  </button>
-                  <button
-                    type="button"
-                    class="btn btn-success btn-lg confirm-btn"
-                    [disabled]="!canConfirmPayment()"
-                    (click)="confirmPayment($event)"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                    </svg>
-                    Confirmar Pagamento
-                  </button>
-                </div>
-              </div>
-            </div>
+            <app-payment-form
+              [formattedTime]="getFormattedTime()"
+              [fiatAmount]="formatCurrency(getTotalFiatAmount())"
+              [btcAmount]="formatBTC(getBtcAmount())"
+              [pixKey]="buyData()!.pix_key"
+              [canConfirm]="canConfirmPayment()"
+              (copyPix)="copyPixKey()"
+              (showQR)="showQRCode()"
+              (confirm)="confirmPayment()"
+              (cancel)="cancelPurchase()"
+              (transactionIdChanged)="onTransactionIdChange($event)"
+              (noTransactionIdChanged)="onNoTransactionIdChange($event)"
+            />
           } @else {
             <!-- Buy Details for Non-Pending Status -->
             <div class="details-container">
@@ -315,6 +202,14 @@ import { environment } from '../../../environments/environment';
           }
         }
       </div>
+
+      <!-- QR Code Modal -->
+      <app-qr-code-modal
+        [show]="showQRCodeModal()"
+        [qrCodeDataUrl]="qrCodeDataUrl()"
+        [pixKey]="buyData()?.pix_key || ''"
+        (close)="hideQRCode()"
+      />
     </div>
   `,
   styles: [`
@@ -426,385 +321,6 @@ import { environment } from '../../../environments/environment';
     .error-state p {
       color: #6B7280;
       margin: 0;
-    }
-
-    /* Payment Container (from buy-payment) */
-    .payment-container {
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-    }
-
-    /* Timer Warning */
-    .timer-warning {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      padding: 20px 24px;
-      background: #FEF3C7;
-      border: 2px solid #FCD34D;
-      border-radius: 12px;
-      box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-    }
-
-    .timer-icon-wrapper {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 48px;
-      height: 48px;
-      background: #FDE68A;
-      border-radius: 50%;
-      color: #D97706;
-      flex-shrink: 0;
-    }
-
-    .timer-content {
-      flex: 1;
-    }
-
-    .timer-label {
-      margin: 0 0 4px 0;
-      color: #92400E;
-      font-size: 14px;
-      font-weight: 500;
-    }
-
-    .timer-display {
-      font-size: 28px;
-      font-weight: 700;
-      color: #B45309;
-      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-      letter-spacing: 2px;
-    }
-
-    /* Payment Card */
-    .payment-card {
-      padding: 32px;
-      background: #FFFFFF;
-      border: 2px solid #E5E7EB;
-      border-radius: 16px;
-      box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-    }
-
-    /* Amount Section */
-    .amount-section {
-      margin-bottom: 32px;
-      padding: 24px;
-      background: #F9FAFB;
-      border-radius: 12px;
-      border: 1px solid #E5E7EB;
-    }
-
-    .amount-row {
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
-      gap: 24px;
-      align-items: center;
-    }
-
-    .amount-item {
-      text-align: center;
-    }
-
-    .amount-divider {
-      width: 2px;
-      height: 80px;
-      background: linear-gradient(to bottom, transparent, #D1D5DB, transparent);
-    }
-
-    .amount-label {
-      margin: 0 0 8px 0;
-      color: #6B7280;
-      font-size: 14px;
-      font-weight: 500;
-    }
-
-    .payment-amount {
-      font-size: 36px;
-      font-weight: 700;
-      color: #F59E0B;
-      margin: 0 0 8px 0;
-    }
-
-    .btc-amount {
-      font-size: 32px;
-      font-weight: 700;
-      color: #1E40AF;
-      margin: 0 0 8px 0;
-      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-    }
-
-    .btc-unit {
-      font-size: 20px;
-      font-weight: 600;
-      color: #6B7280;
-      margin-left: 4px;
-    }
-
-    .amount-help {
-      margin: 0;
-      color: #9CA3AF;
-      font-size: 13px;
-    }
-
-    /* PIX Section */
-    .pix-section {
-      margin-bottom: 32px;
-    }
-
-    .pix-label {
-      display: block;
-      margin-bottom: 12px;
-      color: #1F2937;
-      font-size: 14px;
-      font-weight: 600;
-    }
-
-    .pix-key-container {
-      display: flex;
-      gap: 12px;
-      align-items: stretch;
-    }
-
-    .pix-key-input {
-      flex: 1;
-      padding: 14px 16px;
-      background: #F9FAFB;
-      border: 2px solid #E5E7EB;
-      border-radius: 8px;
-      color: #1F2937;
-      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-      font-size: 14px;
-      font-weight: 500;
-    }
-
-    /* Transaction ID Section */
-    .transaction-id-section {
-      margin-bottom: 24px;
-    }
-
-    .instruction-box {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      padding: 16px;
-      background: #EFF6FF;
-      border: 1px solid #BFDBFE;
-      border-radius: 12px;
-      margin-bottom: 24px;
-    }
-
-    .instruction-box svg {
-      color: #1E40AF;
-      flex-shrink: 0;
-      margin-top: 2px;
-    }
-
-    .instruction-box p {
-      margin: 0;
-      color: #1F2937;
-      font-size: 14px;
-      line-height: 1.5;
-    }
-
-    .form-group {
-      margin-bottom: 20px;
-    }
-
-    .form-label {
-      display: block;
-      margin-bottom: 8px;
-      color: #1F2937;
-      font-size: 14px;
-      font-weight: 600;
-    }
-
-    .form-input {
-      width: 100%;
-      padding: 14px 16px;
-      background: #FFFFFF;
-      border: 2px solid #E5E7EB;
-      border-radius: 8px;
-      color: #1F2937;
-      font-size: 16px;
-      transition: all 0.2s ease;
-    }
-
-    .form-input:focus {
-      border-color: #1E40AF;
-      outline: none;
-      box-shadow: 0 0 0 3px #EFF6FF;
-    }
-
-    .transaction-input {
-      text-transform: uppercase;
-      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-      font-weight: 700;
-      text-align: center;
-      font-size: 20px;
-      letter-spacing: 4px;
-    }
-
-    .transaction-input.disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      background: #F9FAFB;
-    }
-
-    .error-message {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 8px;
-      padding: 12px;
-      background: #FEF2F2;
-      border: 1px solid #FECACA;
-      border-radius: 8px;
-      color: #DC2626;
-      font-size: 13px;
-      font-weight: 500;
-    }
-
-    .error-message svg {
-      flex-shrink: 0;
-      color: #DC2626;
-    }
-
-    /* Checkbox */
-    .checkbox-group {
-      margin-bottom: 24px;
-    }
-
-    .checkbox-label {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      cursor: pointer;
-      user-select: none;
-      padding: 12px;
-      background: #F9FAFB;
-      border-radius: 8px;
-      transition: all 0.2s ease;
-    }
-
-    .checkbox-label:hover {
-      background: #F3F4F6;
-    }
-
-    .checkbox-label input[type="checkbox"] {
-      position: absolute;
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .checkbox-custom {
-      width: 20px;
-      height: 20px;
-      min-width: 20px;
-      min-height: 20px;
-      border: 2px solid #D1D5DB;
-      border-radius: 6px;
-      background: #FFFFFF;
-      position: relative;
-      transition: all 0.2s ease;
-      flex-shrink: 0;
-      margin-top: 2px;
-    }
-
-    .checkbox-custom:hover {
-      border-color: #1E40AF;
-    }
-
-    .checkbox-label input[type="checkbox"]:checked + .checkbox-custom {
-      background: #1E40AF;
-      border-color: #1E40AF;
-    }
-
-    .checkbox-label input[type="checkbox"]:checked + .checkbox-custom::after {
-      content: '';
-      position: absolute;
-      top: 2px;
-      left: 6px;
-      width: 5px;
-      height: 10px;
-      border: solid #FFFFFF;
-      border-width: 0 2px 2px 0;
-      transform: rotate(45deg);
-    }
-
-    .checkbox-text {
-      flex: 1;
-      font-size: 14px;
-      color: #374151;
-      line-height: 1.5;
-      font-weight: 500;
-    }
-
-    .warning-message {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 12px;
-      margin-left: 32px;
-      padding: 12px;
-      background: #FEF3C7;
-      border: 1px solid #FDE68A;
-      border-radius: 8px;
-      color: #92400E;
-      font-size: 13px;
-    }
-
-    .warning-message svg {
-      flex-shrink: 0;
-      color: #D97706;
-    }
-
-    /* Action Buttons */
-    .action-buttons {
-      display: flex;
-      gap: 12px;
-      justify-content: flex-end;
-      padding-top: 24px;
-      border-top: 1px solid #E5E7EB;
-    }
-
-    .cancel-btn {
-      color: #EF4444;
-      border-color: #FEE2E2;
-      background: #FFFFFF;
-    }
-
-    .cancel-btn:hover:not(:disabled) {
-      background: #FEF2F2;
-      border-color: #FCA5A5;
-      color: #DC2626;
-    }
-
-    .confirm-btn {
-      background: #16A34A !important;
-      color: #FFFFFF !important;
-      border: 2px solid #16A34A !important;
-      font-weight: 700;
-      box-shadow: 0 4px 12px 0 rgb(22 163 74 / 0.4);
-      text-shadow: 0 1px 2px rgb(0 0 0 / 0.1);
-    }
-
-    .confirm-btn:hover:not(:disabled) {
-      background: #15803D !important;
-      border-color: #15803D !important;
-      color: #FFFFFF !important;
-      box-shadow: 0 6px 16px 0 rgb(21 128 61 / 0.5);
-      transform: translateY(-1px);
-    }
-
-    .confirm-btn:disabled {
-      background: #9CA3AF !important;
-      border-color: #9CA3AF !important;
-      color: #FFFFFF !important;
-      opacity: 0.7;
-      transform: none;
-      box-shadow: none;
     }
 
     /* Details Container */
@@ -1141,50 +657,6 @@ import { environment } from '../../../environments/environment';
         font-size: 24px;
       }
 
-      .timer-warning {
-        flex-direction: column;
-        text-align: center;
-      }
-
-      .timer-icon-wrapper {
-        margin: 0 auto;
-      }
-
-      .payment-card {
-        padding: 20px;
-      }
-
-      .amount-row {
-        grid-template-columns: 1fr;
-        gap: 20px;
-      }
-
-      .amount-divider {
-        width: 100%;
-        height: 2px;
-        background: linear-gradient(to right, transparent, #D1D5DB, transparent);
-      }
-
-      .payment-amount,
-      .btc-amount {
-        font-size: 28px;
-      }
-
-      .pix-key-container {
-        flex-direction: column;
-      }
-
-      .action-buttons {
-        flex-direction: column-reverse;
-      }
-
-      .action-buttons button {
-        width: 100%;
-      }
-
-      .warning-message {
-        margin-left: 0;
-      }
 
       .status-banner {
         flex-direction: column;
@@ -1220,6 +692,10 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   // Payment form state (for pending status)
   transactionId = signal('');
   noTransactionId = signal(false);
+
+  // QR code state
+  showQRCodeModal = signal(false);
+  qrCodeDataUrl = signal<string | null>(null);
 
   // Timer for payment (for pending status)
   paymentTimeLeft = signal(0);
@@ -1302,9 +778,29 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Check if a buy is actually expired (expires_at has passed)
+   * even if the server status still shows as pending
+   */
+  isActuallyExpired(buy: Buy | null): boolean {
+    if (!buy || !buy.expires_at) return false;
+
+    const now = new Date();
+    const expiresAt = new Date(buy.expires_at);
+    return now.getTime() > expiresAt.getTime();
+  }
+
   isPendingPayment(): boolean {
-    const status = this.buyData()?.status;
-    return status?.toString().toLowerCase() === 'pending';
+    const buy = this.buyData();
+    const status = buy?.status;
+    const statusStr = status?.toString().toLowerCase();
+
+    // If status is pending but it's actually expired, don't show payment form
+    if (statusStr === 'pending' && this.isActuallyExpired(buy)) {
+      return false;
+    }
+
+    return statusStr === 'pending';
   }
 
   startPaymentTimer(buy: Buy) {
@@ -1342,7 +838,11 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
 
   handlePaymentTimeout() {
     alert('O tempo de pagamento foi excedido. Sua compra foi cancelada.');
-    this.router.navigate(['/buy']);
+    // Reload buy data to show expired state instead of redirecting
+    const buyId = this.buyData()?.id;
+    if (buyId) {
+      this.loadBuyData(buyId);
+    }
   }
 
   getFormattedTime(): string {
@@ -1417,6 +917,35 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
         alert('Erro ao copiar chave PIX. Copie manualmente.');
       });
     }
+  }
+
+  async showQRCode() {
+    const buy = this.buyData();
+    if (!buy?.pix_key) {
+      return;
+    }
+
+    try {
+      // Generate QR code as data URL
+      const dataUrl = await QRCode.toDataURL(buy.pix_key, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#1E40AF',
+          light: '#FFFFFF'
+        }
+      });
+
+      this.qrCodeDataUrl.set(dataUrl);
+      this.showQRCodeModal.set(true);
+    } catch (error) {
+      console.error('Error generating QR code:', error);
+      alert('Erro ao gerar QR Code. Tente novamente.');
+    }
+  }
+
+  hideQRCode() {
+    this.showQRCodeModal.set(false);
   }
 
   confirmPayment(event?: Event) {
@@ -1547,6 +1076,13 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   }
 
   getStatusClass(status: BuyStatus): string {
+    const buy = this.buyData();
+
+    // Check if it's actually expired even if status is pending
+    if (status?.toString().toLowerCase() === 'pending' && this.isActuallyExpired(buy)) {
+      return 'warning';
+    }
+
     if (this.isSuccessStatus(status)) return 'completed';
     if (this.isProcessingStatus(status)) return 'processing';
     return 'warning';
@@ -1566,6 +1102,12 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   getStatusLabel(status: BuyStatus): string {
     // Use string comparison for more robust matching
     const statusStr = status?.toString().toLowerCase();
+    const buy = this.buyData();
+
+    // Check if it's actually expired even if status is pending
+    if (statusStr === 'pending' && this.isActuallyExpired(buy)) {
+      return 'Expirada';
+    }
 
     switch (statusStr) {
       case 'pending':
@@ -1597,6 +1139,12 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   getStatusDescription(status: BuyStatus): string {
     // Use string comparison for more robust matching
     const statusStr = status?.toString().toLowerCase();
+    const buy = this.buyData();
+
+    // Check if it's actually expired even if status is pending
+    if (statusStr === 'pending' && this.isActuallyExpired(buy)) {
+      return 'O prazo para pagamento expirou. Você pode fazer uma nova compra.';
+    }
 
     switch (statusStr) {
       case 'pending':

@@ -1127,7 +1127,24 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }).format(date);
   }
 
-  getStatusClass(status: BuyStatus): string {
+  /**
+   * Check if a transaction is actually expired (expires_at has passed)
+   * even if the server status still shows as pending
+   */
+  private isTransactionExpired(transaction: any): boolean {
+    if (!transaction || !transaction.expiresAt) return false;
+
+    const now = new Date();
+    const expiresAt = new Date(transaction.expiresAt);
+    return now.getTime() > expiresAt.getTime();
+  }
+
+  getStatusClass(status: BuyStatus, transaction?: any): string {
+    // Check if it's pending but actually expired
+    if (status === BuyStatus.Pending && transaction && this.isTransactionExpired(transaction)) {
+      return 'warning';
+    }
+
     switch (status) {
       // case BuyStatus.Completed:
       case BuyStatus.PaymentConfirmed:
@@ -1150,7 +1167,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   }
 
-  getStatusLabel(status: BuyStatus): string {
+  getStatusLabel(status: BuyStatus, transaction?: any): string {
+    // Check if it's pending but actually expired
+    if (status === BuyStatus.Pending && transaction && this.isTransactionExpired(transaction)) {
+      return 'Expirada';
+    }
+
     switch (status) {
       case BuyStatus.Pending:
         return 'Pendente';
@@ -1239,7 +1261,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
             payValue: buy.pay_value,
             pricePerBtc: buy.price,
             status: buy.status,
-            createdAt: buy.created_at
+            createdAt: buy.created_at,
+            expiresAt: buy.expires_at
           }));
 
           if (append) {
