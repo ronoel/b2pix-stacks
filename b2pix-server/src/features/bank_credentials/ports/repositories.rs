@@ -3,6 +3,7 @@ use crate::features::bank_credentials::domain::entities::{BankCredentials, BankC
 use crate::features::shared::StacksAddress;
 use crate::common::errors::InviteError;
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait BankCredentialsRepository: Send + Sync {
     /// Save or update bank credentials
