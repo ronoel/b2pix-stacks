@@ -202,8 +202,8 @@ import { PaymentFormComponent } from './payment-form.component';
 
       <!-- Time Warning Modal -->
       @if (showTimeWarningModal()) {
-        <div class="warning-modal-overlay" (click)="closeTimeWarningModal()">
-          <div class="warning-modal-content" (click)="$event.stopPropagation()">
+        <div class="warning-modal-overlay">
+          <div class="warning-modal-content">
             <div class="warning-modal-header">
               <div class="warning-icon">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
@@ -1082,7 +1082,14 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   }
 
   refreshBuyData() {
-    const buyId = this.buyData()?.id;
+    const buy = this.buyData();
+    const buyId = buy?.id;
+
+    // Don't refresh if buy is pending but actually expired
+    if (buy && this.isActuallyExpired(buy)) {
+      return;
+    }
+
     if (buyId) {
       // Silent refresh - don't show loading spinner
       this.loadBuyData(buyId, false);
@@ -1123,7 +1130,7 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
 
     this.paymentTimer = setInterval(() => {
       this.updatePaymentTimeLeft(buy);
-    }, 5000);
+    }, 1000); // Update every 1 second for smooth countdown
   }
 
   private updatePaymentTimeLeft(buy: Buy) {
@@ -1161,11 +1168,9 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
       alert('O tempo de pagamento foi excedido. Sua compra foi cancelada.');
     }
 
-    // Reload buy data to show expired state instead of redirecting
-    const buyId = this.buyData()?.id;
-    if (buyId) {
-      this.loadBuyData(buyId);
-    }
+    // Don't reload buy data - the component will automatically show expired state
+    // based on local time check. No need to fetch from server since status
+    // might still be "pending" on server side, but we know it's expired locally.
   }
 
   getFormattedTime(): string {
@@ -1589,6 +1594,13 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
    */
   private scheduleAutoRefresh() {
     this.clearRefreshTimeout();
+
+    const buy = this.buyData();
+
+    // Don't schedule refresh if buy is actually expired
+    if (buy && this.isActuallyExpired(buy)) {
+      return;
+    }
 
     if (this.needsMonitoring()) {
       this.refreshTimeout = setTimeout(() => {
