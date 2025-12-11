@@ -282,53 +282,35 @@ pub async fn finish_advertisement(
 
 /// Create a recharge deposit for an existing advertisement
 /// This allows sellers to add more cryptocurrency to their active advertisements
+/// Signature verification is handled by Bolt Protocol
 pub async fn create_deposit(
     State(handlers): State<Arc<AdvertisementHandlers>>,
     Path(id): Path<String>,
-    Json(request): Json<SignedRequest>,
+    Json(request): Json<CreateDepositRequest>,
 ) -> Result<Json<CreateDepositResponse>, ApiError> {
-    // Validate signature against the payload
-    if !verify_message_signature_rsv(&request.payload, &request.signature, &request.public_key)
-        .await
-        .map_err(|e| ApiError::BadRequest(format!("Invalid signature: {}", e)))?
-    {
-        return Err(ApiError::BadRequest(
-            "Signature verification failed".to_string(),
-        ));
-    }
-
-    // Get wallet address from public key
-    let wallet_address = get_address_from_public_key(&request.public_key, &handlers.config.network)
-        .map_err(|e| {
-            ApiError::BadRequest(format!("Failed to derive address from public key: {}", e))
-        })?;
-
     // Parse advertisement ID
     let advertisement_id = match ObjectId::parse_str(&id) {
         Ok(object_id) => AdvertisementId::from_object_id(object_id),
         Err(_) => return Err(ApiError::BadRequest(format!("Invalid advertisement ID: {}", id))),
     };
 
-    // Deserialize the payload to get the transaction
-    let deposit_request: CreateDepositRequest = serde_json::from_str(&request.payload)
-        .map_err(|e| ApiError::BadRequest(format!("Invalid request payload: {}", e)))?;
-
     // Create the recharge deposit
+    // Bolt Protocol will validate signature and recipient address
     let deposit = handlers
         .deposit_service
         .create_recharge_deposit(
             advertisement_id.clone(),
-            deposit_request.transaction,
-            &wallet_address,
+            request.transaction,
         )
         .await?;
 
     Ok(Json(CreateDepositResponse {
         deposit_id: deposit.id.to_string(),
         advertisement_id: advertisement_id.to_string(),
+        blockchain_tx_id: deposit.blockchain_tx_id,
         amount: deposit.amount,
         status: format!("{:?}", deposit.status),
-        message: "Deposit created successfully. Transaction will be broadcasted shortly.".to_string(),
+        message: "Deposit created and broadcasted successfully.".to_string(),
     }))
 }
 

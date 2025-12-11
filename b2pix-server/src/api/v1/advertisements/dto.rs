@@ -31,7 +31,8 @@ pub struct CreateDepositRequest {
 pub struct CreateDepositResponse {
     pub deposit_id: String,
     pub advertisement_id: String,
-    pub amount: u128,
+    pub blockchain_tx_id: Option<String>,
+    pub amount: Option<u128>,
     pub status: String,
     pub message: String,
 }
@@ -243,8 +244,8 @@ pub struct DepositResponse {
     pub id: String,
     pub advertisement_id: String,
     pub seller_address: String,
-    pub transaction_id: Option<String>,
-    pub amount: u128,
+    pub blockchain_tx_id: Option<String>,
+    pub amount: Option<u128>,
     pub status: String,
     pub created_at: String,
     pub updated_at: String,
@@ -257,7 +258,7 @@ impl From<AdvertisementDeposit> for DepositResponse {
             id: deposit.id.to_string(),
             advertisement_id: deposit.advertisement_id.to_string(),
             seller_address: deposit.seller_address,
-            transaction_id: deposit.transaction_id,
+            blockchain_tx_id: deposit.blockchain_tx_id,
             amount: deposit.amount,
             status: serde_json::to_value(&deposit.status)
                 .unwrap()

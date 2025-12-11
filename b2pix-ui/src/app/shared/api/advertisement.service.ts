@@ -16,6 +16,15 @@ export interface CreateAdvertisementRequest {
     pricingMode: PricingMode  // 'fixed' or 'dynamic'
 }
 
+export interface CreateDepositResponse {
+    deposit_id: string
+    advertisement_id: string
+    blockchain_tx_id: string | null
+    amount: number | null
+    status: string
+    message: string
+}
+
 export interface GetAdvertisementsParams {
     status?: AdvertisementStatus[];
     active_only?: boolean;
@@ -233,6 +242,29 @@ export class AdvertisementService {
 
   deleteAdvertisement(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/v1/advertisements/${id}`);
+  }
+
+  /**
+   * Create a deposit (add funds) to an existing advertisement
+   * @param advertisementId The advertisement ID to add funds to
+   * @param amountInSats Amount to deposit in satoshis
+   * @returns Observable of deposit creation response
+   */
+  createDeposit(advertisementId: string, amountInSats: bigint): Observable<CreateDepositResponse> {
+    const recipient = environment.b2pixAddress;
+
+    // Call Bolt contract transfer without memo for deposits
+    return this.boltContractSBTCService.transferStacksToBolt(amountInSats, recipient).pipe(
+      switchMap((transactionSerialized) => {
+        return this.http.post<CreateDepositResponse>(`${this.apiUrl}/v1/advertisements/${advertisementId}/deposits`, {
+          transaction: transactionSerialized
+        });
+      }),
+      catchError((error: any) => {
+        console.error('Error creating deposit:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   /**

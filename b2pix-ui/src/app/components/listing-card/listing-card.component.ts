@@ -1,7 +1,6 @@
 import { Component, Input, Output, EventEmitter, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Advertisement, AdvertisementStatus } from '../../shared/models/advertisement.model';
-import { PricingUtils } from '../../shared/utils/pricing.utils';
 
 @Component({
   selector: 'app-listing-card',
@@ -59,6 +58,19 @@ import { PricingUtils } from '../../shared/utils/pricing.utils';
             <span class="sold-amount">{{ formatBTC(getSoldAmount()) }} BTC vendido</span>
             <span class="available-amount">{{ formatBTC(ad.available_amount) }} BTC disponível</span>
           </div>
+        </div>
+      }
+
+      <!-- Add Fund Button -->
+      @if (canAddFund()) {
+        <div class="listing-actions">
+          <button class="btn-add-fund" (click)="onAddFundClick($event)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              <path d="M12 8V16M8 12H16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            Adicionar Fundos
+          </button>
         </div>
       }
     </div>
@@ -352,14 +364,70 @@ import { PricingUtils } from '../../shared/utils/pricing.utils';
       font-weight: 500;
       opacity: 0.8;
     }
+
+    /* Add Fund Button Section */
+    .listing-actions {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #E5E7EB;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .btn-add-fund {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+    }
+
+    .btn-add-fund:hover {
+      background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+      box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .btn-add-fund:active {
+      transform: translateY(0);
+      box-shadow: 0 1px 2px rgba(59, 130, 246, 0.2);
+    }
+
+    .btn-add-fund svg {
+      flex-shrink: 0;
+    }
+
+    /* Prevent card click when clicking button */
+    .listing-actions {
+      position: relative;
+      z-index: 10;
+    }
   `]
 })
 export class ListingCardComponent {
   @Input({ required: true }) ad!: Advertisement;
   @Output() cardClick = new EventEmitter<Advertisement>();
+  @Output() addFund = new EventEmitter<Advertisement>();
 
   onCardClick(): void {
     this.cardClick.emit(this.ad);
+  }
+
+  onAddFundClick(event: Event): void {
+    event.stopPropagation(); // Prevent card click event
+    this.addFund.emit(this.ad);
+  }
+
+  canAddFund(): boolean {
+    return this.ad.status === AdvertisementStatus.READY;
   }
 
   getStatusClass(status: AdvertisementStatus): string {

@@ -29,6 +29,41 @@ mod u128_as_i64 {
     }
 }
 
+// Optional u128 serialization for amount
+mod optional_u128_as_i64 {
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+    pub fn serialize<S>(value: &Option<u128>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match value {
+            Some(v) => {
+                let i64_value = i64::try_from(*v)
+                    .map_err(|_| serde::ser::Error::custom("Value too large for i64"))?;
+                Some(i64_value).serialize(serializer)
+            }
+            None => serializer.serialize_none(),
+        }
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<u128>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let opt: Option<i64> = Option::deserialize(deserializer)?;
+        match opt {
+            Some(i64_value) => {
+                if i64_value < 0 {
+                    return Err(serde::de::Error::custom("Negative values not allowed"));
+                }
+                Ok(Some(i64_value as u128))
+            }
+            None => Ok(None),
+        }
+    }
+}
+
 // Custom serialization/deserialization for DateTime fields using native MongoDB DateTime
 mod bson_datetime_to_chrono {
     use serde::{self, Deserialize, Deserializer, Serialize, Serializer};
@@ -179,15 +214,16 @@ pub struct AdvertisementDeposit {
     /// Seller's wallet address (for validation)
     pub seller_address: String,
 
-    /// Blockchain transaction ID (set after broadcasting)
-    pub transaction_id: Option<String>,
+    /// Blockchain transaction ID (set after broadcasting via Bolt Protocol)
+    pub blockchain_tx_id: Option<String>,
 
     /// Serialized transaction for broadcasting
     pub serialized_transaction: String,
 
     /// Amount of crypto in this deposit (in minimal units, e.g., satoshis)
-    #[serde(with = "u128_as_i64")]
-    pub amount: u128,
+    /// Optional because it's set after Bolt Protocol responds with the amount
+    #[serde(with = "optional_u128_as_i64")]
+    pub amount: Option<u128>,
 
     /// Deposit status
     pub status: AdvertisementDepositStatus,
@@ -206,17 +242,12 @@ pub struct AdvertisementDeposit {
 }
 
 impl AdvertisementDeposit {
-    /// Create a new deposit in draft status
+    /// Create a new deposit in draft status (without amount, will be set after Bolt broadcast)
     pub fn new(
         advertisement_id: AdvertisementId,
         seller_address: String,
         serialized_transaction: String,
-        amount: u128,
     ) -> Result<Self, AdvertisementDepositError> {
-        if amount == 0 {
-            return Err(AdvertisementDepositError::InvalidAmount);
-        }
-
         if serialized_transaction.is_empty() {
             return Err(AdvertisementDepositError::InvalidTransaction);
         }
@@ -227,14 +258,27 @@ impl AdvertisementDeposit {
             id: AdvertisementDepositId::new(),
             advertisement_id,
             seller_address,
-            transaction_id: None,
+            blockchain_tx_id: None,
             serialized_transaction,
-            amount,
+            amount: None, // Will be set after Bolt broadcast
             status: AdvertisementDepositStatus::Draft,
             created_at: now,
             updated_at: now,
             confirmed_at: None,
         })
+    }
+
+    /// Set amount and blockchain transaction ID after successful Bolt broadcast
+    pub fn set_broadcast_info(&mut self, blockchain_tx_id: String, amount: u128) -> Result<(), AdvertisementDepositError> {
+        if amount == 0 {
+            return Err(AdvertisementDepositError::InvalidAmount);
+        }
+
+        self.blockchain_tx_id = Some(blockchain_tx_id);
+        self.amount = Some(amount);
+        self.updated_at = Utc::now();
+
+        Ok(())
     }
 
     /// Change deposit status
@@ -249,13 +293,12 @@ impl AdvertisementDeposit {
         Ok(())
     }
 
-    /// Mark deposit as pending with transaction ID
-    pub fn pending(&mut self, transaction_id: String) -> Result<(), AdvertisementDepositError> {
+    /// Mark deposit as pending (status change only, blockchain_tx_id should already be set)
+    pub fn mark_pending(&mut self) -> Result<(), AdvertisementDepositError> {
         if self.status != AdvertisementDepositStatus::Draft {
             return Err(AdvertisementDepositError::InvalidStatusTransition);
         }
 
-        self.transaction_id = Some(transaction_id);
         self.status = AdvertisementDepositStatus::Pending;
         self.updated_at = Utc::now();
 
@@ -308,28 +351,40 @@ mod tests {
             ad_id,
             "SP2ABC123".to_string(),
             "0x123abc".to_string(),
-            100_000,
         );
 
         assert!(result.is_ok());
         let deposit = result.unwrap();
-        assert_eq!(deposit.amount, 100_000);
+        assert_eq!(deposit.amount, None); // Amount not set yet
         assert_eq!(deposit.status, AdvertisementDepositStatus::Draft);
-        assert!(deposit.transaction_id.is_none());
+        assert!(deposit.blockchain_tx_id.is_none());
         assert!(deposit.confirmed_at.is_none());
     }
 
     #[test]
-    fn test_new_deposit_zero_amount() {
+    fn test_set_broadcast_info() {
         let ad_id = AdvertisementId::new();
-        let result = AdvertisementDeposit::new(
+        let mut deposit = AdvertisementDeposit::new(
             ad_id,
             "SP2ABC123".to_string(),
             "0x123abc".to_string(),
-            0,
-        );
+        ).unwrap();
 
-        assert!(matches!(result, Err(AdvertisementDepositError::InvalidAmount)));
+        // Set broadcast info
+        assert!(deposit.set_broadcast_info("txid123".to_string(), 100_000).is_ok());
+        assert_eq!(deposit.blockchain_tx_id, Some("txid123".to_string()));
+        assert_eq!(deposit.amount, Some(100_000));
+
+        // Cannot set zero amount
+        let mut deposit2 = AdvertisementDeposit::new(
+            AdvertisementId::new(),
+            "SP2ABC123".to_string(),
+            "0x123abc".to_string(),
+        ).unwrap();
+        assert!(matches!(
+            deposit2.set_broadcast_info("txid".to_string(), 0),
+            Err(AdvertisementDepositError::InvalidAmount)
+        ));
     }
 
     #[test]
@@ -339,7 +394,6 @@ mod tests {
             ad_id,
             "SP2ABC123".to_string(),
             "".to_string(),
-            100_000,
         );
 
         assert!(matches!(result, Err(AdvertisementDepositError::InvalidTransaction)));
@@ -352,13 +406,15 @@ mod tests {
             ad_id,
             "SP2ABC123".to_string(),
             "0x123abc".to_string(),
-            100_000,
         ).unwrap();
 
+        // Set broadcast info first
+        deposit.set_broadcast_info("txid123".to_string(), 100_000).unwrap();
+
         // Draft -> Pending
-        assert!(deposit.pending("txid123".to_string()).is_ok());
+        assert!(deposit.mark_pending().is_ok());
         assert_eq!(deposit.status, AdvertisementDepositStatus::Pending);
-        assert_eq!(deposit.transaction_id, Some("txid123".to_string()));
+        assert_eq!(deposit.blockchain_tx_id, Some("txid123".to_string()));
 
         // Pending -> Confirmed
         assert!(deposit.confirm().is_ok());
@@ -376,10 +432,10 @@ mod tests {
             ad_id,
             "SP2ABC123".to_string(),
             "0x123abc".to_string(),
-            100_000,
         ).unwrap();
 
-        deposit.pending("txid123".to_string()).unwrap();
+        deposit.set_broadcast_info("txid123".to_string(), 100_000).unwrap();
+        deposit.mark_pending().unwrap();
         assert!(deposit.fail().is_ok());
         assert_eq!(deposit.status, AdvertisementDepositStatus::Failed);
     }

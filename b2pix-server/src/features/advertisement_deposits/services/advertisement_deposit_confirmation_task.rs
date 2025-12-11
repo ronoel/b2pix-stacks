@@ -63,7 +63,7 @@ impl AdvertisementDepositConfirmationTaskHandler {
         // Process each pending deposit
         for mut deposit in pending_deposits {
             // Skip if no transaction_id (shouldn't happen in Pending status)
-            let transaction_id = match &deposit.transaction_id {
+            let transaction_id = match &deposit.blockchain_tx_id {
                 Some(tx_id) => tx_id.clone(),
                 None => {
                     tracing::warn!("Deposit {} in Pending status has no transaction_id", deposit.id);
@@ -130,10 +130,14 @@ impl AdvertisementDepositConfirmationTaskHandler {
 
         // let status_before = advertisement_before.status.clone();
 
+        // Get amount (should always be Some for deposits in Pending status)
+        let amount = deposit.amount
+            .ok_or_else(|| format!("Deposit {} in Pending status has no amount", deposit.id))?;
+
         // Add the deposit amount to the advertisement
         let updated_advertisement = self
             .advertisement_repository
-            .add_deposited_amount(&deposit.advertisement_id, &deposit.amount)
+            .add_deposited_amount(&deposit.advertisement_id, &amount)
             .await
             .map_err(|e| format!("Failed to add deposited amount: {}", e))?
             .ok_or_else(|| format!("Advertisement not found: {}", deposit.advertisement_id))?;
@@ -189,7 +193,7 @@ impl AdvertisementDepositConfirmationTaskHandler {
         let event = AdvertisementDepositConfirmedEvent {
             deposit_id: deposit.id.clone(),
             advertisement_id: deposit.advertisement_id.clone(),
-            amount: deposit.amount,
+            amount, // Use the unwrapped amount from above
         };
 
         let event_data = serde_json::to_value(&event)

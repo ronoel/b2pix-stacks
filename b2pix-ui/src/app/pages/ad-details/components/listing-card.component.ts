@@ -14,8 +14,17 @@ import { Advertisement, AdvertisementStatus } from '../../../shared/models/adver
           <div class="listing-status-badge" [ngClass]="getStatusClass(advertisement().status)">
             {{ getStatusLabel(advertisement().status) }}
           </div>
-          @if (canEdit() || canFinish()) {
+          @if (canEdit() || canFinish() || canAddFund()) {
             <div class="listing-actions">
+              @if (canAddFund()) {
+                <button class="btn btn-success btn-sm" (click)="onAddFund()">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                    <path d="M12 8V16M8 12H16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                  Adicionar Fundos
+                </button>
+              }
               @if (canEdit()) {
                 <button class="btn btn-primary btn-sm" (click)="onEdit()">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -260,6 +269,21 @@ import { Advertisement, AdvertisementStatus } from '../../../shared/models/adver
       opacity: 0.5;
       cursor: not-allowed;
     }
+    .btn-success {
+      background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+      color: white;
+      border-color: #10B981;
+      box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+    }
+    .btn-success:hover:not(:disabled) {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+      transform: translateY(-1px);
+    }
+    .btn-success:active:not(:disabled) {
+      transform: translateY(0);
+      box-shadow: 0 1px 2px rgba(16, 185, 129, 0.2);
+    }
     .btn-danger {
       background: #ef4444;
       color: white;
@@ -315,6 +339,7 @@ export class ListingCardComponent {
   finish = output<void>();
   showDeposits = output<void>();
   edit = output<void>();
+  addFund = output<void>();
 
   onFinish() {
     this.finish.emit();
@@ -326,6 +351,14 @@ export class ListingCardComponent {
 
   onEdit() {
     this.edit.emit();
+  }
+
+  onAddFund() {
+    this.addFund.emit();
+  }
+
+  canAddFund(): boolean {
+    return this.advertisement().status === AdvertisementStatus.READY;
   }
 
   getStatusClass(status: AdvertisementStatus): string {

@@ -15,6 +15,7 @@ import { RefundSectionComponent } from './components/refund-section.component';
 import { BuysListComponent } from './components/buys-list.component';
 import { DepositsModalComponent } from './components/deposits-modal.component';
 import { EditAdvertisementModalComponent, EditAdvertisementData } from './components/edit-advertisement-modal.component';
+import { AddFundModalComponent } from './components/add-fund-modal.component';
 
 @Component({
   selector: 'app-ad-details',
@@ -24,7 +25,8 @@ import { EditAdvertisementModalComponent, EditAdvertisementData } from './compon
     RefundSectionComponent,
     BuysListComponent,
     DepositsModalComponent,
-    EditAdvertisementModalComponent
+    EditAdvertisementModalComponent,
+    AddFundModalComponent
 ],
   encapsulation: ViewEncapsulation.None,
   template: `
@@ -86,6 +88,7 @@ import { EditAdvertisementModalComponent, EditAdvertisementData } from './compon
             (finish)="finishAdvertisement()"
             (edit)="openEditModal()"
             (showDeposits)="showDeposits()"
+            (addFund)="openAddFundModal()"
           />
         }
 
@@ -115,6 +118,14 @@ import { EditAdvertisementModalComponent, EditAdvertisementData } from './compon
             [isSubmitting]="isUpdating()"
             (close)="closeEditModal()"
             (save)="saveAdvertisementChanges($event)"
+          />
+        }
+
+        @if (showAddFundModal()) {
+          <app-add-fund-modal
+            [isSubmitting]="isAddingFund()"
+            (close)="closeAddFundModal()"
+            (addFund)="handleAddFund($event)"
           />
         }
       </div>
@@ -295,6 +306,8 @@ export class AdDetailsComponent implements OnInit {
   public isLoadingDeposits = signal(false);
   public showEditModal = signal(false);
   public isUpdating = signal(false);
+  public showAddFundModal = signal(false);
+  public isAddingFund = signal(false);
 
   ngOnInit() {
     const advertisementId = this.route.snapshot.paramMap.get('advertisement_id');
@@ -410,6 +423,56 @@ Esta ação não pode ser desfeita.`;
 
   closeEditModal() {
     this.showEditModal.set(false);
+  }
+
+  openAddFundModal() {
+    const ad = this.advertisement();
+    if (!ad) return;
+
+    this.showAddFundModal.set(true);
+  }
+
+  closeAddFundModal() {
+    this.showAddFundModal.set(false);
+  }
+
+  handleAddFund(amountInSats: number) {
+    const ad = this.advertisement();
+    if (!ad) return;
+
+    this.isAddingFund.set(true);
+
+    // Create deposit via wallet transaction and API
+    this.advertisementService.createDeposit(ad.id, BigInt(amountInSats)).subscribe({
+      next: (response) => {
+        this.isAddingFund.set(false);
+        this.closeAddFundModal();
+
+        // Show success message with deposit details
+        const message = `✅ Depósito criado com sucesso!\n\nID do Depósito: ${response.deposit_id}\nQuantidade: ${amountInSats} sats\nStatus: ${response.status}\n\n${response.message}`;
+        alert(message);
+
+        // Refresh advertisement data to show updated balance
+        const advertisementId = this.route.snapshot.paramMap.get('advertisement_id');
+        if (advertisementId) {
+          this.loadData(advertisementId);
+        }
+      },
+      error: (error) => {
+        console.error('Error creating deposit:', error);
+        this.isAddingFund.set(false);
+
+        // Show error message
+        let errorMessage = 'Erro ao adicionar fundos. Tente novamente.';
+        if (error.error && error.error.error) {
+          errorMessage = error.error.error;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+
+        alert(`❌ ${errorMessage}`);
+      }
+    });
   }
 
   saveAdvertisementChanges(data: EditAdvertisementData) {

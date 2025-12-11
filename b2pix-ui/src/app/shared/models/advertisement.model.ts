@@ -32,7 +32,7 @@ export interface Deposit {
     id: string;
     advertisement_id: string;
     seller_address: string;
-    transaction_id: string;
+    blockchain_tx_id: string | null;
     amount: number;  // Amount in sats
     status: DepositStatus;
     created_at: string;

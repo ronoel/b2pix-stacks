@@ -115,6 +115,15 @@ pub trait AdvertisementRepository: Send + Sync {
         min_amount: i64,
         max_amount: i64,
     ) -> Result<Option<Advertisement>, AdvertisementError>;
+
+    /// Atomically lock advertisement for deposit processing
+    /// Updates status from Ready to ProcessingDeposit
+    /// Only updates if advertisement is in Ready status
+    /// Returns the updated advertisement if successful, None if not Ready
+    async fn lock_for_deposit(
+        &self,
+        advertisement_id: &AdvertisementId,
+    ) -> Result<Option<Advertisement>, AdvertisementError>;
 }
 
 /// Advertisement repository statistics

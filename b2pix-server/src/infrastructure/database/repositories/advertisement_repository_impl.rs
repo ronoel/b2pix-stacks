@@ -606,6 +606,40 @@ impl AdvertisementRepository for AdvertisementRepositoryImpl {
 
         Ok(result)
     }
+
+    async fn lock_for_deposit(
+        &self,
+        advertisement_id: &AdvertisementId,
+    ) -> Result<Option<Advertisement>, AdvertisementError> {
+        use mongodb::options::FindOneAndUpdateOptions;
+
+        // Create filter: Only match if status is Ready
+        let filter = doc! {
+            "_id": advertisement_id.as_object_id(),
+            "status": "ready"
+        };
+
+        // Create update: Change status to ProcessingDeposit
+        let update = doc! {
+            "$set": {
+                "status": "processing_deposit",
+                "updated_at": mongodb::bson::DateTime::now()
+            }
+        };
+
+        // Configure options to return the updated document
+        let options = FindOneAndUpdateOptions::builder()
+            .return_document(mongodb::options::ReturnDocument::After)
+            .build();
+
+        // Execute the atomic update
+        let result = self.collection
+            .find_one_and_update(filter, update, options)
+            .await
+            .map_err(|e| AdvertisementError::Internal(format!("Database error: {}", e)))?;
+
+        Ok(result)
+    }
 }
 
 #[cfg(test)]
