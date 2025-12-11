@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use crate::features::advertisements::domain::entities::Advertisement;
+use crate::features::advertisements::domain::entities::{Advertisement, PricingMode};
 use crate::features::advertisement_deposits::domain::entities::AdvertisementDeposit;
 use crate::features::invites::services::ValidationService;
 
@@ -47,11 +47,11 @@ pub struct FinishAdvertisementPayload {
 impl FinishAdvertisementPayload {
     pub fn parse(payload: &str) -> Result<Self, String> {
         let lines: Vec<&str> = payload.split('\n').collect();
-        
+
         if lines.len() != 4 {
             return Err("Payload must contain exactly 4 lines".to_string());
         }
-        
+
         let action = lines[0].trim().to_string();
         let domain = lines[1].trim().to_string();
         let advertisement_id = lines[2].trim().to_string();
@@ -74,11 +74,117 @@ impl FinishAdvertisementPayload {
         // Validate timestamp
         ValidationService::validate_timestamp(&timestamp)
             .map_err(|e| format!("Timestamp validation failed: {}", e))?;
-        
+
         Ok(FinishAdvertisementPayload {
             action,
             domain,
             advertisement_id,
+            timestamp,
+        })
+    }
+}
+
+/// Payload structure for updating advertisement pricing
+pub struct UpdateAdvertisementPayload {
+    pub action: String,
+    pub domain: String,
+    pub advertisement_id: String,
+    pub pricing_mode: PricingMode,
+    pub min_amount: i64,
+    pub max_amount: i64,
+    pub timestamp: String,
+}
+
+impl UpdateAdvertisementPayload {
+    pub fn parse(payload: &str) -> Result<Self, String> {
+        let lines: Vec<&str> = payload.split('\n').collect();
+
+        if lines.len() != 8 {
+            return Err("Payload must contain exactly 8 lines".to_string());
+        }
+
+        let action = lines[0].trim().to_string();
+        let domain = lines[1].trim().to_string();
+        let advertisement_id = lines[2].trim().to_string();
+        let pricing_type = lines[3].trim().to_string();
+        let pricing_value = lines[4].trim().to_string();
+        let min_amount_str = lines[5].trim().to_string();
+        let max_amount_str = lines[6].trim().to_string();
+        let timestamp = lines[7].trim().to_string();
+
+        // Validate action
+        if action != "B2PIX - Alterar Valor" {
+            return Err(format!("Invalid action. Expected 'B2PIX - Alterar Valor', got '{}'", action));
+        }
+
+        // Validate domain
+        ValidationService::validate_domain(&domain)
+            .map_err(|e| format!("Domain validation failed: {}", e))?;
+
+        // Validate advertisement_id format (should be a valid ObjectId)
+        if advertisement_id.trim().is_empty() {
+            return Err("Advertisement ID cannot be empty".to_string());
+        }
+
+        // Parse and validate pricing mode
+        let pricing_mode = match pricing_type.to_lowercase().as_str() {
+            "fixed" => {
+                let price = pricing_value.parse::<u128>()
+                    .map_err(|_| format!("Invalid price value: '{}'. Expected a positive integer", pricing_value))?;
+
+                if price == 0 {
+                    return Err("Price must be greater than 0".to_string());
+                }
+
+                PricingMode::Fixed { price }
+            },
+            "dynamic" => {
+                let percentage_offset = pricing_value.parse::<f64>()
+                    .map_err(|_| format!("Invalid percentage offset: '{}'. Expected a decimal number", pricing_value))?;
+
+                if percentage_offset < -100.0 || percentage_offset > 1000.0 {
+                    return Err(format!("Percentage offset must be between -100.0 and 1000.0, got {}", percentage_offset));
+                }
+
+                PricingMode::Dynamic { percentage_offset }
+            },
+            _ => {
+                return Err(format!("Invalid pricing type: '{}'. Expected 'fixed' or 'dynamic'", pricing_type));
+            }
+        };
+
+        // Parse and validate min_amount
+        let min_amount = min_amount_str.parse::<i64>()
+            .map_err(|_| format!("Invalid min_amount: '{}'. Expected a positive integer", min_amount_str))?;
+
+        if min_amount <= 0 {
+            return Err("min_amount must be greater than 0".to_string());
+        }
+
+        // Parse and validate max_amount
+        let max_amount = max_amount_str.parse::<i64>()
+            .map_err(|_| format!("Invalid max_amount: '{}'. Expected a positive integer", max_amount_str))?;
+
+        if max_amount <= 0 {
+            return Err("max_amount must be greater than 0".to_string());
+        }
+
+        // Validate min_amount <= max_amount
+        if max_amount < min_amount {
+            return Err(format!("max_amount ({}) must be greater than or equal to min_amount ({})", max_amount, min_amount));
+        }
+
+        // Validate timestamp
+        ValidationService::validate_timestamp(&timestamp)
+            .map_err(|e| format!("Timestamp validation failed: {}", e))?;
+
+        Ok(UpdateAdvertisementPayload {
+            action,
+            domain,
+            advertisement_id,
+            pricing_mode,
+            min_amount,
+            max_amount,
             timestamp,
         })
     }

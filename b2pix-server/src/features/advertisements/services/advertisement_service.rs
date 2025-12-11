@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use futures::FutureExt;
-
 use crate::{
     common::errors::ApiError,
     config::Config,
@@ -9,7 +7,7 @@ use crate::{
     features::{
         advertisements::{
             domain::{
-                entities::{Advertisement, AdvertisementId, AdvertisementStatus},
+                entities::{Advertisement, AdvertisementId, AdvertisementStatus, PricingMode},
                 events::AdvertisementCreateEvent,
             },
             ports::repositories::AdvertisementRepository,
@@ -635,5 +633,63 @@ impl AdvertisementService {
             })?;
 
         Ok(advertisement)
+    }
+
+    /// Update advertisement pricing mode and amounts atomically
+    /// Validates ownership and status before updating
+    pub async fn update_pricing_mode(
+        &self,
+        advertisement_id: AdvertisementId,
+        wallet_address: &str,
+        new_pricing_mode: PricingMode,
+        min_amount: i64,
+        max_amount: i64,
+    ) -> Result<Advertisement, ApiError> {
+        // Call repository to perform atomic update with all validations
+        let updated_advertisement = self.advertisement_repository
+            .update_pricing_mode_atomic(&advertisement_id, wallet_address, &new_pricing_mode, min_amount, max_amount)
+            .await
+            .map_err(|e| {
+                tracing::error!("Failed to update pricing mode for advertisement {}: {}", advertisement_id, e);
+                ApiError::InternalServerError(format!("Failed to update pricing mode: {}", e))
+            })?;
+
+        // If None is returned, it means one of the conditions failed:
+        // - Advertisement not found
+        // - Seller address doesn't match (not owner)
+        // - Status is Finishing, Closed, or Disabled
+        match updated_advertisement {
+            Some(ad) => Ok(ad),
+            None => {
+                // We need to determine which condition failed for better error message
+                // First check if advertisement exists
+                let existing_ad = self.advertisement_repository
+                    .find_by_id(&advertisement_id)
+                    .await
+                    .map_err(|e| {
+                        tracing::error!("Failed to find advertisement {}: {}", advertisement_id, e);
+                        ApiError::InternalServerError(format!("Failed to find advertisement: {}", e))
+                    })?;
+
+                match existing_ad {
+                    None => Err(ApiError::NotFound),
+                    Some(ad) => {
+                        // Check if user is the owner
+                        if ad.seller_address != wallet_address {
+                            Err(ApiError::Forbidden)
+                        } else {
+                            // Status must be Finishing, Closed, or Disabled
+                            Err(ApiError::BadRequest(format!(
+                                "Cannot update advertisement in {} status. Only advertisements in Draft, Pending, Ready, or ProcessingDeposit status can be updated.",
+                                serde_json::to_value(&ad.status)
+                                    .unwrap()
+                                    .as_str()
+                                    .unwrap()
+                            )))
+                        }
+                    }
+                }
+            }
+        }
     }
 }

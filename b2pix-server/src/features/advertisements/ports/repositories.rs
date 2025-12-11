@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use crate::features::advertisements::domain::entities::{Advertisement, AdvertisementId, AdvertisementStatus};
+use crate::features::advertisements::domain::entities::{Advertisement, AdvertisementId, AdvertisementStatus, PricingMode};
 use crate::features::shared::value_objects::{CryptoAddress, Token, Currency};
 use crate::common::errors::AdvertisementError;
 
@@ -99,6 +99,21 @@ pub trait AdvertisementRepository: Send + Sync {
         &self,
         advertisement_id: &AdvertisementId,
         amount: &u128,
+    ) -> Result<Option<Advertisement>, AdvertisementError>;
+
+    /// Update pricing mode and amounts atomically with ownership and status validation
+    /// Only updates if:
+    /// - Advertisement exists with the given ID
+    /// - seller_address matches the provided address (ownership check)
+    /// - Status is NOT Finishing, Closed, or Disabled
+    /// Returns the updated advertisement if successful, None if conditions not met
+    async fn update_pricing_mode_atomic(
+        &self,
+        advertisement_id: &AdvertisementId,
+        seller_address: &str,
+        new_pricing_mode: &PricingMode,
+        min_amount: i64,
+        max_amount: i64,
     ) -> Result<Option<Advertisement>, AdvertisementError>;
 }
 

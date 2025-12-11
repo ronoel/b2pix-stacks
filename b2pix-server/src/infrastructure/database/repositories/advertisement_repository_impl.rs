@@ -3,7 +3,7 @@ use mongodb::{Collection, Database};
 use mongodb::bson::{doc, oid::ObjectId};
 use futures::stream::TryStreamExt;
 use std::collections::HashSet;
-use crate::features::advertisements::domain::entities::{Advertisement, AdvertisementId, AdvertisementStatus};
+use crate::features::advertisements::domain::entities::{Advertisement, AdvertisementId, AdvertisementStatus, PricingMode};
 use crate::features::advertisements::ports::repositories::{AdvertisementRepository, AdvertisementStatistics};
 use crate::features::shared::value_objects::{CryptoAddress, Token, Currency};
 use crate::common::errors::AdvertisementError;
@@ -539,6 +539,56 @@ impl AdvertisementRepository for AdvertisementRepositoryImpl {
             },
             "$set": {
                 "status": "ready",
+                "updated_at": mongodb::bson::DateTime::now()
+            }
+        };
+
+        // Configure options to return the updated document
+        let options = FindOneAndUpdateOptions::builder()
+            .return_document(mongodb::options::ReturnDocument::After)
+            .build();
+
+        // Execute the atomic update
+        let result = self.collection
+            .find_one_and_update(filter, update, options)
+            .await
+            .map_err(|e| AdvertisementError::Internal(format!("Database error: {}", e)))?;
+
+        Ok(result)
+    }
+
+    async fn update_pricing_mode_atomic(
+        &self,
+        advertisement_id: &AdvertisementId,
+        seller_address: &str,
+        new_pricing_mode: &PricingMode,
+        min_amount: i64,
+        max_amount: i64,
+    ) -> Result<Option<Advertisement>, AdvertisementError> {
+        use mongodb::options::FindOneAndUpdateOptions;
+
+        // Serialize pricing_mode to BSON
+        let pricing_mode_bson = mongodb::bson::to_bson(new_pricing_mode)
+            .map_err(|e| AdvertisementError::Internal(format!("Failed to serialize pricing mode: {}", e)))?;
+
+        // Create filter with multiple conditions:
+        // 1. _id matches the advertisement_id
+        // 2. seller_address matches (ownership check)
+        // 3. status is NOT in [Finishing, Closed, Disabled]
+        let filter = doc! {
+            "_id": advertisement_id.as_object_id(),
+            "seller_address": seller_address,
+            "status": {
+                "$nin": ["finishing", "closed", "disabled"]
+            }
+        };
+
+        // Create update: set new pricing_mode, min_amount, max_amount and update timestamp
+        let update = doc! {
+            "$set": {
+                "pricing_mode": pricing_mode_bson,
+                "min_amount": min_amount,
+                "max_amount": max_amount,
                 "updated_at": mongodb::bson::DateTime::now()
             }
         };

@@ -193,8 +193,42 @@ export class AdvertisementService {
     );
   }
 
-  updateAdvertisement(id: string, advertisement: Advertisement): Observable<Advertisement> {
-    return this.http.put<Advertisement>(`${this.apiUrl}/v1/advertisements/${id}`, advertisement);
+  /**
+   * Update an advertisement with wallet signature
+   * @param advertisementId The advertisement ID to update
+   * @param pricingMode The pricing mode ('fixed' or 'dynamic')
+   * @param pricingValue The price (in cents for fixed) or percentage (for dynamic)
+   * @param minAmount Minimum amount in cents
+   * @param maxAmount Maximum amount in cents
+   * @returns Observable of updated advertisement
+   */
+  updateAdvertisement(
+    advertisementId: string,
+    pricingMode: PricingMode,
+    pricingValue: string,
+    minAmount: number,
+    maxAmount: number
+  ): Observable<Advertisement> {
+    const action = 'B2PIX - Alterar Valor';
+    const payload = `${action}\n${environment.domain}\n${advertisementId}\n${pricingMode}\n${pricingValue}\n${minAmount}\n${maxAmount}\n${this.getTimestamp()}`;
+
+    return from(this.walletService.signMessage(payload)).pipe(
+      switchMap(signedMessage => {
+        const data: SignedRequest = {
+          publicKey: signedMessage.publicKey,
+          signature: signedMessage.signature,
+          payload
+        };
+        return this.http.put<Advertisement>(`${this.apiUrl}/v1/advertisements`, data);
+      }),
+      catchError((error: any) => {
+        console.error('Error in updateAdvertisement:', error);
+        if (error.message && error.message.includes('User denied')) {
+          throw new Error('Assinatura cancelada pelo usuário');
+        }
+        throw error;
+      })
+    );
   }
 
   deleteAdvertisement(id: string): Observable<void> {

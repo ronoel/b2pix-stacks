@@ -14,6 +14,7 @@ import { ListingCardComponent } from './components/listing-card.component';
 import { RefundSectionComponent } from './components/refund-section.component';
 import { BuysListComponent } from './components/buys-list.component';
 import { DepositsModalComponent } from './components/deposits-modal.component';
+import { EditAdvertisementModalComponent, EditAdvertisementData } from './components/edit-advertisement-modal.component';
 
 @Component({
   selector: 'app-ad-details',
@@ -22,7 +23,8 @@ import { DepositsModalComponent } from './components/deposits-modal.component';
     ListingCardComponent,
     RefundSectionComponent,
     BuysListComponent,
-    DepositsModalComponent
+    DepositsModalComponent,
+    EditAdvertisementModalComponent
 ],
   encapsulation: ViewEncapsulation.None,
   template: `
@@ -40,15 +42,17 @@ import { DepositsModalComponent } from './components/deposits-modal.component';
             <h1 class="page-title">Detalhes do Anúncio</h1>
             <p class="page-subtitle">Visualize as informações do anúncio e suas vendas</p>
           </div>
-          <button class="btn btn-outline btn-sm" (click)="refreshData()" [disabled]="isLoading()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M3 12C3 7.02944 7.02944 3 12 3C14.5755 3 16.9 4.15205 18.5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M21 12C21 16.9706 16.9706 21 12 21C9.42446 21 7.09995 19.848 5.5 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M13 2L18 6L14 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M11 22L6 18L10 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            Atualizar
-          </button>
+          <div class="header-actions">
+            <button class="btn btn-outline btn-sm" (click)="refreshData()" [disabled]="isLoading()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M3 12C3 7.02944 7.02944 3 12 3C14.5755 3 16.9 4.15205 18.5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M21 12C21 16.9706 16.9706 21 12 21C9.42446 21 7.09995 19.848 5.5 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M13 2L18 6L14 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M11 22L6 18L10 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Atualizar
+            </button>
+          </div>
         </div>
 
         @if (isLoading()) {
@@ -77,8 +81,10 @@ import { DepositsModalComponent } from './components/deposits-modal.component';
           <app-listing-card
             [advertisement]="advertisement()!"
             [canFinish]="canFinishAdvertisement()"
+            [canEdit]="canEditAdvertisement()"
             [isFinishing]="isFinishing()"
             (finish)="finishAdvertisement()"
+            (edit)="openEditModal()"
             (showDeposits)="showDeposits()"
           />
         }
@@ -100,6 +106,15 @@ import { DepositsModalComponent } from './components/deposits-modal.component';
             [isLoading]="isLoadingDeposits()"
             [blockchainExplorerUrl]="getBlockchainExplorerUrl"
             (close)="closeDepositsModal()"
+          />
+        }
+
+        @if (showEditModal()) {
+          <app-edit-advertisement-modal
+            [advertisement]="advertisement()!"
+            [isSubmitting]="isUpdating()"
+            (close)="closeEditModal()"
+            (save)="saveAdvertisementChanges($event)"
           />
         }
       </div>
@@ -127,6 +142,10 @@ import { DepositsModalComponent } from './components/deposits-modal.component';
     }
     .header-content {
       flex: 1;
+    }
+    .header-actions {
+      display: flex;
+      gap: 8px;
     }
     .page-title {
       font-size: 28px;
@@ -274,6 +293,8 @@ export class AdDetailsComponent implements OnInit {
   public deposits = signal<Deposit[]>([]);
   public showDepositsModal = signal(false);
   public isLoadingDeposits = signal(false);
+  public showEditModal = signal(false);
+  public isUpdating = signal(false);
 
   ngOnInit() {
     const advertisementId = this.route.snapshot.paramMap.get('advertisement_id');
@@ -370,6 +391,57 @@ Esta ação não pode ser desfeita.`;
   closeDepositsModal() {
     this.showDepositsModal.set(false);
     this.deposits.set([]);
+  }
+
+  canEditAdvertisement(): boolean {
+    const ad = this.advertisement();
+    if (!ad) return false;
+
+    // Can only edit advertisements that are READY or PENDING
+    return ad.status === AdvertisementStatus.READY || ad.status === AdvertisementStatus.PENDING;
+  }
+
+  openEditModal() {
+    const ad = this.advertisement();
+    if (!ad || !this.canEditAdvertisement()) return;
+
+    this.showEditModal.set(true);
+  }
+
+  closeEditModal() {
+    this.showEditModal.set(false);
+  }
+
+  saveAdvertisementChanges(data: EditAdvertisementData) {
+    const ad = this.advertisement();
+    if (!ad || !this.canEditAdvertisement()) return;
+
+    this.isUpdating.set(true);
+
+    this.advertisementService.updateAdvertisement(
+      ad.id,
+      data.pricingMode,
+      data.pricingValue,
+      data.minAmount,
+      data.maxAmount
+    ).subscribe({
+      next: (updatedAd: Advertisement) => {
+        this.advertisement.set(updatedAd);
+        this.isUpdating.set(false);
+        this.showEditModal.set(false);
+
+        // Show success message
+        alert('Anúncio atualizado com sucesso!');
+      },
+      error: (error: any) => {
+        console.error('Error updating advertisement:', error);
+        this.isUpdating.set(false);
+
+        // Show error message
+        const errorMessage = error.message || 'Erro ao atualizar anúncio. Tente novamente.';
+        alert(errorMessage);
+      }
+    });
   }
 
   private loadData(advertisementId: string) {
