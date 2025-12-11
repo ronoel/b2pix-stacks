@@ -228,15 +228,26 @@ import { PaymentFormComponent } from './payment-form.component';
               <p class="warning-suggestion">
                 Se você ainda não está pronto para realizar o pagamento, recomendamos cancelar esta compra e iniciar uma nova quando estiver preparado.
               </p>
+              <div class="warning-confirmation">
+                <label class="checkbox-label">
+                  <input
+                    type="checkbox"
+                    [checked]="hasReadWarning()"
+                    (change)="onWarningReadChange($event)"
+                    class="warning-checkbox"
+                  />
+                  <span class="checkbox-text">Li e compreendi o aviso acima</span>
+                </label>
+              </div>
             </div>
             <div class="warning-modal-footer">
-              <button class="btn btn-outline btn-cancel-warning" (click)="cancelFromWarningModal()">
+              <button class="btn btn-outline btn-cancel-warning" (click)="cancelFromWarningModal()" [disabled]="!hasReadWarning()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                   <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
                 Cancelar Compra
               </button>
-              <button class="btn btn-primary btn-continue" (click)="closeTimeWarningModal()">
+              <button class="btn btn-primary btn-continue" (click)="closeTimeWarningModal()" [disabled]="!hasReadWarning()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                   <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
@@ -798,6 +809,38 @@ import { PaymentFormComponent } from './payment-form.component';
       border-left: 4px solid #F59E0B;
     }
 
+    .warning-confirmation {
+      width: 100%;
+      padding: 16px;
+      background: #FFFBEB;
+      border: 2px solid #FCD34D;
+      border-radius: 8px;
+      margin-top: 8px;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .warning-checkbox {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+      accent-color: #F59E0B;
+      flex-shrink: 0;
+    }
+
+    .checkbox-text {
+      color: #92400E;
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
     .warning-modal-footer {
       padding: 20px 24px;
       border-top: 1px solid #E5E7EB;
@@ -923,6 +966,14 @@ import { PaymentFormComponent } from './payment-form.component';
         padding: 12px;
       }
 
+      .warning-confirmation {
+        padding: 12px;
+      }
+
+      .checkbox-text {
+        font-size: 13px;
+      }
+
       .warning-modal-footer {
         flex-direction: column;
         padding: 16px 20px;
@@ -953,6 +1004,7 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
 
   // Timer warning modal state
   showTimeWarningModal = signal(false);
+  hasReadWarning = signal(false);
   private hasShownTimeWarning = false;
   private hasShownTimeoutAlert = false;
 
@@ -1085,6 +1137,7 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     // Show warning modal when less than 1 minute remaining (only once)
     if (timeLeftSeconds > 0 && timeLeftSeconds < 60 && !this.hasShownTimeWarning) {
       this.hasShownTimeWarning = true;
+      this.hasReadWarning.set(false); // Reset checkbox when opening modal
       this.showTimeWarningModal.set(true);
     }
 
@@ -1191,11 +1244,18 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
 
   closeTimeWarningModal() {
     this.showTimeWarningModal.set(false);
+    this.hasReadWarning.set(false); // Reset checkbox when closing modal
   }
 
   cancelFromWarningModal() {
     this.showTimeWarningModal.set(false);
+    this.hasReadWarning.set(false); // Reset checkbox when closing modal
     this.cancelPurchase();
+  }
+
+  onWarningReadChange(event: Event) {
+    const target = event.target as HTMLInputElement;
+    this.hasReadWarning.set(target.checked);
   }
 
   confirmPayment(event?: Event) {
