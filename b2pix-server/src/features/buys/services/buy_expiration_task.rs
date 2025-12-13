@@ -25,7 +25,7 @@ impl PeriodicTaskHandler for BuyExpirationTaskHandler {
     }
 
     fn interval(&self) -> Duration {
-        Duration::from_secs(60) // 1 minute interval
+        Duration::from_secs(30) // 30 seconds interval
     }
 
     async fn execute(&self) -> anyhow::Result<()> {

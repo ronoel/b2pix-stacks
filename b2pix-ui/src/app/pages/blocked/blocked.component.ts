@@ -1,11 +1,11 @@
 import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router } from '@angular/router';
 import { WalletService } from '../../libs/wallet.service';
 
 @Component({
   selector: 'app-blocked',
-  imports: [CommonModule],
+  imports: [],
   template: `
     <div class="blocked-page">
       <div class="container">

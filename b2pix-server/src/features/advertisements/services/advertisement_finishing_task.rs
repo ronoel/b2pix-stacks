@@ -92,15 +92,24 @@ impl AdvertisementFinishingTaskHandler {
                 // tracing::info!("Successfully closed advertisement {}", closed_advertisement.id);
 
                 // Create PaymentRequest for the closed advertisement using the service
+                use crate::features::advertisements::domain::entities::PricingMode;
+
+                let pricing_info = match &closed_advertisement.pricing_mode {
+                    PricingMode::Fixed { price } => format!("Price: {} (fixed)", price),
+                    PricingMode::Dynamic { percentage_offset } => {
+                        format!("Price: {}% offset (dynamic)", percentage_offset)
+                    }
+                };
+
                 let description = format!(
-                    "Payment for Advertisement ID: {}\nSeller Address: {}\nToken: {}\nCurrency: {}\nTotal Deposited: {}\nAvailable Amount: {}\nPrice: {}\nStatus: Closed\nClosed automatically after all buys were finalized",
+                    "Payment for Advertisement ID: {}\nSeller Address: {}\nToken: {}\nCurrency: {}\nTotal Deposited: {}\nAvailable Amount: {}\n{}\nStatus: Closed\nClosed automatically after all buys were finalized",
                     closed_advertisement.id,
                     closed_advertisement.seller_address,
                     closed_advertisement.token,
                     closed_advertisement.currency,
                     closed_advertisement.total_deposited,
                     closed_advertisement.available_amount,
-                    closed_advertisement.price
+                    pricing_info
                 );
 
                 match self.payment_request_service.create_payment_request(

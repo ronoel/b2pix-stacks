@@ -230,6 +230,7 @@ pub async fn start_buy(
     let buy = handlers.buy_service.start(
         AdvertisementId::from_string(parsed_payload.advertisement_id),
         parsed_payload.pay_value,
+        parsed_payload.price,
         CryptoAddress::from_string(parsed_payload.address_buy),
     ).await.map_err(|e| {
         tracing::error!("Failed to create buy order: {}", e);

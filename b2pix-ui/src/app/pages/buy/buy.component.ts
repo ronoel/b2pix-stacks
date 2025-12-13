@@ -2,21 +2,28 @@ import { Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
 // import { CommonModule } from '@angular/common';
 // import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { TransactionService } from '../../services/transaction.service';
 import { UserService } from '../../services/user.service';
 import { LoadingService } from '../../services/loading.service';
 import { AdvertisementService } from '../../shared/api/advertisement.service';
 import { BuyService } from '../../shared/api/buy.service';
 import { InvitesService } from '../../shared/api/invites.service';
+import { QuoteService } from '../../shared/api/quote.service';
 import { Advertisement } from '../../shared/models/advertisement.model';
 import { Buy } from '../../shared/models/buy.model';
 import { BitcoinListing } from '../../interfaces/transaction.interface';
+import { PricingUtils } from '../../shared/utils/pricing.utils';
 
 interface PriceRange {
   advertisement: BitcoinListing;
   minAmount: number;
   maxAmount: number;
   pricePerBtc: number;
+}
+
+interface ExtendedBitcoinListing extends BitcoinListing {
+  _advertisement?: Advertisement; // Store original advertisement for reference
 }
 
 @Component({
@@ -231,16 +238,12 @@ interface PriceRange {
                 <div class="modal-content">
                   <div class="purchase-summary">
                     <div class="summary-item">
-                      <span class="label">Você está comprando:</span>
+                      <span class="label">Você receberá:</span>
                       <span class="value">{{ formatBitcoinAmount(calculateBitcoinAmount(selectedListing()!, getCurrentAmount())) }} BTC</span>
                     </div>
                     <div class="summary-item">
                       <span class="label">Por:</span>
                       <span class="value strong">R$ {{ formatCurrency(getCurrentAmount()) }}</span>
-                    </div>
-                    <div class="summary-item">
-                      <span class="label">Taxa de câmbio:</span>
-                      <span class="value">R$ {{ formatCurrency(selectedListing()!.pricePerBtc) }}/BTC</span>
                     </div>
                   </div>
 
@@ -249,26 +252,13 @@ interface PriceRange {
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                         <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                       </svg>
-                      <h4>Importante!</h4>
+                      <h4>Importante - Leia antes de continuar!</h4>
                     </div>
-                    <div class="instruction-content">
-                      <p>Após realizar o pagamento via PIX, você precisará informar os <strong>3 últimos caracteres</strong> do ID da transação que aparecem no comprovante.</p>
-                      <div class="instruction-example">
-                        <span class="example-label">Exemplo:</span>
-                        <span class="example-text">Se o ID for E000-12A9Z7, informe <span class="highlight-chars">9Z7</span></span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="payment-info">
-                    <div class="info-badge info-badge-blue">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                        <path d="M12 16V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M12 8H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                      <span>Certifique-se de ter saldo suficiente para realizar o PIX de <strong>R$ {{ formatCurrency(getCurrentAmount()) }}</strong></span>
-                    </div>
+                    <ul class="instruction-list">
+                      <li><strong>Abra seu aplicativo bancário agora</strong> - você terá apenas <strong>3 minutos</strong> após confirmar</li>
+                      <li>Tenha <strong>saldo disponível</strong> de R$ {{ formatCurrency(getCurrentAmount()) }}</li>
+                      <li>Após o PIX, informe os <strong>3 últimos caracteres</strong> do ID da transação (ex: E000-12A<span class="highlight-chars-inline">9Z7</span>)</li>
+                    </ul>
                   </div>
 
                   <div class="confirmation-checkbox">
@@ -279,7 +269,7 @@ interface PriceRange {
                         (change)="toggleInstructionConfirmation($any($event.target).checked)"
                       >
                       <span class="checkbox-custom"></span>
-                      <span class="checkbox-text">Li e estou ciente das instruções. Tenho saldo para realizar o PIX.</span>
+                      <span class="checkbox-text">Li as instruções e estou com meu banco aberto e pronto</span>
                     </label>
                   </div>
 
@@ -702,23 +692,24 @@ interface PriceRange {
     }
 
     .modal-content {
-      padding: 24px;
+      padding: 20px;
     }
 
     .purchase-summary {
-      margin-bottom: 24px;
+      margin-bottom: 20px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #E5E7EB;
     }
 
     .summary-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 0;
-      border-bottom: 1px solid #E5E7EB;
+      padding: 8px 0;
     }
 
-    .summary-item:last-child {
-      border-bottom: none;
+    .summary-item:first-child {
+      padding-top: 0;
     }
 
     .summary-item .label {
@@ -740,8 +731,8 @@ interface PriceRange {
     }
 
     .important-instructions {
-      margin-bottom: 24px;
-      padding: 20px;
+      margin-bottom: 20px;
+      padding: 18px;
       background: #FEF3C7;
       border: 2px solid #FCD34D;
       border-radius: 12px;
@@ -750,8 +741,8 @@ interface PriceRange {
     .instruction-header {
       display: flex;
       align-items: center;
-      gap: 12px;
-      margin-bottom: 12px;
+      gap: 10px;
+      margin-bottom: 14px;
     }
 
     .instruction-header svg {
@@ -761,84 +752,58 @@ interface PriceRange {
 
     .instruction-header h4 {
       margin: 0;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
       color: #92400E;
     }
 
-    .instruction-content p {
-      margin: 0 0 12px 0;
+    .instruction-list {
+      margin: 0;
+      padding-left: 20px;
+      list-style: none;
+    }
+
+    .instruction-list li {
+      position: relative;
       font-size: 14px;
       color: #78350F;
-      line-height: 1.5;
+      line-height: 1.6;
+      margin-bottom: 10px;
+      padding-left: 8px;
     }
 
-    .instruction-example {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      padding: 12px;
-      background: #FFFBEB;
-      border-radius: 8px;
-      border: 1px solid #FDE68A;
+    .instruction-list li:last-child {
+      margin-bottom: 0;
     }
 
-    .example-label {
-      font-size: 12px;
-      font-weight: 600;
+    .instruction-list li::before {
+      content: '•';
+      position: absolute;
+      left: -12px;
+      color: #D97706;
+      font-weight: bold;
+      font-size: 18px;
+    }
+
+    .instruction-list li strong {
       color: #92400E;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      font-weight: 700;
     }
 
-    .example-text {
-      font-size: 13px;
-      color: #78350F;
-    }
-
-    .highlight-chars {
+    .highlight-chars-inline {
       background: #F59E0B;
       color: #FFFFFF;
-      padding: 3px 8px;
-      border-radius: 6px;
+      padding: 2px 6px;
+      border-radius: 4px;
       font-weight: 700;
       font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-      letter-spacing: 1px;
-    }
-
-    .payment-info {
-      margin-bottom: 24px;
-    }
-
-    .info-badge {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 16px;
-      background: #EFF6FF;
-      border-radius: 12px;
-      border: 1px solid #BFDBFE;
-      font-size: 14px;
-      color: #1F2937;
-    }
-
-    .info-badge svg {
-      color: #1E40AF;
-      flex-shrink: 0;
-    }
-
-    .info-badge-blue {
-      background: #EFF6FF;
-      border-color: #BFDBFE;
-    }
-
-    .info-badge-blue svg {
-      color: #1E40AF;
+      letter-spacing: 0.5px;
+      font-size: 13px;
     }
 
     .confirmation-checkbox {
-      margin-bottom: 24px;
-      padding: 16px;
+      margin-bottom: 20px;
+      padding: 14px;
       background: #F9FAFB;
       border-radius: 12px;
       border: 1px solid #E5E7EB;
@@ -963,6 +928,35 @@ interface PriceRange {
         max-height: calc(100vh - 16px);
       }
 
+      .modal-content {
+        padding: 16px;
+      }
+
+      .modal-header {
+        padding: 16px;
+      }
+
+      .important-instructions {
+        padding: 14px;
+      }
+
+      .instruction-header h4 {
+        font-size: 14px;
+      }
+
+      .instruction-list li {
+        font-size: 13px;
+        margin-bottom: 8px;
+      }
+
+      .confirmation-checkbox {
+        padding: 12px;
+      }
+
+      .checkbox-text {
+        font-size: 13px;
+      }
+
       .buy-btn {
         font-size: 16px;
         padding: 16px 20px;
@@ -1000,10 +994,11 @@ export class BuyComponent implements OnInit, OnDestroy {
   private advertisementService = inject(AdvertisementService);
   private buyService = inject(BuyService);
   private invitesService = inject(InvitesService);
+  private quoteService = inject(QuoteService);
 
   // Core signals
-  listings = signal<BitcoinListing[]>([]);
-  selectedListing = signal<BitcoinListing | null>(null);
+  listings = signal<ExtendedBitcoinListing[]>([]);
+  selectedListing = signal<ExtendedBitcoinListing | null>(null);
   isLoadingListings = signal(false);
 
   // Simplified purchase flow
@@ -1019,8 +1014,71 @@ export class BuyComponent implements OnInit, OnDestroy {
   // Price ranges for the new UX
   priceRanges = signal<PriceRange[]>([]);
 
+  // Quote polling (silent - for dynamic pricing)
+  currentQuotePrice = signal<number | null>(null);
+  private quoteSubscription?: Subscription;
+  private hasReceivedFirstQuote = false;
+
   ngOnInit() {
-    this.loadListings();
+    // Show loading state while waiting for first quote
+    this.isLoadingListings.set(true);
+    // Start quote polling - listings will load after first quote arrives
+    this.startSilentQuotePolling();
+  }
+
+  /**
+   * Start silent 30-second quote polling (no UI indication to buyers)
+   * Listings are loaded after the first quote arrives to ensure dynamic pricing works correctly
+   */
+  private startSilentQuotePolling(): void {
+    this.quoteSubscription = this.quoteService.getBtcPriceStream().subscribe({
+      next: (quote) => {
+        const priceInCents = parseInt(quote.price, 10);
+        this.currentQuotePrice.set(priceInCents);
+
+        // Load listings after first quote arrives (ensures dynamic pricing has the quote available)
+        if (!this.hasReceivedFirstQuote) {
+          this.hasReceivedFirstQuote = true;
+          this.loadListings();
+        } else {
+          // Subsequent quotes just update dynamic prices silently
+          this.updateDynamicPrices();
+        }
+      },
+      error: (err) => {
+        // Silent failure - just keep last known prices
+        console.error('Quote polling error (silent):', err);
+      }
+    });
+  }
+
+  /**
+   * Update only dynamic advertisement prices (silent background update)
+   */
+  private updateDynamicPrices(): void {
+    const quote = this.currentQuotePrice();
+    if (!quote) return;
+
+    const updatedListings = this.listings().map(listing => {
+      const ad = listing._advertisement;
+      if (!ad) return listing;
+
+      // Only update if dynamic mode
+      if (ad.pricing_mode === 'dynamic') {
+        const newPrice = PricingUtils.getEffectivePrice(ad, quote);
+        if (newPrice) {
+          // Update the pricePerBtc in the listing (convert cents to BRL)
+          return { ...listing, pricePerBtc: Math.floor(newPrice / 100) };
+        }
+      }
+
+      return listing;
+    });
+
+    this.listings.set(updatedListings);
+
+    // Recalculate price ranges with updated prices
+    this.calculateAndSetPriceRanges(updatedListings);
   }
 
   loadListings() {
@@ -1060,22 +1118,39 @@ export class BuyComponent implements OnInit, OnDestroy {
 
   /**
    * Maps Advertisement objects to BitcoinListing objects for compatibility
+   * Handles both fixed and dynamic pricing
    */
-  private mapAdvertisementsToListings(advertisements: Advertisement[]): BitcoinListing[] {
+  private mapAdvertisementsToListings(advertisements: Advertisement[]): ExtendedBitcoinListing[] {
+    const currentQuote = this.currentQuotePrice();
+
     return advertisements.map(ad => {
-      // API returns price in cents per Bitcoin
-      const priceCentsPerBtc = ad.price;
       const availableAmountSats = ad.available_amount;
-      
+
+      // Calculate effective price in cents
+      let priceCentsPerBtc: number;
+
+      if (ad.pricing_mode === 'fixed') {
+        priceCentsPerBtc = ad.price!;
+      } else {
+        // Dynamic pricing
+        const effectivePrice = PricingUtils.getEffectivePrice(ad, currentQuote);
+        if (effectivePrice) {
+          priceCentsPerBtc = effectivePrice;
+        } else {
+          // Fallback if quote not available yet - skip this ad or use 0
+          priceCentsPerBtc = 0;
+        }
+      }
+
       // Convert from cents per Bitcoin to BRL per Bitcoin for display
       // price_cents_per_btc / 100_cents_per_real = price_reais_per_btc
       const pricePerBtc = Math.floor(priceCentsPerBtc / 100);
-      
+
       // Convert min/max amounts from cents to reais
       const minPurchaseReais = ad.min_amount / 100;
       const maxPurchaseReais = ad.max_amount / 100;
-      
-      const mapped = {
+
+      const mapped: ExtendedBitcoinListing = {
         id: ad.id,
         sellerId: ad.seller_address,
         sellerName: this.formatSellerName(ad.seller_address),
@@ -1084,11 +1159,12 @@ export class BuyComponent implements OnInit, OnDestroy {
         minPurchase: minPurchaseReais, // Use the min_amount from API (converted from cents)
         maxPurchase: maxPurchaseReais, // Use the max_amount from API (converted from cents)
         pixKey: 'PIX disponível', // Placeholder since PIX key isn't in Advertisement model
-        createdAt: new Date(ad.created_at)
+        createdAt: new Date(ad.created_at),
+        _advertisement: ad // Store original advertisement for reference
       };
-      
+
       return mapped;
-    });
+    }).filter(listing => listing.pricePerBtc > 0); // Filter out ads without valid price
   }
 
   /**
@@ -1265,13 +1341,40 @@ export class BuyComponent implements OnInit, OnDestroy {
 
     if (!listing || amount <= 0) return;
 
+    // Get the original advertisement to determine pricing mode
+    const advertisement = listing._advertisement;
+    if (!advertisement) {
+      alert('Erro: informações do anúncio não encontradas.');
+      return;
+    }
+
+    // Calculate quoted price in cents based on pricing mode
+    let quotedPriceCents: number;
+
+    if (advertisement.pricing_mode === 'fixed') {
+      quotedPriceCents = advertisement.price!;
+    } else {
+      // Dynamic pricing - use current quote
+      const currentQuote = this.currentQuotePrice();
+      if (!currentQuote) {
+        alert('Cotação indisponível. Por favor, aguarde.');
+        return;
+      }
+      const effectivePrice = PricingUtils.getEffectivePrice(advertisement, currentQuote);
+      if (!effectivePrice) {
+        alert('Não foi possível calcular o preço. Tente novamente.');
+        return;
+      }
+      quotedPriceCents = effectivePrice;
+    }
+
     this.isProcessingPurchase.set(true);
     this.loadingService.show('Iniciando compra...');
 
     // Calculate the total amount in cents for the API
     const payAmountCents = Math.round(amount * 100);
 
-    this.buyService.startBuy(payAmountCents, listing.id).subscribe({
+    this.buyService.startBuy(payAmountCents, listing.id, quotedPriceCents).subscribe({
       next: (buyResponse: any) => {
         this.buyRecord.set(buyResponse);
         this.isProcessingPurchase.set(false);
@@ -1285,7 +1388,21 @@ export class BuyComponent implements OnInit, OnDestroy {
         console.error('Erro ao iniciar compra:', error);
         this.isProcessingPurchase.set(false);
         this.loadingService.hide();
-        alert('Erro ao iniciar a compra. Tente novamente.');
+
+        // Handle specific error cases
+        if (error.message === 'PRICE_MISMATCH' || error.message === 'PRICE_TOO_LOW') {
+          // Price changed - refresh listings
+          this.loadListings();
+          this.showConfirmationModal.set(false);
+          alert('O preço mudou. Por favor, selecione novamente.');
+        } else if (error.message === 'QUOTE_UNAVAILABLE') {
+          alert('Sistema de cotação temporariamente indisponível. Tente novamente em alguns instantes.');
+        } else if (error.message && error.message.includes('cancelada')) {
+          // User cancelled signature - don't show error
+          this.showConfirmationModal.set(false);
+        } else {
+          alert('Erro ao iniciar a compra. Tente novamente.');
+        }
       }
     });
   }
@@ -1334,6 +1451,9 @@ export class BuyComponent implements OnInit, OnDestroy {
   readonly SATS_PER_BTC = 100000000n; // 100 million satoshis per bitcoin as BigInt
 
   ngOnDestroy() {
-    // Component cleanup if needed
+    // Unsubscribe from quote polling
+    if (this.quoteSubscription) {
+      this.quoteSubscription.unsubscribe();
+    }
   }
 }

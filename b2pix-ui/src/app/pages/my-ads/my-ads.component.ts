@@ -541,11 +541,15 @@ export class MyAdsComponent implements OnInit, OnDestroy {
       .filter(ad => ad.status === AdvertisementStatus.CLOSED)
       .reduce((total, ad) => {
         const soldAmount = ad.total_deposited - ad.available_amount;
-        // Convert from cents per Bitcoin to BRL per Bitcoin
-        const priceCentsPerBtc = ad.price;
-        const priceReaisPerBtc = priceCentsPerBtc / 100;
-        const earnings = (soldAmount / 100000000) * priceReaisPerBtc;
-        return total + earnings;
+        // Only count earnings for fixed-price advertisements
+        if (ad.price !== undefined) {
+          // Convert from cents per Bitcoin to BRL per Bitcoin
+          const priceCentsPerBtc = ad.price;
+          const priceReaisPerBtc = priceCentsPerBtc / 100;
+          const earnings = (soldAmount / 100000000) * priceReaisPerBtc;
+          return total + earnings;
+        }
+        return total;
       }, 0);
   }
 

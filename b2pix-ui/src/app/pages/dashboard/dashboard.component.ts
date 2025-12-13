@@ -1,13 +1,11 @@
 import { Component, OnInit, OnDestroy, signal, inject, ViewEncapsulation } from '@angular/core';
 import { BuyStatus } from '../../shared/models/buy.model';
-import { PaymentRequest, PaymentRequestStatus, PaymentSourceType } from '../../shared/models/payment-request.model';
-import { CommonModule } from '@angular/common';
+
 import { Router } from '@angular/router';
 import { UserService } from '../../services/user.service';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import { WalletType } from '../../libs/wallet/wallet.types';
 import { BuyService } from '../../shared/api/buy.service';
-import { PaymentRequestService } from '../../shared/api/payment-request.service';
 import { environment } from '../../../environments/environment';
 import { TransactionCardComponent } from '../../components/transaction-card/transaction-card.component';
 import { sBTCTokenService } from '../../libs/sbtc-token.service';
@@ -16,7 +14,7 @@ import { QuoteService } from '../../shared/api/quote.service';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, TransactionCardComponent],
+  imports: [TransactionCardComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="dashboard">
@@ -195,10 +193,7 @@ import { QuoteService } from '../../shared/api/quote.service';
               @for (transaction of recentTransactions(); track transaction.id) {
                 <app-transaction-card
                   [transaction]="transaction"
-                  [paymentRequest]="paymentRequests().get(transaction.id)"
-                  [isLoadingPayment]="loadingPaymentRequest() === transaction.id"
                   (cardClick)="onTransactionClick($event)"
-                  (loadPaymentRequest)="loadPaymentRequest($event)"
                 />
               }
             </div>
@@ -533,7 +528,7 @@ import { QuoteService } from '../../shared/api/quote.service';
     .activity-list {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 10px;
     }
 
     /* Load More Section */
@@ -947,7 +942,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private userService = inject(UserService);
   private walletManagerService = inject(WalletManagerService);
   private buyService = inject(BuyService);
-  private paymentRequestService = inject(PaymentRequestService);
   private sBTCTokenService = inject(sBTCTokenService);
   private quoteService = inject(QuoteService);
 
@@ -955,8 +949,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   currentPage = signal<number>(1);
   hasMoreBuys = signal<boolean>(false);
   isLoadingMore = signal<boolean>(false);
-  paymentRequests = signal<Map<string, PaymentRequest>>(new Map());
-  loadingPaymentRequest = signal<string | null>(null);
 
   // Receive modal states
   showReceiveModal = signal<boolean>(false);
@@ -968,9 +960,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   isLoadingBalance = signal<boolean>(false);
   btcPriceInCents = signal<number>(0);
 
-  // Auto-refresh timer
-  private refreshTimeout: any = null;
-
   ngOnInit() {
     this.loadRecentOrders();
     this.walletAddress.set(this.walletManagerService.getSTXAddress() || '');
@@ -979,17 +968,18 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    // Clear the refresh timeout when component is destroyed
-    if (this.refreshTimeout) {
-      clearTimeout(this.refreshTimeout);
-      this.refreshTimeout = null;
-    }
+    // Component cleanup
   }
 
   loadBalance() {
     const address = this.walletManagerService.getSTXAddress();
     if (address) {
-      this.isLoadingBalance.set(true);
+      // Only show loading spinner if there's no balance loaded yet
+      const hasExistingBalance = this.sBtcBalance() !== BigInt(0);
+      if (!hasExistingBalance) {
+        this.isLoadingBalance.set(true);
+      }
+      
       this.sBTCTokenService.getBalance().subscribe({
         next: (balance) => {
           this.sBtcBalance.set(balance);
@@ -1088,10 +1078,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   onTransactionClick(transaction: any) {
-    // Only navigate if the transaction is pending
-    if (transaction.status === BuyStatus.Pending) {
-      this.router.navigate(['/buy', transaction.id]);
-    }
+    // Navigate to buy details for all transactions
+    this.router.navigate(['/buy', transaction.id]);
   }
 
   isManager(): boolean {
@@ -1139,9 +1127,26 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }).format(date);
   }
 
-  getStatusClass(status: BuyStatus): string {
+  /**
+   * Check if a transaction is actually expired (expires_at has passed)
+   * even if the server status still shows as pending
+   */
+  private isTransactionExpired(transaction: any): boolean {
+    if (!transaction || !transaction.expiresAt) return false;
+
+    const now = new Date();
+    const expiresAt = new Date(transaction.expiresAt);
+    return now.getTime() > expiresAt.getTime();
+  }
+
+  getStatusClass(status: BuyStatus, transaction?: any): string {
+    // Check if it's pending but actually expired
+    if (status === BuyStatus.Pending && transaction && this.isTransactionExpired(transaction)) {
+      return 'warning';
+    }
+
     switch (status) {
-      case BuyStatus.Completed:
+      // case BuyStatus.Completed:
       case BuyStatus.PaymentConfirmed:
       case BuyStatus.DisputeFavorBuyer:
       case BuyStatus.DisputeResolvedBuyer:
@@ -1162,7 +1167,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   }
 
-  getStatusLabel(status: BuyStatus): string {
+  getStatusLabel(status: BuyStatus, transaction?: any): string {
+    // Check if it's pending but actually expired
+    if (status === BuyStatus.Pending && transaction && this.isTransactionExpired(transaction)) {
+      return 'Expirada';
+    }
+
     switch (status) {
       case BuyStatus.Pending:
         return 'Pendente';
@@ -1170,8 +1180,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
         return 'Verificando Pagamento';
       case BuyStatus.PaymentConfirmed:
         return 'Pagamento Confirmado';
-      case BuyStatus.Completed:
-        return 'Concluída';
+      // case BuyStatus.Completed:
+      //   return 'Concluída';
       case BuyStatus.Cancelled:
         return 'Cancelada';
       case BuyStatus.Expired:
@@ -1251,7 +1261,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
             payValue: buy.pay_value,
             pricePerBtc: buy.price,
             status: buy.status,
-            createdAt: buy.created_at
+            createdAt: buy.created_at,
+            expiresAt: buy.expires_at
           }));
 
           if (append) {
@@ -1262,18 +1273,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
             // Replace with new buys (initial load)
             this.recentOrders.set(mappedBuys);
             this.currentPage.set(1);
-
-            // Clear and reload payment requests for the new transactions
-            this.paymentRequests.set(new Map());
           }
 
           // Check if there are more pages available
           this.hasMoreBuys.set(response.has_more);
-
-          // Start auto-refresh if there are orders that need monitoring
-          if (!append) {
-            this.scheduleAutoRefresh();
-          }
         },
         error: (error) => {
           console.error('Error loading recent orders:', error);
@@ -1303,57 +1306,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return `https://explorer.hiro.so/txid/${transactionId}?chain=${chain}`;
   }
 
-  loadPaymentRequest(buyId: string) {
-    this.loadingPaymentRequest.set(buyId);
-
-    this.paymentRequestService.getPaymentRequestsBySource(PaymentSourceType.Buy, buyId).subscribe({
-      next: (response) => {
-        if (response.data && response.data.length > 0) {
-          const newMap = new Map(this.paymentRequests());
-          newMap.set(buyId, response.data[0]);
-          this.paymentRequests.set(newMap);
-        }
-        this.loadingPaymentRequest.set(null);
-      },
-      error: (error) => {
-        console.error('Error loading payment request:', error);
-        this.loadingPaymentRequest.set(null);
-      }
-    });
-  }
-
-  getPaymentRequestStatusClass(status: PaymentRequestStatus): string {
-    switch (status) {
-      case PaymentRequestStatus.Waiting:
-      case PaymentRequestStatus.Processing:
-      case PaymentRequestStatus.Broadcast:
-        return 'pending';
-      case PaymentRequestStatus.Confirmed:
-        return 'completed';
-      case PaymentRequestStatus.Failed:
-        return 'failed';
-      default:
-        return 'pending';
-    }
-  }
-
-  getPaymentRequestStatusLabel(status: PaymentRequestStatus): string {
-    switch (status) {
-      case PaymentRequestStatus.Waiting:
-        return 'Aguardando';
-      case PaymentRequestStatus.Processing:
-        return 'Processando';
-      case PaymentRequestStatus.Broadcast:
-        return 'Transmitido';
-      case PaymentRequestStatus.Confirmed:
-        return 'Confirmado';
-      case PaymentRequestStatus.Failed:
-        return 'Falhou';
-      default:
-        return status;
-    }
-  }
-
   formatSats(amount: string): string {
     return new Intl.NumberFormat('pt-BR').format(Number(amount));
   }
@@ -1378,48 +1330,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
           this.addressCopied.set(false);
         }, 2000);
       });
-    }
-  }
-
-  /**
-   * Check if any orders need monitoring (have active statuses)
-   * Returns true if at least one order is not in a final state
-   */
-  private hasOrdersNeedingMonitoring(): boolean {
-    const orders = this.recentOrders();
-    if (orders.length === 0) {
-      return false;
-    }
-
-    // Final states that don't need monitoring
-    const finalStatuses = [
-      BuyStatus.Cancelled,
-      BuyStatus.Expired,
-      BuyStatus.PaymentConfirmed,
-      BuyStatus.Completed,
-      BuyStatus.DisputeResolvedBuyer,
-      BuyStatus.DisputeResolvedSeller
-    ];
-
-    // Check if any order is not in a final state
-    return orders.some(order => !finalStatuses.includes(order.status));
-  }
-
-  /**
-   * Schedule auto-refresh if there are orders needing monitoring
-   */
-  private scheduleAutoRefresh() {
-    // Clear any existing timeout
-    if (this.refreshTimeout) {
-      clearTimeout(this.refreshTimeout);
-      this.refreshTimeout = null;
-    }
-
-    // Only schedule if there are orders that need monitoring
-    if (this.hasOrdersNeedingMonitoring()) {
-      this.refreshTimeout = setTimeout(() => {
-        this.loadRecentOrders();
-      }, 5000); // 5 seconds
     }
   }
 

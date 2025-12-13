@@ -44,24 +44,26 @@ import { Deposit } from '../../../shared/models/advertisement.model';
                     </div>
                   </div>
                   <div class="deposit-details">
-                    <div class="deposit-detail-item">
-                      <span class="detail-label">Transação:</span>
-                      <span class="detail-value">
-                        <a
-                          [href]="getBlockchainExplorerUrl(deposit.transaction_id)"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          class="blockchain-link-small"
-                        >
-                          {{ formatTransactionId(deposit.transaction_id) }}
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" class="external-link-icon">
-                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            <polyline points="15,3 21,3 21,9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            <line x1="10" y1="14" x2="21" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                          </svg>
-                        </a>
-                      </span>
-                    </div>
+                    @if (deposit.blockchain_tx_id) {
+                      <div class="deposit-detail-item">
+                        <span class="detail-label">Transação:</span>
+                        <span class="detail-value">
+                          <a
+                            [href]="getBlockchainExplorerUrl(deposit.blockchain_tx_id)"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="blockchain-link-small"
+                          >
+                            {{ formatTransactionId(deposit.blockchain_tx_id) }}
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" class="external-link-icon">
+                              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                              <polyline points="15,3 21,3 21,9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                              <line x1="10" y1="14" x2="21" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                          </a>
+                        </span>
+                      </div>
+                    }
                     <div class="deposit-detail-item">
                       <span class="detail-label">Valor:</span>
                       <span class="detail-value">{{ formatBTC(deposit.amount) }} BTC</span>

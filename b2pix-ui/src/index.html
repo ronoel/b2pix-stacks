@@ -6,6 +6,13 @@
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
+  <!-- Redirect HTTP to HTTPS in production -->
+  <script>
+    if (window.location.protocol === 'http:' && window.location.hostname === 'b2pix.org') {
+      window.location.href = window.location.href.replace('http:', 'https:');
+    }
+  </script>
+
   <!-- Favicons -->
   <link rel="icon" type="image/png" sizes="512x512" href="images/logo-512px-t.png">
   <link rel="apple-touch-icon" sizes="512x512" href="images/logo-512px-t.png">

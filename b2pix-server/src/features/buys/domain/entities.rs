@@ -265,7 +265,7 @@ impl Buy {
         }
 
         let now = Utc::now();
-        let expires_at = now + chrono::Duration::minutes(15);
+        let expires_at = now + chrono::Duration::minutes(3);
 
         Ok(Self {
             id: BuyId::new(),

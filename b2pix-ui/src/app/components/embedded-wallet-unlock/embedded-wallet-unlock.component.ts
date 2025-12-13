@@ -1,5 +1,5 @@
 import { Component, inject, signal, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import { EncryptionMethod } from '../../libs/wallet/wallet.types';
@@ -7,7 +7,7 @@ import { EncryptionMethod } from '../../libs/wallet/wallet.types';
 @Component({
   selector: 'app-embedded-wallet-unlock',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   template: `
     <div class="unlock-container">
       <div class="unlock-card">

@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use futures::FutureExt;
-
 use crate::{
     common::errors::ApiError,
     config::Config,
@@ -9,12 +7,13 @@ use crate::{
     features::{
         advertisements::{
             domain::{
-                entities::{Advertisement, AdvertisementId, AdvertisementStatus},
+                entities::{Advertisement, AdvertisementId, AdvertisementStatus, PricingMode},
                 events::AdvertisementCreateEvent,
             },
             ports::repositories::AdvertisementRepository,
             services::AdvertisementCreateHandler,
         },
+        bank_credentials::ports::BankCredentialsRepository,
         invites::{
             ports::repositories::InviteRepository,
             domain::entities::BankStatus,
@@ -34,6 +33,7 @@ use crate::{
 pub struct AdvertisementService {
     advertisement_repository: Arc<dyn AdvertisementRepository>,
     invite_repository: Arc<dyn InviteRepository>,
+    bank_credentials_repository: Arc<dyn BankCredentialsRepository>,
     event_publisher: Arc<EventPublisher>,
     config: Arc<Config>,
     efi_pay_service: Arc<EfiPayService>,
@@ -43,6 +43,7 @@ impl AdvertisementService {
     pub fn new(
         advertisement_repository: Arc<dyn AdvertisementRepository>,
         invite_repository: Arc<dyn InviteRepository>,
+        bank_credentials_repository: Arc<dyn BankCredentialsRepository>,
         event_publisher: Arc<EventPublisher>,
         config: Arc<Config>,
         efi_pay_service: Arc<EfiPayService>,
@@ -50,6 +51,7 @@ impl AdvertisementService {
         Self {
             advertisement_repository,
             invite_repository,
+            bank_credentials_repository,
             event_publisher,
             config,
             efi_pay_service,
@@ -79,7 +81,10 @@ impl AdvertisementService {
         serialized_transaction: &str,
         min_amount: i64,
         max_amount: i64,
+        pricing_mode_str: String,
     ) -> Result<Advertisement, ApiError> {
+        use crate::features::advertisements::domain::entities::PricingMode;
+
         let transaction_detail: TransactionDetailResponse =
             get_detail_transaction(&serialized_transaction, Arc::clone(&self.config))
                 .await
@@ -102,6 +107,33 @@ impl AdvertisementService {
             )));
         }
 
+        // Interpret the price field based on pricing_mode
+        let pricing_mode = match pricing_mode_str.to_lowercase().as_str() {
+            "fixed" => {
+                // For fixed mode, price is the fixed price in cents (must be positive)
+                if transaction_detail.price <= 0 {
+                    return Err(ApiError::BadRequest(
+                        "Fixed price must be positive".to_string()
+                    ));
+                }
+                PricingMode::Fixed {
+                    price: transaction_detail.price as u128,
+                }
+            }
+            "dynamic" => {
+                // For dynamic mode, price is the percentage offset in basis points
+                // e.g., 315 => 3.15%, -500 => -5.00%, 0 => 0%
+                let percentage_offset = transaction_detail.price as f64 / 100.0;
+                PricingMode::Dynamic { percentage_offset }
+            }
+            _ => {
+                return Err(ApiError::BadRequest(format!(
+                    "Invalid pricing_mode: {}. Must be 'fixed' or 'dynamic'",
+                    pricing_mode_str
+                )));
+            }
+        };
+
         // Get invite by sender address to retrieve banking credentials
         let sender_address = StacksAddress::from_string(transaction_detail.sender.clone());
         let invite = self.invite_repository
@@ -121,6 +153,19 @@ impl AdvertisementService {
             tracing::error!("Banking setup not complete for address: {}", transaction_detail.sender);
             return Err(ApiError::BadRequest("Banking setup is not complete. Please complete bank setup first.".to_string()));
         }
+
+        // Get latest bank credentials for the seller
+        let bank_credentials = self.bank_credentials_repository
+            .find_latest_by_address(&sender_address)
+            .await
+            .map_err(|e| {
+                tracing::error!("Failed to find bank credentials for address {}: {}", sender_address, e);
+                ApiError::InternalServerError(format!("Failed to find bank credentials: {}", e))
+            })?
+            .ok_or_else(|| {
+                tracing::error!("No bank credentials found for address: {}", sender_address);
+                ApiError::BadRequest("No bank credentials found for this address.".to_string())
+            })?;
 
         // Get EFI Pay client using the service
         let efi_client = self.efi_pay_service
@@ -145,14 +190,15 @@ impl AdvertisementService {
                 tracing::error!("Failed to get or create PIX key: {}", e);
                 ApiError::BadRequest(format!("Failed to get or create PIX key: {}", e))
             })?;
-        
+
 
         let advertisement: Advertisement = Advertisement::new(
             transaction_detail.sender,
             "BTC".to_string(), // Assuming BTC for simplicity, adjust as needed
             transaction_detail.currency,
-            transaction_detail.price,
+            pricing_mode,
             pix_key, // Use the PIX key (either existing or newly created)
+            Some(bank_credentials.id().clone()), // Store the credentials ID
             min_amount,
             max_amount,
         )
@@ -287,10 +333,31 @@ impl AdvertisementService {
                         }
                     }
                     "price" => {
+                        use crate::features::advertisements::domain::entities::PricingMode;
+                        // For price sorting, we can only sort fixed-price advertisements
+                        // Dynamic ads don't have a fixed price to sort by
                         if sort_order_num == Some(-1) {
-                            advertisements.sort_by(|a, b| b.price.cmp(&a.price));
+                            advertisements.sort_by(|a, b| {
+                                match (&a.pricing_mode, &b.pricing_mode) {
+                                    (PricingMode::Fixed { price: price_a }, PricingMode::Fixed { price: price_b }) => {
+                                        price_b.cmp(price_a)
+                                    }
+                                    (PricingMode::Fixed { .. }, PricingMode::Dynamic { .. }) => std::cmp::Ordering::Less,
+                                    (PricingMode::Dynamic { .. }, PricingMode::Fixed { .. }) => std::cmp::Ordering::Greater,
+                                    (PricingMode::Dynamic { .. }, PricingMode::Dynamic { .. }) => std::cmp::Ordering::Equal,
+                                }
+                            });
                         } else {
-                            advertisements.sort_by(|a, b| a.price.cmp(&b.price));
+                            advertisements.sort_by(|a, b| {
+                                match (&a.pricing_mode, &b.pricing_mode) {
+                                    (PricingMode::Fixed { price: price_a }, PricingMode::Fixed { price: price_b }) => {
+                                        price_a.cmp(price_b)
+                                    }
+                                    (PricingMode::Fixed { .. }, PricingMode::Dynamic { .. }) => std::cmp::Ordering::Less,
+                                    (PricingMode::Dynamic { .. }, PricingMode::Fixed { .. }) => std::cmp::Ordering::Greater,
+                                    (PricingMode::Dynamic { .. }, PricingMode::Dynamic { .. }) => std::cmp::Ordering::Equal,
+                                }
+                            });
                         }
                     }
                     "total_deposited" | "total_amount" => {
@@ -354,10 +421,31 @@ impl AdvertisementService {
                             }
                         }
                         "price" => {
+                            use crate::features::advertisements::domain::entities::PricingMode;
+                            // For price sorting, we can only sort fixed-price advertisements
+                            // Dynamic ads don't have a fixed price to sort by
                             if sort_order_num == Some(-1) {
-                                advertisements.sort_by(|a, b| b.price.cmp(&a.price));
+                                advertisements.sort_by(|a, b| {
+                                    match (&a.pricing_mode, &b.pricing_mode) {
+                                        (PricingMode::Fixed { price: price_a }, PricingMode::Fixed { price: price_b }) => {
+                                            price_b.cmp(price_a)
+                                        }
+                                        (PricingMode::Fixed { .. }, PricingMode::Dynamic { .. }) => std::cmp::Ordering::Less,
+                                        (PricingMode::Dynamic { .. }, PricingMode::Fixed { .. }) => std::cmp::Ordering::Greater,
+                                        (PricingMode::Dynamic { .. }, PricingMode::Dynamic { .. }) => std::cmp::Ordering::Equal,
+                                    }
+                                });
                             } else {
-                                advertisements.sort_by(|a, b| a.price.cmp(&b.price));
+                                advertisements.sort_by(|a, b| {
+                                    match (&a.pricing_mode, &b.pricing_mode) {
+                                        (PricingMode::Fixed { price: price_a }, PricingMode::Fixed { price: price_b }) => {
+                                            price_a.cmp(price_b)
+                                        }
+                                        (PricingMode::Fixed { .. }, PricingMode::Dynamic { .. }) => std::cmp::Ordering::Less,
+                                        (PricingMode::Dynamic { .. }, PricingMode::Fixed { .. }) => std::cmp::Ordering::Greater,
+                                        (PricingMode::Dynamic { .. }, PricingMode::Dynamic { .. }) => std::cmp::Ordering::Equal,
+                                    }
+                                });
                             }
                         }
                         "total_deposited" | "total_amount" => {
@@ -545,5 +633,63 @@ impl AdvertisementService {
             })?;
 
         Ok(advertisement)
+    }
+
+    /// Update advertisement pricing mode and amounts atomically
+    /// Validates ownership and status before updating
+    pub async fn update_pricing_mode(
+        &self,
+        advertisement_id: AdvertisementId,
+        wallet_address: &str,
+        new_pricing_mode: PricingMode,
+        min_amount: i64,
+        max_amount: i64,
+    ) -> Result<Advertisement, ApiError> {
+        // Call repository to perform atomic update with all validations
+        let updated_advertisement = self.advertisement_repository
+            .update_pricing_mode_atomic(&advertisement_id, wallet_address, &new_pricing_mode, min_amount, max_amount)
+            .await
+            .map_err(|e| {
+                tracing::error!("Failed to update pricing mode for advertisement {}: {}", advertisement_id, e);
+                ApiError::InternalServerError(format!("Failed to update pricing mode: {}", e))
+            })?;
+
+        // If None is returned, it means one of the conditions failed:
+        // - Advertisement not found
+        // - Seller address doesn't match (not owner)
+        // - Status is Finishing, Closed, or Disabled
+        match updated_advertisement {
+            Some(ad) => Ok(ad),
+            None => {
+                // We need to determine which condition failed for better error message
+                // First check if advertisement exists
+                let existing_ad = self.advertisement_repository
+                    .find_by_id(&advertisement_id)
+                    .await
+                    .map_err(|e| {
+                        tracing::error!("Failed to find advertisement {}: {}", advertisement_id, e);
+                        ApiError::InternalServerError(format!("Failed to find advertisement: {}", e))
+                    })?;
+
+                match existing_ad {
+                    None => Err(ApiError::NotFound),
+                    Some(ad) => {
+                        // Check if user is the owner
+                        if ad.seller_address != wallet_address {
+                            Err(ApiError::Forbidden)
+                        } else {
+                            // Status must be Finishing, Closed, or Disabled
+                            Err(ApiError::BadRequest(format!(
+                                "Cannot update advertisement in {} status. Only advertisements in Draft, Pending, Ready, or ProcessingDeposit status can be updated.",
+                                serde_json::to_value(&ad.status)
+                                    .unwrap()
+                                    .as_str()
+                                    .unwrap()
+                            )))
+                        }
+                    }
+                }
+            }
+        }
     }
 }

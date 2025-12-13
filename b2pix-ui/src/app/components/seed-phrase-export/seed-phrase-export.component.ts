@@ -1,12 +1,12 @@
 import { Component, inject, signal, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 
 @Component({
   selector: 'app-seed-phrase-export',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   template: `
     <div class="export-overlay" (click)="onClose()">
       <div class="export-dialog" (click)="$event.stopPropagation()">

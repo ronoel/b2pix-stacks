@@ -8,8 +8,8 @@ use std::sync::Arc;
 use crate::{
     api::v1::advertisements::dto::{
         AdvertisementResponse, CreateAdvertisementRequest, CreateDepositRequest, CreateDepositResponse,
-        DepositResponse, ListAdvertisementsQuery, ListAdvertisementsResponse, UpdateAdvertisementResponse,
-        FinishAdvertisementPayload,
+        DepositResponse, ListAdvertisementsQuery, ListAdvertisementsResponse,
+        FinishAdvertisementPayload, UpdateAdvertisementPayload,
     },
     common::{errors::ApiError, signature::SignedRequest},
     config::Config,
@@ -70,6 +70,7 @@ pub async fn create_advertisement(
             request.transaction.as_str(),
             request.min_amount,
             request.max_amount,
+            request.pricing_mode,
         )
         .await
         .map_err(|e| {
@@ -193,13 +194,12 @@ pub async fn get_advertisements_by_address(
     Ok(Json(advertisement_responses))
 }
 
-/// Update advertisement (close advertisement with signature verification)
+/// Update advertisement pricing mode with signature verification
 pub async fn update_advertisement(
     State(handlers): State<Arc<AdvertisementHandlers>>,
     Json(request): Json<SignedRequest>,
-) -> Result<Json<UpdateAdvertisementResponse>, ApiError> {
+) -> Result<Json<AdvertisementResponse>, ApiError> {
     // Validate signature against the payload
-    // Attempt to verify the signature and return early if invalid
     if !verify_message_signature_rsv(&request.payload, &request.signature, &request.public_key)
         .await
         .map_err(|e| ApiError::BadRequest(format!("Invalid signature: {}", e)))?
@@ -209,30 +209,35 @@ pub async fn update_advertisement(
         ));
     }
 
-    // Validate that the address belongs to the public key using network from config
-    if get_address_from_public_key(&request.public_key, &handlers.config.network).map_err(|e| {
-        ApiError::BadRequest(format!("Failed to derive address from public key: {}", e))
-    })? != "expected_address"
-    // TODO: Extract address from payload
-    {
-        return Err(ApiError::BadRequest(
-            "Address does not belong to public key".to_string(),
-        ));
-    }
+    // Parse the payload
+    let payload = UpdateAdvertisementPayload::parse(&request.payload)
+        .map_err(|e| ApiError::BadRequest(format!("Invalid payload: {}", e)))?;
 
-    // TODO: Implement close advertisement logic
-    // 1. Decode payload to get advertisement ID and action details using request.payload()
-    // 2. Verify signature with public key and payload using request
-    // 3. Validate action is "B2PIX - Fechar Anúncio"
-    // 4. Update advertisement status to closed
-    // 5. Save updated advertisement
-    // 6. Return success response
+    // Get wallet address from public key
+    let wallet_address = get_address_from_public_key(&request.public_key, &handlers.config.network)
+        .map_err(|e| {
+            ApiError::BadRequest(format!("Failed to derive address from public key: {}", e))
+        })?;
 
-    Ok(Json(UpdateAdvertisementResponse {
-        id: "placeholder".to_string(), // Will be extracted from payload
-        status: "success".to_string(),
-        message: "Advertisement updated successfully".to_string(),
-    }))
+    // Parse advertisement ID
+    let advertisement_id = match ObjectId::parse_str(&payload.advertisement_id) {
+        Ok(object_id) => AdvertisementId::from_object_id(object_id),
+        Err(_) => return Err(ApiError::BadRequest(format!("Invalid advertisement ID: {}", payload.advertisement_id))),
+    };
+
+    // Call service to update pricing mode and amounts (atomic with ownership and status validation)
+    let updated_advertisement = handlers
+        .advertisement_service
+        .update_pricing_mode(
+            advertisement_id,
+            &wallet_address,
+            payload.pricing_mode,
+            payload.min_amount,
+            payload.max_amount,
+        )
+        .await?;
+
+    Ok(Json(AdvertisementResponse::from(updated_advertisement)))
 }
 
 /// Finish advertisement (change status to Finishing with signature verification)
@@ -277,53 +282,35 @@ pub async fn finish_advertisement(
 
 /// Create a recharge deposit for an existing advertisement
 /// This allows sellers to add more cryptocurrency to their active advertisements
+/// Signature verification is handled by Bolt Protocol
 pub async fn create_deposit(
     State(handlers): State<Arc<AdvertisementHandlers>>,
     Path(id): Path<String>,
-    Json(request): Json<SignedRequest>,
+    Json(request): Json<CreateDepositRequest>,
 ) -> Result<Json<CreateDepositResponse>, ApiError> {
-    // Validate signature against the payload
-    if !verify_message_signature_rsv(&request.payload, &request.signature, &request.public_key)
-        .await
-        .map_err(|e| ApiError::BadRequest(format!("Invalid signature: {}", e)))?
-    {
-        return Err(ApiError::BadRequest(
-            "Signature verification failed".to_string(),
-        ));
-    }
-
-    // Get wallet address from public key
-    let wallet_address = get_address_from_public_key(&request.public_key, &handlers.config.network)
-        .map_err(|e| {
-            ApiError::BadRequest(format!("Failed to derive address from public key: {}", e))
-        })?;
-
     // Parse advertisement ID
     let advertisement_id = match ObjectId::parse_str(&id) {
         Ok(object_id) => AdvertisementId::from_object_id(object_id),
         Err(_) => return Err(ApiError::BadRequest(format!("Invalid advertisement ID: {}", id))),
     };
 
-    // Deserialize the payload to get the transaction
-    let deposit_request: CreateDepositRequest = serde_json::from_str(&request.payload)
-        .map_err(|e| ApiError::BadRequest(format!("Invalid request payload: {}", e)))?;
-
     // Create the recharge deposit
+    // Bolt Protocol will validate signature and recipient address
     let deposit = handlers
         .deposit_service
         .create_recharge_deposit(
             advertisement_id.clone(),
-            deposit_request.transaction,
-            &wallet_address,
+            request.transaction,
         )
         .await?;
 
     Ok(Json(CreateDepositResponse {
         deposit_id: deposit.id.to_string(),
         advertisement_id: advertisement_id.to_string(),
+        blockchain_tx_id: deposit.blockchain_tx_id,
         amount: deposit.amount,
         status: format!("{:?}", deposit.status),
-        message: "Deposit created successfully. Transaction will be broadcasted shortly.".to_string(),
+        message: "Deposit created and broadcasted successfully.".to_string(),
     }))
 }
 

@@ -5,7 +5,7 @@ import { switchMap, catchError, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { BoltContractSBTCService } from '../../libs/bolt-contract-sbtc.service';
 import { WalletService } from '../../libs/wallet.service';
-import { Advertisement, AdvertisementStatus, Deposit } from '../models/advertisement.model';
+import { Advertisement, AdvertisementStatus, Deposit, PricingMode } from '../models/advertisement.model';
 import { SignedRequest } from '../models/api.model';
 
 export interface CreateAdvertisementRequest {
@@ -13,6 +13,16 @@ export interface CreateAdvertisementRequest {
     price: bigint
     minAmount: number  // Minimum purchase amount in cents
     maxAmount: number  // Maximum purchase amount in cents
+    pricingMode: PricingMode  // 'fixed' or 'dynamic'
+}
+
+export interface CreateDepositResponse {
+    deposit_id: string
+    advertisement_id: string
+    blockchain_tx_id: string | null
+    amount: number | null
+    status: string
+    message: string
 }
 
 export interface GetAdvertisementsParams {
@@ -59,7 +69,8 @@ export class AdvertisementService {
         return this.http.post<Advertisement>(`${this.apiUrl}/v1/advertisements`, {
           transaction: transactionSerialized,
           min_amount: request.minAmount,
-          max_amount: request.maxAmount
+          max_amount: request.maxAmount,
+          pricing_mode: request.pricingMode
         });
       }),
       catchError((transferError: any) => {
@@ -191,12 +202,69 @@ export class AdvertisementService {
     );
   }
 
-  updateAdvertisement(id: string, advertisement: Advertisement): Observable<Advertisement> {
-    return this.http.put<Advertisement>(`${this.apiUrl}/v1/advertisements/${id}`, advertisement);
+  /**
+   * Update an advertisement with wallet signature
+   * @param advertisementId The advertisement ID to update
+   * @param pricingMode The pricing mode ('fixed' or 'dynamic')
+   * @param pricingValue The price (in cents for fixed) or percentage (for dynamic)
+   * @param minAmount Minimum amount in cents
+   * @param maxAmount Maximum amount in cents
+   * @returns Observable of updated advertisement
+   */
+  updateAdvertisement(
+    advertisementId: string,
+    pricingMode: PricingMode,
+    pricingValue: string,
+    minAmount: number,
+    maxAmount: number
+  ): Observable<Advertisement> {
+    const action = 'B2PIX - Alterar Valor';
+    const payload = `${action}\n${environment.domain}\n${advertisementId}\n${pricingMode}\n${pricingValue}\n${minAmount}\n${maxAmount}\n${this.getTimestamp()}`;
+
+    return from(this.walletService.signMessage(payload)).pipe(
+      switchMap(signedMessage => {
+        const data: SignedRequest = {
+          publicKey: signedMessage.publicKey,
+          signature: signedMessage.signature,
+          payload
+        };
+        return this.http.put<Advertisement>(`${this.apiUrl}/v1/advertisements`, data);
+      }),
+      catchError((error: any) => {
+        console.error('Error in updateAdvertisement:', error);
+        if (error.message && error.message.includes('User denied')) {
+          throw new Error('Assinatura cancelada pelo usuário');
+        }
+        throw error;
+      })
+    );
   }
 
   deleteAdvertisement(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/v1/advertisements/${id}`);
+  }
+
+  /**
+   * Create a deposit (add funds) to an existing advertisement
+   * @param advertisementId The advertisement ID to add funds to
+   * @param amountInSats Amount to deposit in satoshis
+   * @returns Observable of deposit creation response
+   */
+  createDeposit(advertisementId: string, amountInSats: bigint): Observable<CreateDepositResponse> {
+    const recipient = environment.b2pixAddress;
+
+    // Call Bolt contract transfer without memo for deposits
+    return this.boltContractSBTCService.transferStacksToBolt(amountInSats, recipient).pipe(
+      switchMap((transactionSerialized) => {
+        return this.http.post<CreateDepositResponse>(`${this.apiUrl}/v1/advertisements/${advertisementId}/deposits`, {
+          transaction: transactionSerialized
+        });
+      }),
+      catchError((error: any) => {
+        console.error('Error creating deposit:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   /**

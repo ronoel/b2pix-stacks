@@ -16,7 +16,9 @@ pub trait BuyRepository: Send + Sync {
     /// Cancel a buy by ID and address if its status is "pending" (atomic operation)
     async fn cancel(&self, id: &BuyId, address_buy: &CryptoAddress) -> Result<Option<Buy>, BuyError>;
 
-    /// Find all pending buys created more than the specified number of minutes ago
+    /// Find all pending buys that have passed their expires_at timestamp
+    /// This queries directly against the expires_at field (set at Buy creation)
+    /// Note: The minutes parameter is deprecated and ignored - the method uses expires_at < now()
     async fn find_pending_older_than_minutes(&self, minutes: i64) -> Result<Vec<Buy>, BuyError>;
 
     /// Mark a buy as paid by ID with optional PIX confirmation code

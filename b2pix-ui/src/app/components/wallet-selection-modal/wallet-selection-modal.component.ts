@@ -1,12 +1,12 @@
 import { Component, Output, EventEmitter, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 export type WalletSelectionType = 'create' | 'import' | 'external';
 
 @Component({
   selector: 'app-wallet-selection-modal',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="wallet-selection-overlay" (click)="onCancel()">

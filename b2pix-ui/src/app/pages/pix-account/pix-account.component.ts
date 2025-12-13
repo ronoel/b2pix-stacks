@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { UserService } from '../../services/user.service';
@@ -9,7 +9,7 @@ import { BankSetupComponent } from '../../components/bank-setup/bank-setup.compo
 @Component({
   selector: 'app-pix-account',
   standalone: true,
-  imports: [CommonModule, FormsModule, BankSetupComponent],
+  imports: [FormsModule, BankSetupComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="pix-page">

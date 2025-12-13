@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::config::Config;
@@ -25,12 +25,72 @@ where
     s.parse().map_err(serde::de::Error::custom)
 }
 
+fn deserialize_string_to_i128<'de, D>(deserializer: D) -> Result<i128, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    s.parse().map_err(serde::de::Error::custom)
+}
+
+/// Flexible deserializer that accepts both string and integer representations of u128
+fn deserialize_flexible_u128<'de, D>(deserializer: D) -> Result<u128, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::de::{self, Visitor};
+    use std::fmt;
+
+    struct FlexibleU128Visitor;
+
+    impl<'de> Visitor<'de> for FlexibleU128Visitor {
+        type Value = u128;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a string or integer representing u128")
+        }
+
+        fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(value as u128)
+        }
+
+        fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            if value < 0 {
+                return Err(E::custom("negative values are not allowed for u128"));
+            }
+            Ok(value as u128)
+        }
+
+        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            value.parse().map_err(E::custom)
+        }
+
+        fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            value.parse().map_err(E::custom)
+        }
+    }
+
+    deserializer.deserialize_any(FlexibleU128Visitor)
+}
+
 #[derive(serde::Deserialize, Debug)]
 pub struct TransactionDetailResponse {
     pub sender: String,
     pub recipient: String,
-    #[serde(deserialize_with = "deserialize_string_to_u128")]
-    pub price: u128,
+    #[serde(deserialize_with = "deserialize_string_to_i128")]
+    pub price: i128,
     pub currency: String,
     #[serde(deserialize_with = "deserialize_string_to_u128")]
     pub amount: u128,
@@ -41,8 +101,8 @@ pub struct BroadcastResponse {
     pub txid: String,
     pub sender: String,
     pub recipient: String,
-    #[serde(deserialize_with = "deserialize_string_to_u128")]
-    pub price: u128,
+    #[serde(deserialize_with = "deserialize_string_to_i128")]
+    pub price: i128,
     pub currency: String,
     #[serde(deserialize_with = "deserialize_string_to_u128")]
     pub amount: u128,
@@ -238,4 +298,84 @@ pub async fn validate_and_broadcast_transaction(
         
         Ok(txid)
     }
+}
+
+/// Deposit request for Bolt Protocol
+#[derive(Serialize, Debug)]
+pub struct B2PixDepositRequest {
+    #[serde(rename = "serializedTx")]
+    pub serialized_tx: String,
+    #[serde(rename = "receiverAddress")]
+    pub receiver_address: String,
+}
+
+/// Deposit response from Bolt Protocol
+#[derive(Deserialize, Debug)]
+pub struct B2PixDepositResponse {
+    pub txid: String,
+    #[serde(deserialize_with = "deserialize_flexible_u128")]
+    pub amount: u128,
+    pub success: bool,
+    pub message: Option<String>,
+}
+
+/// Calls Bolt Protocol deposit endpoint to broadcast and validate a deposit transaction
+/// Bolt validates that the transaction recipient matches the provided receiver_address
+/// Returns the transaction ID and amount if successful
+pub async fn call_deposit_endpoint(
+    serialized_tx: &str,
+    receiver_address: &str,
+    config: Arc<Config>,
+) -> Result<B2PixDepositResponse, BoltTransactionError> {
+    tracing::info!("Calling Bolt deposit endpoint for receiver: {}", receiver_address);
+
+    let base_url = if config.network == "mainnet" {
+        "https://boltproto.org/api/v1/b2pix/deposit"
+    } else {
+        "http://localhost:3000/api/v1/b2pix/deposit"
+    };
+
+    let request_body = B2PixDepositRequest {
+        serialized_tx: serialized_tx.to_string(),
+        receiver_address: receiver_address.to_string(),
+    };
+
+    let client = reqwest::Client::new();
+    let response = client
+        .post(base_url)
+        .header("x-client-source", "b2pix")
+        .json(&request_body)
+        .send()
+        .await
+        .map_err(|e| BoltTransactionError::RequestFailed(e.to_string()))?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let error_text = response.text().await.unwrap_or_default();
+        tracing::error!("Bolt deposit endpoint failed: {} - {}", status, error_text);
+        return Err(BoltTransactionError::ApiError(
+            status.as_u16(),
+            error_text,
+        ));
+    }
+
+    let deposit_response: B2PixDepositResponse = response
+        .json()
+        .await
+        .map_err(|e| BoltTransactionError::ParseError(e.to_string()))?;
+
+    // Check if the deposit was successful
+    if !deposit_response.success {
+        let error_msg = deposit_response.message.clone().unwrap_or("Deposit failed".to_string());
+        tracing::error!("Bolt deposit endpoint returned success=false: {}", error_msg);
+        return Err(BoltTransactionError::InvalidResponse(error_msg));
+    }
+
+    tracing::info!(
+        "Bolt deposit successful - txid: {}, amount: {}",
+        deposit_response.txid,
+        deposit_response.amount
+    );
+
+    Ok(deposit_response)
 }

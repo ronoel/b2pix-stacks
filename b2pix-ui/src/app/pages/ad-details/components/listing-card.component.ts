@@ -14,20 +14,40 @@ import { Advertisement, AdvertisementStatus } from '../../../shared/models/adver
           <div class="listing-status-badge" [ngClass]="getStatusClass(advertisement().status)">
             {{ getStatusLabel(advertisement().status) }}
           </div>
-          @if (canFinish()) {
+          @if (canEdit() || canFinish() || canAddFund()) {
             <div class="listing-actions">
-              <button class="btn btn-danger btn-sm" (click)="onFinish()" [disabled]="isFinishing()">
-                @if (!isFinishing()) {
+              @if (canAddFund()) {
+                <button class="btn btn-success btn-sm" (click)="onAddFund()">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M21 12V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V5C3 3.89543 3.89543 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                    <path d="M12 8V16M8 12H16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                   </svg>
-                }
-                @if (isFinishing()) {
-                  <span class="loading-spinner-sm"></span>
-                }
-                {{ isFinishing() ? 'Finalizando...' : 'Finalizar Anúncio' }}
-              </button>
+                  Adicionar Fundos
+                </button>
+              }
+              @if (canEdit()) {
+                <button class="btn btn-primary btn-sm" (click)="onEdit()">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M18.5 2.50001C18.8978 2.10219 19.4374 1.87869 20 1.87869C20.5626 1.87869 21.1022 2.10219 21.5 2.50001C21.8978 2.89784 22.1213 3.4374 22.1213 4.00001C22.1213 4.56262 21.8978 5.10219 21.5 5.50001L12 15L8 16L9 12L18.5 2.50001Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  Editar
+                </button>
+              }
+              @if (canFinish()) {
+                <button class="btn btn-danger btn-sm" (click)="onFinish()" [disabled]="isFinishing()">
+                  @if (!isFinishing()) {
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M21 12V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V5C3 3.89543 3.89543 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  }
+                  @if (isFinishing()) {
+                    <span class="loading-spinner-sm"></span>
+                  }
+                  {{ isFinishing() ? 'Finalizando...' : 'Finalizar Anúncio' }}
+                </button>
+              }
             </div>
           }
         </div>
@@ -35,7 +55,13 @@ import { Advertisement, AdvertisementStatus } from '../../../shared/models/adver
           <div class="listing-main-info">
             <div class="listing-price">
               <span class="price-label">Preço por Bitcoin:</span>
-              <span class="price-value">{{ formatPriceCurrency(advertisement().price) }}</span>
+              <span class="price-value">
+                @if (advertisement().pricing_mode === 'fixed') {
+                  {{ formatPriceCurrency(advertisement().price!) }}
+                } @else {
+                  Dinâmico ({{ (advertisement().percentage_offset ?? 0) > 0 ? '+' : '' }}{{ advertisement().percentage_offset ?? 0 }}%)
+                }
+              </span>
             </div>
             <div class="detail-item">
               <span class="amount-label">Quantidade:</span>
@@ -243,6 +269,21 @@ import { Advertisement, AdvertisementStatus } from '../../../shared/models/adver
       opacity: 0.5;
       cursor: not-allowed;
     }
+    .btn-success {
+      background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+      color: white;
+      border-color: #10B981;
+      box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+    }
+    .btn-success:hover:not(:disabled) {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+      transform: translateY(-1px);
+    }
+    .btn-success:active:not(:disabled) {
+      transform: translateY(0);
+      box-shadow: 0 1px 2px rgba(16, 185, 129, 0.2);
+    }
     .btn-danger {
       background: #ef4444;
       color: white;
@@ -250,6 +291,14 @@ import { Advertisement, AdvertisementStatus } from '../../../shared/models/adver
     }
     .btn-danger:hover:not(:disabled) {
       background: #dc2626;
+    }
+    .btn-primary {
+      background: #1E40AF;
+      color: white;
+      border-color: #1E40AF;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: #1D4ED8;
     }
     .btn-sm {
       padding: 8px 16px;
@@ -285,9 +334,12 @@ export class ListingCardComponent {
   advertisement = input.required<Advertisement>();
   canFinish = input.required<boolean>();
   isFinishing = input.required<boolean>();
+  canEdit = input<boolean>(false);
 
   finish = output<void>();
   showDeposits = output<void>();
+  edit = output<void>();
+  addFund = output<void>();
 
   onFinish() {
     this.finish.emit();
@@ -295,6 +347,18 @@ export class ListingCardComponent {
 
   onShowDeposits() {
     this.showDeposits.emit();
+  }
+
+  onEdit() {
+    this.edit.emit();
+  }
+
+  onAddFund() {
+    this.addFund.emit();
+  }
+
+  canAddFund(): boolean {
+    return this.advertisement().status === AdvertisementStatus.READY;
   }
 
   getStatusClass(status: AdvertisementStatus): string {
@@ -366,8 +430,16 @@ export class ListingCardComponent {
   }
 
   getProgressPercentage(ad: Advertisement): number {
-    if (ad.total_deposited === 0) return 0;
-    const sold = ad.total_deposited - ad.available_amount;
-    return Math.round((sold / ad.total_deposited) * 100);
+    const total = ad.total_deposited;
+    const available = ad.available_amount;
+    const sold = total - available;
+
+    if (total === 0) {
+      return 0;
+    }
+
+    // Round to 1 decimal place to show small percentages like 0.1%, 0.5%, etc.
+    const percentage = Math.round((sold / total) * 1000) / 10;
+    return percentage;
   }
 }

@@ -1,10 +1,10 @@
 import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-landing-features',
-  imports: [CommonModule],
+  imports: [],
   standalone: true,
   template: `
     <div class="features">
@@ -21,7 +21,7 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
     .features {
       display: flex;
       justify-content: center;
-      gap: 32px;
+      gap: 24px;
       margin-bottom: 48px;
       flex-wrap: wrap;
     }
@@ -29,23 +29,24 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
     .feature {
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 16px 24px;
-      background: #FFFFFF;
-      border: 1px solid #E5E7EB;
-      border-radius: 12px;
-      color: #6B7280;
+      gap: 10px;
+      padding: 12px 20px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(239, 246, 255, 0.6) 100%);
+      border: none;
+      border-radius: 24px;
+      color: #4B5563;
       font-weight: 500;
-      box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-      transition: all 0.2s ease;
+      font-size: 14px;
+      box-shadow: 0 2px 8px 0 rgb(0 0 0 / 0.06);
+      transition: all 0.3s ease;
       position: relative;
       cursor: help;
+      backdrop-filter: blur(10px);
     }
 
     .feature:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px 0 rgb(0 0 0 / 0.15);
-      border-color: #3B82F6;
+      box-shadow: 0 4px 12px 0 rgb(0 0 0 / 0.1);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(239, 246, 255, 0.8) 100%);
     }
 
     .feature-icon {
@@ -53,6 +54,13 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
       display: flex;
       align-items: center;
       justify-content: center;
+      width: 20px;
+      height: 20px;
+    }
+
+    .feature-icon svg {
+      width: 20px;
+      height: 20px;
     }
 
     /* Tooltip styles */

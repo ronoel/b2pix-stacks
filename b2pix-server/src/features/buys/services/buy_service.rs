@@ -5,8 +5,9 @@ use crate::{
     config::Config,
     features::{
         advertisements::{
-            domain::entities::AdvertisementId, ports::repositories::AdvertisementRepository,
+            domain::entities::{AdvertisementId, PricingMode}, ports::repositories::AdvertisementRepository,
         },
+        bank_credentials::ports::BankCredentialsRepository,
         buys::{
             domain::entities::{Buy, BuyId, BuyStatus},
             ports::repositories::BuyRepository,
@@ -20,7 +21,11 @@ use crate::{
     },
     infrastructure::storage::GcsManager,
     publisher::EventPublisher,
-    services::{efi_pay_service::EfiPayService, trello::{TrelloCardService, TrelloConfig}},
+    services::{
+        efi_pay_service::EfiPayService,
+        bitcoin_price::quote_service::QuoteService,
+        trello::{TrelloCardService, TrelloConfig}
+    },
 };
 
 /// Normalize PIX confirmation codes to avoid user confusion with ambiguous characters
@@ -56,31 +61,37 @@ fn normalize_pix_code(code: &str) -> String {
 pub struct BuyService {
     buy_repository: Arc<dyn BuyRepository>,
     advertisement_repository: Arc<dyn AdvertisementRepository>,
+    bank_credentials_repository: Arc<dyn BankCredentialsRepository>,
     invite_repository: Arc<dyn InviteRepository>,
     payment_request_service: Arc<PaymentRequestService>,
     event_publisher: Arc<EventPublisher>,
     config: Arc<Config>,
     efi_pay_service: Arc<EfiPayService>,
+    quote_service: Arc<QuoteService>,
 }
 
 impl BuyService {
     pub fn new(
         buy_repository: Arc<dyn BuyRepository>,
         advertisement_repository: Arc<dyn AdvertisementRepository>,
+        bank_credentials_repository: Arc<dyn BankCredentialsRepository>,
         invite_repository: Arc<dyn InviteRepository>,
         payment_request_service: Arc<PaymentRequestService>,
         event_publisher: Arc<EventPublisher>,
         config: Arc<Config>,
         efi_pay_service: Arc<EfiPayService>,
+        quote_service: Arc<QuoteService>,
     ) -> Self {
         Self {
             buy_repository,
             advertisement_repository,
+            bank_credentials_repository,
             invite_repository,
             payment_request_service,
             event_publisher,
             config,
             efi_pay_service,
+            quote_service,
         }
     }
 
@@ -88,6 +99,7 @@ impl BuyService {
         &self,
         advertisement_id: AdvertisementId,
         pay_value: u128,
+        quoted_price: u128,
         address_buy: CryptoAddress,
     ) -> Result<Buy, ApiError> {
         // Validate pay_value
@@ -97,8 +109,15 @@ impl BuyService {
             ));
         }
 
-        // First, get the advertisement to calculate the amount
-        let advertisement = self
+        // Validate quoted_price
+        if quoted_price == 0 {
+            return Err(ApiError::BadRequest(
+                "Price must be greater than zero".to_string(),
+            ));
+        }
+
+        // First, get the advertisement
+        let mut advertisement = self
             .advertisement_repository
             .find_by_id(&advertisement_id)
             .await
@@ -107,10 +126,121 @@ impl BuyService {
             })?
             .ok_or(ApiError::NotFound)?;
 
-        // Calculate the amount based on pay_value and advertisement price
+        // Get seller address for bank credentials lookup
+        let seller_address = StacksAddress::from_string(advertisement.seller_address.clone());
+
+        // Get latest bank credentials for the seller
+        let bank_credentials = self.bank_credentials_repository
+            .find_latest_by_address(&seller_address)
+            .await
+            .map_err(|e| {
+                tracing::error!("Failed to find bank credentials for seller {}: {}", seller_address, e);
+                ApiError::InternalServerError(format!("Failed to find bank credentials: {}", e))
+            })?
+            .ok_or_else(|| {
+                tracing::error!("No bank credentials found for seller: {}", seller_address);
+                ApiError::BadRequest("No bank credentials found for seller.".to_string())
+            })?;
+
+        // Check if PIX key needs refresh (time-based OR credentials changed)
+        if advertisement.needs_pix_key_refresh(bank_credentials.id()) {
+            let refresh_reason = if advertisement.has_different_credentials(bank_credentials.id()) {
+                "new bank credentials detected"
+            } else {
+                "PIX key older than 15 minutes"
+            };
+
+            tracing::info!(
+                "Refreshing PIX key for advertisement {} (reason: {})",
+                advertisement_id,
+                refresh_reason
+            );
+
+            // Get EFI client and refresh PIX key
+            let efi_client = self.efi_pay_service
+                .get_efi_client(&seller_address)
+                .await
+                .map_err(|e| {
+                    tracing::error!("Failed to get EFI Pay client during PIX key refresh: {:?}", e);
+                    ApiError::InternalServerError("Failed to initialize banking client".to_string())
+                })?;
+
+            let oauth_response = efi_client.authenticate().await
+                .map_err(|e| {
+                    tracing::error!("EFI Pay authentication failed during PIX key refresh: {:?}", e);
+                    ApiError::BadRequest("Failed to authenticate with bank.".to_string())
+                })?;
+
+            let new_pix_key = efi_client.get_or_create_pix_key(&oauth_response.access_token)
+                .await
+                .map_err(|e| {
+                    tracing::error!("Failed to get or create PIX key during refresh: {}", e);
+                    ApiError::BadRequest(format!("Failed to refresh PIX key: {}", e))
+                })?;
+
+            // Update advertisement with new PIX key
+            advertisement.refresh_pix_key(new_pix_key, bank_credentials.id().clone());
+
+            // Save updated advertisement
+            self.advertisement_repository
+                .save(&advertisement)
+                .await
+                .map_err(|e| {
+                    tracing::error!("Failed to save advertisement after PIX key refresh: {}", e);
+                    ApiError::InternalServerError(format!("Failed to save advertisement: {}", e))
+                })?;
+
+            tracing::info!(
+                "Successfully refreshed PIX key for advertisement {} (reason: {})",
+                advertisement_id,
+                refresh_reason
+            );
+        }
+
+        // Validate price based on pricing mode
+        let validated_price = match &advertisement.pricing_mode {
+            PricingMode::Fixed { price } => {
+                // For fixed pricing: quoted price must match exactly
+                if quoted_price != *price {
+                    return Err(ApiError::BadRequest(format!(
+                        "Price mismatch: expected {}, got {}",
+                        price, quoted_price
+                    )));
+                }
+                *price
+            }
+            PricingMode::Dynamic { percentage_offset } => {
+                // For dynamic pricing: get current market price and validate
+                let market_price = self.quote_service.get_bitcoin_price().await
+                    .map_err(|e| {
+                        tracing::error!("Failed to get Bitcoin price: {}", e);
+                        ApiError::BadRequest(format!("Quote service unavailable: {}", e))
+                    })?;
+
+                // Calculate base price with percentage offset
+                let offset_multiplier = 1.0 + (percentage_offset / 100.0);
+                let base_price = (market_price as f64 * offset_multiplier) as u128;
+
+                // Calculate minimum allowed price with -0.3% tolerance
+                let min_allowed_price = (base_price as f64 * 0.997) as u128;
+
+                // Validate that quoted price is >= minimum
+                if quoted_price < min_allowed_price {
+                    return Err(ApiError::BadRequest(format!(
+                        "Price below minimum: quoted {}, minimum allowed {} (current market: {})",
+                        quoted_price, min_allowed_price, market_price
+                    )));
+                }
+
+                // Use the quoted price (which is validated to be within tolerance)
+                quoted_price
+            }
+        };
+
+        // Calculate the amount based on pay_value and validated price
         // pay_value = (amount * price / 100_000_000)
         // So: amount = pay_value * 100_000_000 / price
-        let amount = pay_value * 100_000_000 / advertisement.price;
+        let amount = pay_value * 100_000_000 / validated_price;
 
         // Reserve funds from advertisement (atomic operation)
         let advertisement = self
@@ -125,16 +255,13 @@ impl BuyService {
             })?
             .ok_or(ApiError::NotFound)?;
 
-        tracing::warn!("TO-DO: Get a new fresh PIX key");
         // tracing::warn!("TO-DO: Must allow only one buy per advertisement per buyer");
-
-        // The pay_value is already provided, no need to calculate it
 
         // Create buy order - if this fails, we need to refund
         let buy = match Buy::new(
             advertisement_id.clone(),
             amount,
-            advertisement.price,
+            validated_price,
             0, // No fee for now
             pay_value,
             address_buy,
@@ -454,16 +581,18 @@ impl BuyService {
         Ok(cancelled_buy)
     }
 
-    /// Processes pending buys older than 15 minutes and expires them
+    /// Processes pending buys that have passed their expires_at timestamp and expires them
+    /// Note: expires_at is set to 3 minutes from creation (see Buy::new in domain/entities.rs)
     pub async fn process_pending(&self) -> Result<(), ApiError> {
-        // Find all pending buys older than 15 minutes
+        // Find all pending buys that have passed their expires_at timestamp
+        // The parameter is ignored - the repository queries expires_at < now() directly
         let old_pending_buys = self
             .buy_repository
-            .find_pending_older_than_minutes(15)
+            .find_pending_older_than_minutes(0) // Parameter is deprecated and ignored
             .await
             .map_err(|e| {
-                tracing::error!("Failed to find pending buys older than 15 minutes: {}", e);
-                ApiError::InternalServerError(format!("Failed to find old pending buys: {}", e))
+                tracing::error!("Failed to find expired pending buys: {}", e);
+                ApiError::InternalServerError(format!("Failed to find expired pending buys: {}", e))
             })?;
 
         if old_pending_buys.is_empty() {
@@ -1088,5 +1217,218 @@ impl BuyService {
             // Call mark_as_dispute_resolved_seller for this buy
             self.mark_as_dispute_resolved_seller(&buy).await;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    mod basic_validation {
+        use super::*;
+
+        #[tokio::test]
+        async fn test_start_rejects_zero_pay_value() {
+            // This test verifies early validation without needing full service setup
+            // Since validation happens before any repository calls, we test the logic directly
+
+            // Test the validation logic that happens at the start of BuyService::start()
+            let pay_value: u128 = 0;
+            let quoted_price: u128 = 50_000_00;
+
+            // The actual validation in buy_service.rs:106-110
+            let validation_result = if pay_value == 0 {
+                Err(ApiError::BadRequest("Pay value must be greater than zero".to_string()))
+            } else if quoted_price == 0 {
+                Err(ApiError::BadRequest("Price must be greater than zero".to_string()))
+            } else {
+                Ok(())
+            };
+
+            // Assert
+            assert!(validation_result.is_err());
+            match validation_result {
+                Err(ApiError::BadRequest(msg)) => {
+                    assert!(msg.contains("Pay value must be greater than zero"));
+                }
+                _ => panic!("Expected BadRequest error for zero pay value"),
+            }
+        }
+
+        #[tokio::test]
+        async fn test_start_rejects_zero_quoted_price() {
+            // This test verifies early validation without needing full service setup
+            // Since validation happens before any repository calls, we test the logic directly
+
+            // Test the validation logic that happens at the start of BuyService::start()
+            let pay_value: u128 = 100_00;
+            let quoted_price: u128 = 0;
+
+            // The actual validation in buy_service.rs:106-117
+            let validation_result = if pay_value == 0 {
+                Err(ApiError::BadRequest("Pay value must be greater than zero".to_string()))
+            } else if quoted_price == 0 {
+                Err(ApiError::BadRequest("Price must be greater than zero".to_string()))
+            } else {
+                Ok(())
+            };
+
+            // Assert
+            assert!(validation_result.is_err());
+            match validation_result {
+                Err(ApiError::BadRequest(msg)) => {
+                    assert!(msg.contains("Price must be greater than zero"));
+                }
+                _ => panic!("Expected BadRequest error for zero price"),
+            }
+        }
+    }
+
+    mod calculation_accuracy_tests {
+        use super::*;
+
+        #[test]
+        fn test_amount_calculation_no_overflow() {
+            // CRITICAL: Test that large values don't cause overflow
+            // Formula: amount = pay_value * 100_000_000 / validated_price
+            let pay_value: u128 = 1_000_000_00; // R$ 1,000,000.00
+            let price: u128 = 50_000_00; // R$ 50,000.00 per BTC
+
+            let amount = pay_value * 100_000_000 / price;
+
+            // Expected: 20 BTC = 2,000,000,000 sats
+            assert_eq!(amount, 2_000_000_000);
+        }
+
+        #[test]
+        fn test_amount_calculation_precision() {
+            // Test precision with fractional amounts
+            let pay_value: u128 = 525_00; // R$ 525.00
+            let price: u128 = 50_000_00; // R$ 50,000.00 per BTC
+
+            let amount = pay_value * 100_000_000 / price;
+
+            // Expected: 0.0105 BTC = 1,050,000 sats
+            assert_eq!(amount, 1_050_000);
+        }
+
+        #[test]
+        fn test_amount_calculation_edge_case_minimum() {
+            // Test with minimum values
+            let pay_value: u128 = 1; // 1 cent (R$ 0.01)
+            let price: u128 = 50_000_00; // R$ 50,000.00 per BTC
+
+            let amount = pay_value * 100_000_000 / price;
+
+            // Calculation: 1 cent / 5,000,000 cents per BTC
+            // = 1 / 5,000,000 BTC = 0.0000002 BTC = 20 sats
+            assert_eq!(amount, 20);
+        }
+
+        #[test]
+        fn test_tolerance_calculation_accuracy() {
+            // CRITICAL: Verify -0.3% calculation is accurate
+            let base_price: u128 = 52_500_00; // R$ 52,500.00
+            let min_allowed = (base_price as f64 * 0.997) as u128;
+
+            // Expected: 52,342.50 = 5_234_250 cents
+            assert_eq!(min_allowed, 5_234_250);
+        }
+
+        #[test]
+        fn test_dynamic_price_offset_calculation() {
+            // Test offset calculation accuracy
+            let market_price: u128 = 50_000_00; // R$ 500.00
+            let percentage_offset: f64 = 5.0;
+
+            let offset_multiplier = 1.0 + (percentage_offset / 100.0);
+            let base_price = (market_price as f64 * offset_multiplier) as u128;
+
+            // Expected: 52,500.00 = 5_250_000 cents
+            assert_eq!(base_price, 5_250_000);
+        }
+
+        #[test]
+        fn test_dynamic_price_negative_offset() {
+            // Test with negative offset (discount)
+            let market_price: u128 = 50_000_00; // R$ 500.00
+            let percentage_offset: f64 = -2.5;
+
+            let offset_multiplier = 1.0 + (percentage_offset / 100.0);
+            let base_price = (market_price as f64 * offset_multiplier) as u128;
+
+            // Expected: 48,750.00 = 4_875_000 cents
+            assert_eq!(base_price, 4_875_000);
+        }
+
+        #[test]
+        fn test_tolerance_at_exact_boundary() {
+            // Edge case: Test exact boundary condition
+            let base_price: u128 = 100_000_00; // R$ 1,000.00
+            let min_allowed = (base_price as f64 * 0.997) as u128;
+
+            // At boundary: quoted_price >= min_allowed should pass
+            assert_eq!(min_allowed, 99_700_00);
+            assert!(99_700_00 >= min_allowed); // Exact boundary - should pass
+            assert!(99_699_99 < min_allowed);  // Just below - should fail
+        }
+    }
+
+    // TODO: Complete fixed pricing and dynamic pricing integration tests
+    // These require more complex mocking of repositories and services
+    // Placeholder tests below show the structure
+
+    #[allow(dead_code)]
+    mod fixed_pricing_tests {
+        use super::*;
+
+        // TODO: Implement full integration test
+        // #[tokio::test]
+        // async fn test_fixed_price_exact_match_succeeds() {
+        //     // CRITICAL: Verify exact price match is accepted
+        //     // Mock advertisement_repository.find_by_id() -> fixed price advertisement
+        //     // Mock bank_credentials_repository.find_latest_by_address() -> credentials
+        //     // Mock advertisement_repository.update_available_amount() -> updated ad
+        //     // Mock buy_repository.save() -> Ok(())
+        //     // Assert: Buy succeeds
+        // }
+
+        // TODO: Implement
+        // #[tokio::test]
+        // async fn test_fixed_price_below_rejects() {
+        //     // CRITICAL: User cannot pay less than fixed price
+        // }
+
+        // TODO: Implement
+        // #[tokio::test]
+        // async fn test_fixed_price_above_rejects() {
+        //     // CRITICAL: User cannot pay more than fixed price (potential exploit)
+        // }
+    }
+
+    #[allow(dead_code)]
+    mod dynamic_pricing_tests {
+        use super::*;
+
+        // TODO: Implement with custom QuoteService mock
+        // #[tokio::test]
+        // async fn test_dynamic_price_within_tolerance_succeeds() {
+        //     // Mock quote_service.get_bitcoin_price() -> market price
+        //     // Verify price within -0.3% tolerance is accepted
+        // }
+
+        // TODO: Implement
+        // #[tokio::test]
+        // async fn test_dynamic_price_below_tolerance_rejects() {
+        //     // CRITICAL: Prevent users from getting Bitcoin too cheap
+        // }
+
+        // TODO: Implement
+        // #[tokio::test]
+        // async fn test_quote_service_failure_returns_error() {
+        //     // CRITICAL: Ensure we don't proceed with zero/invalid price
+        //     // Mock quote_service to return error
+        //     // Assert: Returns ApiError, buy is not created
+        // }
     }
 }

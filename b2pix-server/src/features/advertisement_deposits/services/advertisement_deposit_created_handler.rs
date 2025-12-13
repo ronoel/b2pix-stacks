@@ -116,8 +116,13 @@ impl EventHandler for AdvertisementDepositCreatedHandler {
             }
         };
 
-        // Update deposit with transaction ID and change status to Pending
-        deposit.pending(broadcast_response.txid).map_err(|e| {
+        // Set broadcast info (txid and amount) and change status to Pending
+        deposit.set_broadcast_info(broadcast_response.txid.clone(), broadcast_response.amount).map_err(|e| {
+            tracing::error!("Failed to set broadcast info: {}", e);
+            EventHandlerError::Handler(format!("Failed to set broadcast info: {}", e))
+        })?;
+
+        deposit.mark_pending().map_err(|e| {
             tracing::error!("Failed to update deposit to pending: {}", e);
             EventHandlerError::Handler(format!("Failed to update deposit to pending: {}", e))
         })?;
@@ -134,7 +139,7 @@ impl EventHandler for AdvertisementDepositCreatedHandler {
         tracing::info!(
             "Successfully broadcasted transaction for deposit {}. Tx ID: {:?}",
             deposit.id,
-            deposit.transaction_id
+            deposit.blockchain_tx_id
         );
 
         Ok(())

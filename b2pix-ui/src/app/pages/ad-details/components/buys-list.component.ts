@@ -266,8 +266,8 @@ export class BuysListComponent {
         return 'pending';
       case BuyStatus.Paid:
         return 'paid';
-      case BuyStatus.Completed:
-        return 'completed';
+      // case BuyStatus.Completed:
+      //   return 'completed';
       case BuyStatus.Cancelled:
       case BuyStatus.Expired:
         return 'cancelled';
@@ -282,8 +282,8 @@ export class BuysListComponent {
         return 'Aguardando Pagamento';
       case BuyStatus.Paid:
         return 'Pago';
-      case BuyStatus.Completed:
-        return 'Concluído';
+      // case BuyStatus.Completed:
+      //   return 'Concluído';
       case BuyStatus.Cancelled:
         return 'Cancelado';
       case BuyStatus.Expired:

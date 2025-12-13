@@ -6,7 +6,7 @@ export enum BuyStatus {
     /** Payment confirmed, waiting for crypto transfer */
     PaymentConfirmed = 'payment_confirmed',
     /** Crypto transfer completed successfully */
-    Completed = 'completed',
+    // Completed = 'completed',
     /** Buy cancelled by buyer or seller */
     Cancelled = 'cancelled',
     /** Buy expired without payment */

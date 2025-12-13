@@ -1,11 +1,11 @@
 import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { LoadingService } from '../../services/loading.service';
 
 @Component({
   selector: 'app-loading',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     @if (loadingService.getIsLoading()()) {
       <div class="loading-overlay">

@@ -9,6 +9,8 @@ import { QuoteService } from '../../shared/api/quote.service';
 import { BoltContractSBTCService } from '../../libs/bolt-contract-sbtc.service';
 import { sBTCTokenService } from '../../libs/sbtc-token.service';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
+import { PricingMode } from '../../shared/models/advertisement.model';
+import { PricingUtils } from '../../shared/utils/pricing.utils';
 
 @Component({
   selector: 'app-sell',
@@ -261,15 +263,56 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
                       }
                     </div>
 
-                    <!-- Preço por BTC -->
+                    <!-- Pricing Mode Selection -->
                     <div class="form-group full-width">
-                      <label for="pricingOption">
+                      <label>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                          <line x1="12" y1="1" x2="12" y2="23" stroke="currentColor" stroke-width="2"/>
-                          <path d="M17 5H9.5C8.11929 5 7 6.11929 7 7.5S8.11929 10 9.5 10H14.5C15.8807 10 17 11.1193 17 12.5S15.8807 15 14.5 15H7" stroke="currentColor" stroke-width="2"/>
+                          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
-                        Preço por BTC (R$)
+                        Modo de Precificação
                       </label>
+                      <div class="pricing-mode-toggle">
+                        <button
+                          type="button"
+                          class="pricing-mode-btn"
+                          [class.active]="pricingMode === 'fixed'"
+                          (click)="onPricingModeChange('fixed')">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <line x1="12" y1="1" x2="12" y2="23" stroke="currentColor" stroke-width="2"/>
+                            <path d="M17 5H9.5C8.11929 5 7 6.11929 7 7.5S8.11929 10 9.5 10H14.5C15.8807 10 17 11.1193 17 12.5S15.8807 15 14.5 15H7" stroke="currentColor" stroke-width="2"/>
+                          </svg>
+                          Preço Fixo
+                        </button>
+                        <button
+                          type="button"
+                          class="pricing-mode-btn"
+                          [class.active]="pricingMode === 'dynamic'"
+                          (click)="onPricingModeChange('dynamic')">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          </svg>
+                          Preço Dinâmico
+                        </button>
+                      </div>
+                      <div class="input-info">
+                        @if (pricingMode === 'fixed') {
+                          Defina um preço fixo em reais por BTC
+                        } @else {
+                          Defina um percentual de ajuste sobre o preço de mercado (ex: +3.15% ou -2.5%)
+                        }
+                      </div>
+                    </div>
+
+                    <!-- Preço por BTC (Fixed Mode) ou Offset Percentual (Dynamic Mode) -->
+                    @if (pricingMode === 'fixed') {
+                      <div class="form-group full-width">
+                        <label for="pricingOption">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <line x1="12" y1="1" x2="12" y2="23" stroke="currentColor" stroke-width="2"/>
+                            <path d="M17 5H9.5C8.11929 5 7 6.11929 7 7.5S8.11929 10 9.5 10H14.5C15.8807 10 17 11.1193 17 12.5S15.8807 15 14.5 15H7" stroke="currentColor" stroke-width="2"/>
+                          </svg>
+                          Preço por BTC (R$)
+                        </label>
                       
                       <!-- Dropdown de opções de preço -->
                       <select 
@@ -295,14 +338,44 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
                         [readonly]="!isCustomPrice"
                         (input)="onPriceChange($event)"
                         required>
-                      <div class="input-info">
-                        @if (!isCustomPrice) {
-                          <span class="auto-calculated">Valor calculado automaticamente</span>
-                        } @else {
-                          <span>Digite o preço desejado por BTC</span>
+                        <div class="input-info">
+                          @if (!isCustomPrice) {
+                            <span class="auto-calculated">Valor calculado automaticamente</span>
+                          } @else {
+                            <span>Digite o preço desejado por BTC</span>
+                          }
+                        </div>
+                      </div>
+                    } @else {
+                      <!-- Dynamic Pricing: Percentage Offset -->
+                      <div class="form-group full-width">
+                        <label for="percentageOffset">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          </svg>
+                          Ajuste sobre o Preço de Mercado (%)
+                        </label>
+                        <input
+                          type="number"
+                          id="percentageOffset"
+                          name="percentageOffset"
+                          [(ngModel)]="percentageOffset"
+                          step="0.01"
+                          class="form-input"
+                          placeholder="Ex: 3.15 ou -2.5"
+                          required>
+                        <div class="input-info">
+                          Use valores positivos para vender acima do mercado (ex: 3.15) ou negativos para vender abaixo (ex: -2.5). O preço se ajustará automaticamente conforme o mercado muda.
+                        </div>
+                        @if (percentageOffset !== null && percentageOffset !== undefined) {
+                          <div class="percentage-preview">
+                            <strong>Preço estimado atual:</strong>
+                            R$ {{ formatCurrency(currentBtcPrice() * (1 + percentageOffset / 100)) }}
+                            <span class="preview-note">(Atualiza automaticamente com o mercado)</span>
+                          </div>
                         }
                       </div>
-                    </div>
+                    }
                   </div>
 
                   @if (isValidSellOrder()) {
@@ -320,8 +393,16 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
                           </div>
                         </div>
                         <div class="calc-item">
-                          <div class="calc-label">• Preço por BTC:</div>
-                          <div class="calc-value">R$ {{ formatCurrency(getBtcPriceDisplay()) }}</div>
+                          @if (pricingMode === 'fixed') {
+                            <div class="calc-label">• Preço por BTC:</div>
+                            <div class="calc-value">R$ {{ formatCurrency(getBtcPriceDisplay()) }}</div>
+                          } @else {
+                            <div class="calc-label">• Ajuste de Preço:</div>
+                            <div class="calc-value">
+                              {{ percentageOffset > 0 ? '+' : '' }}{{ percentageOffset }}%
+                              <span class="btc-equivalent">≈ R$ {{ formatCurrency(currentBtcPrice() * (1 + percentageOffset / 100)) }}</span>
+                            </div>
+                          }
                         </div>
                         <div class="calc-item">
                           <div class="calc-label">• Taxa de rede:</div>
@@ -339,8 +420,16 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
                           <div class="calc-value">R$ {{ formatCurrency(sellOrder.maxAmountReais) }}</div>
                         </div>
                         <div class="calc-item total">
-                          <div class="calc-label">• Total a receber:</div>
-                          <div class="calc-value total-value">R$ {{ formatCurrency(getTotalDisplay()) }}</div>
+                          @if (pricingMode === 'fixed') {
+                            <div class="calc-label">• Total a receber:</div>
+                            <div class="calc-value total-value">R$ {{ formatCurrency(getTotalDisplay()) }}</div>
+                          } @else {
+                            <div class="calc-label">• Total estimado:</div>
+                            <div class="calc-value total-value">
+                              ≈ R$ {{ formatCurrency(getEstimatedTotalForDynamic()) }}
+                              <span class="btc-equivalent">(varia com o mercado)</span>
+                            </div>
+                          }
                         </div>
                       </div>
                     </div>
@@ -643,6 +732,73 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
       background: rgba(239, 68, 68, 0.1);
       border-radius: 8px;
       border-left: 3px solid #EF4444;
+    }
+
+    /* Pricing Mode Toggle */
+    .pricing-mode-toggle {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .pricing-mode-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 20px;
+      border: 2px solid #E5E7EB;
+      border-radius: 12px;
+      background: #FFFFFF;
+      color: #6B7280;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .pricing-mode-btn:hover {
+      border-color: #F59E0B;
+      background: #FEF3C7;
+      color: #92400E;
+    }
+
+    .pricing-mode-btn.active {
+      border-color: #F59E0B;
+      background: #F59E0B;
+      color: #FFFFFF;
+      box-shadow: 0 4px 12px 0 rgb(245 158 11 / 0.3);
+    }
+
+    .pricing-mode-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Percentage Preview */
+    .percentage-preview {
+      margin-top: 12px;
+      padding: 12px;
+      background: #EFF6FF;
+      border: 1px solid #BFDBFE;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #1E40AF;
+    }
+
+    .percentage-preview strong {
+      display: block;
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+
+    .preview-note {
+      display: block;
+      margin-top: 4px;
+      font-size: 12px;
+      color: #6B7280;
+      font-style: italic;
     }
 
     /* Calculation Card */
@@ -1014,6 +1170,10 @@ export class SellComponent implements OnInit {
   sellError = false;
   sellErrorMessage = '';
 
+  // Dynamic Pricing
+  pricingMode: PricingMode = 'fixed'; // 'fixed' or 'dynamic'
+  percentageOffset: number = 0; // Percentage offset for dynamic pricing (e.g., 3.15 or -2.5)
+
   // Bitcoin/Satoshi unit toggle
   showInSats = true; // Default to sats
   readonly SATS_PER_BTC = 100000000n; // 100 million satoshis per bitcoin as BigInt
@@ -1091,6 +1251,15 @@ export class SellComponent implements OnInit {
       this.sellOrder.totalSats = BigInt(Math.round(Number(this.sellOrder.amountSats) * this.sellOrder.btcPriceCentsPerBtc / Number(this.SATS_PER_BTC)));
     } else {
       this.sellOrder.totalSats = 0n;
+    }
+  }
+
+  onPricingModeChange(mode: PricingMode) {
+    this.pricingMode = mode;
+
+    // Set default percentage offset to -5.00% when switching to dynamic mode
+    if (mode === 'dynamic' && this.percentageOffset === 0) {
+      this.percentageOffset = -5.00;
     }
   }
 
@@ -1183,9 +1352,12 @@ export class SellComponent implements OnInit {
   }
 
   isValidSellOrder(): boolean {
-    return this.sellOrder.amountSats > 0n && 
-           this.sellOrder.btcPriceCentsPerBtc > 0 &&
-           this.isValidAmountRange();
+    const hasValidAmount = this.sellOrder.amountSats > 0n;
+    const hasValidPrice = this.pricingMode === 'fixed'
+      ? this.sellOrder.btcPriceCentsPerBtc > 0
+      : true; // Dynamic pricing doesn't require btcPriceCentsPerBtc
+
+    return hasValidAmount && hasValidPrice && this.isValidAmountRange();
   }
 
   isValidAmountRange(): boolean {
@@ -1199,8 +1371,25 @@ export class SellComponent implements OnInit {
     return Number(this.sellOrder.totalSats) / 100;
   }
 
+  getEstimatedTotalForDynamic(): number {
+    // Calculate estimated total based on current market price + percentage offset
+    const currentPrice = this.currentBtcPrice();
+    const adjustedPrice = currentPrice * (1 + this.percentageOffset / 100);
+    const btcAmount = Number(this.sellOrder.amountSats) / Number(this.SATS_PER_BTC);
+    return btcAmount * adjustedPrice;
+  }
+
   confirmSell() {
-    if (!this.sellOrder.amountSats || !this.sellOrder.btcPriceCentsPerBtc) return;
+    if (!this.sellOrder.amountSats) return;
+
+    // Validate based on pricing mode
+    if (this.pricingMode === 'fixed' && !this.sellOrder.btcPriceCentsPerBtc) {
+      alert('Por favor, defina o preço por BTC.');
+      return;
+    }
+    if (this.pricingMode === 'dynamic' && this.percentageOffset === 0 && !confirm('Você não definiu um offset. O preço será igual ao mercado. Continuar?')) {
+      return;
+    }
 
     // Reset error state
     this.sellError = false;
@@ -1212,14 +1401,24 @@ export class SellComponent implements OnInit {
     // Amount is already in satoshis
     const amountInSats = this.sellOrder.amountSats;
 
-    // Debug logging to check price conversion
-    const priceForAPI = BigInt(Math.round(this.sellOrder.btcPriceCentsPerBtc));
+    // Calculate price for transaction based on pricing mode
+    let priceForTransaction: bigint;
+
+    if (this.pricingMode === 'fixed') {
+      // Fixed mode: price in cents per BTC
+      priceForTransaction = BigInt(Math.round(this.sellOrder.btcPriceCentsPerBtc));
+    } else {
+      // Dynamic mode: percentage offset in basis points (e.g., 3.15 → 315, -5.0 → -500)
+      // Note: Backend must accept signed integers (i128) for this to work with negative values
+      priceForTransaction = BigInt(Math.round(this.percentageOffset * 100));
+    }
 
     this.advertisementService.createAdvertisement({
       amountInSats,
-      price: priceForAPI,  // Price in cents per Bitcoin
+      price: priceForTransaction,
       minAmount: this.sellOrder.minAmountReais * 100, // Convert reais to cents
-      maxAmount: this.sellOrder.maxAmountReais * 100  // Convert reais to cents
+      maxAmount: this.sellOrder.maxAmountReais * 100, // Convert reais to cents
+      pricingMode: this.pricingMode
     }).subscribe({
       next: () => {
         this.loadingService.hide();

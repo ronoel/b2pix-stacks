@@ -1,12 +1,12 @@
 import { Component, output, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 export type WalletChoice = 'external' | 'embedded' | null;
 
 @Component({
   selector: 'app-wallet-selection-dialog',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     <div class="dialog-overlay" (click)="onClose()">
       <div class="dialog-content" (click)="$event.stopPropagation()">
