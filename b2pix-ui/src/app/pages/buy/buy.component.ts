@@ -220,12 +220,15 @@ interface ExtendedBitcoinListing extends BitcoinListing {
           }
         </div>
 
-        <!-- Purchase Confirmation Modal -->
+        <!-- Purchase Confirmation Modal - Step by Step -->
         @if (showConfirmationModal()) {
-          <div class="modal-overlay" (click)="closeConfirmationModal()">
+          <div class="modal-overlay">
             <div class="confirmation-modal" (click)="$event.stopPropagation()">
               <div class="modal-header">
-                <h3>Confirmar Compra</h3>
+                <div class="header-content">
+                  <h3>Preparação para Compra</h3>
+                  <div class="step-indicator">Passo {{ currentModalStep() }}/4</div>
+                </div>
                 <button class="close-btn" (click)="closeConfirmationModal()">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                     <path d="M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -236,63 +239,159 @@ interface ExtendedBitcoinListing extends BitcoinListing {
 
               @if (selectedListing()) {
                 <div class="modal-content">
-                  <div class="purchase-summary">
-                    <div class="summary-item">
-                      <span class="label">Você receberá:</span>
-                      <span class="value">{{ formatBitcoinAmount(calculateBitcoinAmount(selectedListing()!, getCurrentAmount())) }} BTC</span>
-                    </div>
-                    <div class="summary-item">
-                      <span class="label">Por:</span>
-                      <span class="value strong">R$ {{ formatCurrency(getCurrentAmount()) }}</span>
-                    </div>
-                  </div>
-
-                  <div class="important-instructions">
-                    <div class="instruction-header">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                        <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                      <h4>Importante - Leia antes de continuar!</h4>
-                    </div>
-                    <ul class="instruction-list">
-                      <li><strong>Abra seu aplicativo bancário agora</strong> - você terá apenas <strong>3 minutos</strong> após confirmar</li>
-                      <li>Tenha <strong>saldo disponível</strong> de R$ {{ formatCurrency(getCurrentAmount()) }}</li>
-                      <li>Após o PIX, informe os <strong>3 últimos caracteres</strong> do ID da transação (ex: E000-12A<span class="highlight-chars-inline">9Z7</span>)</li>
-                    </ul>
-                  </div>
-
-                  <div class="confirmation-checkbox">
-                    <label class="checkbox-label">
-                      <input
-                        type="checkbox"
-                        [checked]="userConfirmedInstructions()"
-                        (change)="toggleInstructionConfirmation($any($event.target).checked)"
-                      >
-                      <span class="checkbox-custom"></span>
-                      <span class="checkbox-text">Li as instruções e estou com meu banco aberto e pronto</span>
-                    </label>
-                  </div>
-
-                  <div class="modal-actions">
-                    <button class="btn btn-outline" (click)="closeConfirmationModal()">
-                      Cancelar
-                    </button>
-                    <button
-                      class="btn btn-success btn-lg confirm-purchase-btn"
-                      (click)="confirmPurchase()"
-                      [disabled]="isProcessingPurchase() || !userConfirmedInstructions()"
-                    >
-                      @if (isProcessingPurchase()) {
-                        <div class="loading-spinner-sm"></div>
-                        Processando...
-                      } @else {
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                          <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                  <!-- Step 1: Open Banking App -->
+                  @if (currentModalStep() === 1) {
+                    <div class="step-content">
+                      <div class="step-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                          <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
-                        Confirmar Compra
-                      }
-                    </button>
+                      </div>
+                      <h4 class="step-title">Abra seu aplicativo do banco</h4>
+                      <p class="step-description">Para agilizar o processo, abra agora seu aplicativo bancário</p>
+
+                      <div class="step-checkbox">
+                        <label class="checkbox-label">
+                          <input
+                            type="checkbox"
+                            [checked]="step1Confirmed()"
+                            (change)="toggleStep1($any($event.target).checked)"
+                          >
+                          <span class="checkbox-custom"></span>
+                          <span class="checkbox-text">Abri meu aplicativo bancário e estou pronto para fazer o PIX</span>
+                        </label>
+                      </div>
+                    </div>
+                  }
+
+                  <!-- Step 2: Confirm Balance -->
+                  @if (currentModalStep() === 2) {
+                    <div class="step-content">
+                      <div class="step-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                          <path d="M12 2V22M17 5H9.5C8.57174 5 7.6815 5.36875 7.02513 6.02513C6.36875 6.6815 6 7.57174 6 8.5C6 9.42826 6.36875 10.3185 7.02513 10.9749C7.6815 11.6313 8.57174 12 9.5 12H14.5C15.4283 12 16.3185 12.3687 16.9749 13.0251C17.6313 13.6815 18 14.5717 18 15.5C18 16.4283 17.6313 17.3185 16.9749 17.9749C16.3185 18.6313 15.4283 19 14.5 19H6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                      </div>
+                      <h4 class="step-title">Confirme seu saldo</h4>
+                      <div class="amount-highlight">
+                        <span class="amount-label">Você precisa ter disponível:</span>
+                        <span class="amount-value">R$ {{ formatCurrency(getCurrentAmount()) }}</span>
+                      </div>
+
+                      <div class="step-checkbox">
+                        <label class="checkbox-label">
+                          <input
+                            type="checkbox"
+                            [checked]="step2Confirmed()"
+                            (change)="toggleStep2($any($event.target).checked)"
+                          >
+                          <span class="checkbox-custom"></span>
+                          <span class="checkbox-text">Confirmei que tenho saldo disponível de R$ {{ formatCurrency(getCurrentAmount()) }}</span>
+                        </label>
+                      </div>
+                    </div>
+                  }
+
+                  <!-- Step 3: PIX Instructions -->
+                  @if (currentModalStep() === 3) {
+                    <div class="step-content">
+                      <div class="step-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                          <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                      </div>
+                      <h4 class="step-title">Como funciona o pagamento</h4>
+                      <ul class="instruction-list">
+                        <li>Você receberá uma <strong>chave PIX</strong> para pagar</li>
+                        <li>Após fazer o PIX, precisará informar os <strong>3 últimos caracteres</strong> do ID da transação</li>
+                        <li>Exemplo: ID da transação <span class="id-example">E000-12A<span class="highlight-chars">9Z7</span></span></li>
+                      </ul>
+
+                      <div class="step-checkbox">
+                        <label class="checkbox-label">
+                          <input
+                            type="checkbox"
+                            [checked]="step3Confirmed()"
+                            (change)="toggleStep3($any($event.target).checked)"
+                          >
+                          <span class="checkbox-custom"></span>
+                          <span class="checkbox-text">Entendi como fazer o PIX e informar os 3 últimos caracteres</span>
+                        </label>
+                      </div>
+                    </div>
+                  }
+
+                  <!-- Step 4: Final Confirmation -->
+                  @if (currentModalStep() === 4) {
+                    <div class="step-content">
+                      <div class="final-amount">
+                        <span class="final-label">Valor a pagar:</span>
+                        <span class="final-value">R$ {{ formatCurrency(getCurrentAmount()) }}</span>
+                      </div>
+
+                      <div class="final-warning">
+                        <div class="warning-header">
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          </svg>
+                          <strong>ATENÇÃO - Informações importantes:</strong>
+                        </div>
+                        <ul class="warning-list">
+                          <li>Você terá <strong>3 minutos</strong> após confirmar para fazer o PIX</li>
+                          <li>Informe os 3 últimos caracteres <strong>ANTES</strong> de acabar os 3 minutos</li>
+                          <li>Se tiver algum problema, <strong>CANCELE</strong> esta compra e comece uma nova para não ficar com o prazo apertado</li>
+                        </ul>
+                      </div>
+                    </div>
+                  }
+
+                  <!-- Navigation Buttons -->
+                  <div class="modal-actions">
+                    @if (currentModalStep() === 1) {
+                      <button class="btn btn-outline" (click)="closeConfirmationModal()">
+                        Cancelar
+                      </button>
+                      <button
+                        class="btn btn-primary"
+                        (click)="nextStep()"
+                        [disabled]="!canProceedToNextStep()"
+                      >
+                        Próximo
+                      </button>
+                    } @else if (currentModalStep() === 4) {
+                      <button class="btn btn-outline" (click)="previousStep()">
+                        Voltar
+                      </button>
+                      <button
+                        class="btn btn-success btn-lg confirm-purchase-btn"
+                        (click)="confirmPurchase()"
+                        [disabled]="isProcessingPurchase() || !allStepsCompleted()"
+                      >
+                        @if (isProcessingPurchase()) {
+                          <div class="loading-spinner-sm"></div>
+                          Processando...
+                        } @else {
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                          </svg>
+                          Confirmar Compra
+                        }
+                      </button>
+                    } @else {
+                      <button class="btn btn-outline" (click)="previousStep()">
+                        Voltar
+                      </button>
+                      <button
+                        class="btn btn-primary"
+                        (click)="nextStep()"
+                        [disabled]="!canProceedToNextStep()"
+                      >
+                        Próximo
+                      </button>
+                    }
                   </div>
                 </div>
               }
@@ -651,7 +750,7 @@ interface ExtendedBitcoinListing extends BitcoinListing {
       border-radius: 24px;
       border: 1px solid #E5E7EB;
       box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
-      max-width: 500px;
+      max-width: 560px;
       width: 100%;
       max-height: 90vh;
       overflow-y: auto;
@@ -665,11 +764,33 @@ interface ExtendedBitcoinListing extends BitcoinListing {
       border-bottom: 1px solid #E5E7EB;
     }
 
+    .modal-header .header-content {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-right: 16px;
+    }
+
     .modal-header h3 {
       font-size: 20px;
       font-weight: 600;
       color: #1F2937;
       margin: 0;
+    }
+
+    .step-indicator {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 12px;
+      background: #EFF6FF;
+      color: #1E40AF;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
     }
 
     .close-btn {
@@ -692,7 +813,181 @@ interface ExtendedBitcoinListing extends BitcoinListing {
     }
 
     .modal-content {
+      padding: 24px;
+      min-height: 300px;
+    }
+
+    /* Step Content */
+    .step-content {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      padding: 8px 0;
+    }
+
+    .step-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 80px;
+      height: 80px;
+      margin: 0 auto;
+      background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+      border-radius: 50%;
+      color: #1E40AF;
+    }
+
+    .step-title {
+      text-align: center;
+      font-size: 22px;
+      font-weight: 700;
+      color: #1F2937;
+      margin: 0;
+    }
+
+    .step-description {
+      text-align: center;
+      font-size: 15px;
+      color: #6B7280;
+      margin: 0;
+      line-height: 1.6;
+    }
+
+    .step-checkbox {
+      padding: 16px;
+      background: #F9FAFB;
+      border-radius: 12px;
+      border: 2px solid #E5E7EB;
+    }
+
+    /* Step 2 - Amount Highlight */
+    .amount-highlight {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
       padding: 20px;
+      background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+      border: 2px solid #FCD34D;
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    .amount-label {
+      font-size: 14px;
+      color: #92400E;
+      font-weight: 500;
+    }
+
+    .amount-value {
+      font-size: 32px;
+      font-weight: 800;
+      color: #78350F;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    }
+
+    /* Step 3 - ID Example */
+    .id-example {
+      display: inline-block;
+      padding: 4px 8px;
+      background: #F3F4F6;
+      border-radius: 6px;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-size: 14px;
+      font-weight: 600;
+      color: #1F2937;
+    }
+
+    .highlight-chars {
+      background: #F59E0B;
+      color: #FFFFFF;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+
+    /* Step 4 - Final Confirmation */
+    .final-amount {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 24px;
+      background: linear-gradient(135deg, #DCFCE7 0%, #BBF7D0 100%);
+      border: 2px solid #16A34A;
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    .final-label {
+      font-size: 14px;
+      color: #166534;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .final-value {
+      font-size: 36px;
+      font-weight: 800;
+      color: #15803D;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    }
+
+    .final-warning {
+      padding: 20px;
+      background: #FEF3C7;
+      border: 2px solid #FCD34D;
+      border-radius: 12px;
+    }
+
+    .warning-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      color: #92400E;
+    }
+
+    .warning-header svg {
+      flex-shrink: 0;
+      color: #D97706;
+    }
+
+    .warning-header strong {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .warning-list {
+      margin: 0;
+      padding-left: 20px;
+      list-style: none;
+    }
+
+    .warning-list li {
+      position: relative;
+      font-size: 14px;
+      color: #78350F;
+      line-height: 1.7;
+      margin-bottom: 10px;
+      padding-left: 8px;
+    }
+
+    .warning-list li:last-child {
+      margin-bottom: 0;
+    }
+
+    .warning-list li::before {
+      content: '•';
+      position: absolute;
+      left: -12px;
+      color: #D97706;
+      font-weight: bold;
+      font-size: 18px;
+    }
+
+    .warning-list li strong {
+      color: #92400E;
+      font-weight: 700;
     }
 
     .purchase-summary {
@@ -730,33 +1025,7 @@ interface ExtendedBitcoinListing extends BitcoinListing {
       color: #F59E0B;
     }
 
-    .important-instructions {
-      margin-bottom: 20px;
-      padding: 18px;
-      background: #FEF3C7;
-      border: 2px solid #FCD34D;
-      border-radius: 12px;
-    }
-
-    .instruction-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 14px;
-    }
-
-    .instruction-header svg {
-      color: #D97706;
-      flex-shrink: 0;
-    }
-
-    .instruction-header h4 {
-      margin: 0;
-      font-size: 15px;
-      font-weight: 700;
-      color: #92400E;
-    }
-
+    /* Instruction List (used in Step 3) */
     .instruction-list {
       margin: 0;
       padding-left: 20px;
@@ -765,10 +1034,10 @@ interface ExtendedBitcoinListing extends BitcoinListing {
 
     .instruction-list li {
       position: relative;
-      font-size: 14px;
-      color: #78350F;
-      line-height: 1.6;
-      margin-bottom: 10px;
+      font-size: 15px;
+      color: #1F2937;
+      line-height: 1.8;
+      margin-bottom: 12px;
       padding-left: 8px;
     }
 
@@ -780,33 +1049,14 @@ interface ExtendedBitcoinListing extends BitcoinListing {
       content: '•';
       position: absolute;
       left: -12px;
-      color: #D97706;
+      color: #1E40AF;
       font-weight: bold;
       font-size: 18px;
     }
 
     .instruction-list li strong {
-      color: #92400E;
+      color: #1E40AF;
       font-weight: 700;
-    }
-
-    .highlight-chars-inline {
-      background: #F59E0B;
-      color: #FFFFFF;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-weight: 700;
-      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-      letter-spacing: 0.5px;
-      font-size: 13px;
-    }
-
-    .confirmation-checkbox {
-      margin-bottom: 20px;
-      padding: 14px;
-      background: #F9FAFB;
-      border-radius: 12px;
-      border: 1px solid #E5E7EB;
     }
 
     .checkbox-label {
@@ -930,27 +1180,56 @@ interface ExtendedBitcoinListing extends BitcoinListing {
 
       .modal-content {
         padding: 16px;
+        min-height: 250px;
       }
 
       .modal-header {
         padding: 16px;
       }
 
-      .important-instructions {
-        padding: 14px;
+      .modal-header .header-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
       }
 
-      .instruction-header h4 {
+      .step-icon {
+        width: 64px;
+        height: 64px;
+      }
+
+      .step-icon svg {
+        width: 36px;
+        height: 36px;
+      }
+
+      .step-title {
+        font-size: 18px;
+      }
+
+      .step-description {
         font-size: 14px;
       }
 
-      .instruction-list li {
-        font-size: 13px;
-        margin-bottom: 8px;
+      .amount-value {
+        font-size: 28px;
       }
 
-      .confirmation-checkbox {
-        padding: 12px;
+      .final-value {
+        font-size: 30px;
+      }
+
+      .instruction-list li {
+        font-size: 14px;
+        margin-bottom: 10px;
+      }
+
+      .final-warning {
+        padding: 16px;
+      }
+
+      .warning-list li {
+        font-size: 13px;
       }
 
       .checkbox-text {
@@ -983,6 +1262,28 @@ interface ExtendedBitcoinListing extends BitcoinListing {
       .price-range-card.active {
         transform: scale(1.01);
       }
+
+      .step-title {
+        font-size: 16px;
+      }
+
+      .amount-value {
+        font-size: 24px;
+      }
+
+      .final-value {
+        font-size: 26px;
+      }
+
+      .step-icon {
+        width: 56px;
+        height: 56px;
+      }
+
+      .step-icon svg {
+        width: 32px;
+        height: 32px;
+      }
     }
   `]
 })
@@ -1006,7 +1307,12 @@ export class BuyComponent implements OnInit, OnDestroy {
   customAmount = signal<number>(0);
   showConfirmationModal = signal<boolean>(false);
   isProcessingPurchase = signal<boolean>(false);
-  userConfirmedInstructions = signal<boolean>(false);
+
+  // Step-by-step modal state
+  currentModalStep = signal<number>(1);
+  step1Confirmed = signal<boolean>(false);
+  step2Confirmed = signal<boolean>(false);
+  step3Confirmed = signal<boolean>(false);
 
   // Buy record from API
   buyRecord = signal<Buy | null>(null);
@@ -1328,11 +1634,50 @@ export class BuyComponent implements OnInit, OnDestroy {
   closeConfirmationModal() {
     this.showConfirmationModal.set(false);
     this.selectedListing.set(null);
-    this.userConfirmedInstructions.set(false);
+    this.resetModalState();
   }
 
-  toggleInstructionConfirmation(checked: boolean) {
-    this.userConfirmedInstructions.set(checked);
+  resetModalState() {
+    this.currentModalStep.set(1);
+    this.step1Confirmed.set(false);
+    this.step2Confirmed.set(false);
+    this.step3Confirmed.set(false);
+  }
+
+  canProceedToNextStep(): boolean {
+    const step = this.currentModalStep();
+    if (step === 1) return this.step1Confirmed();
+    if (step === 2) return this.step2Confirmed();
+    if (step === 3) return this.step3Confirmed();
+    return false;
+  }
+
+  allStepsCompleted(): boolean {
+    return this.step1Confirmed() && this.step2Confirmed() && this.step3Confirmed();
+  }
+
+  nextStep() {
+    if (this.canProceedToNextStep() && this.currentModalStep() < 4) {
+      this.currentModalStep.set(this.currentModalStep() + 1);
+    }
+  }
+
+  previousStep() {
+    if (this.currentModalStep() > 1) {
+      this.currentModalStep.set(this.currentModalStep() - 1);
+    }
+  }
+
+  toggleStep1(checked: boolean) {
+    this.step1Confirmed.set(checked);
+  }
+
+  toggleStep2(checked: boolean) {
+    this.step2Confirmed.set(checked);
+  }
+
+  toggleStep3(checked: boolean) {
+    this.step3Confirmed.set(checked);
   }
 
   confirmPurchase() {
