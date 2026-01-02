@@ -62,14 +62,25 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/blocked/blocked.component').then(m => m.BlockedComponent)
   },
   {
-    path: 'dispute-management',
-    loadComponent: () => import('./pages/dispute-management/dispute-management.component').then(m => m.DisputeManagementComponent),
+    path: 'order-analysis',
+    loadComponent: () => import('./pages/dispute-management/dispute-management.component').then(m => m.OrderAnalysisComponent),
     canActivate: [authGuard, managerGuard]
   },
   {
-    path: 'dispute-details/:id',
-    loadComponent: () => import('./pages/dispute-details/dispute-details.component').then(m => m.DisputeDetailsComponent),
+    path: 'analyzing-order/:id',
+    loadComponent: () => import('./pages/dispute-details/dispute-details.component').then(m => m.AnalyzingOrderComponent),
     canActivate: [authGuard, managerGuard]
+  },
+  // Legacy routes for backward compatibility
+  {
+    path: 'dispute-management',
+    redirectTo: 'order-analysis',
+    pathMatch: 'full'
+  },
+  {
+    path: 'dispute-details/:id',
+    redirectTo: 'analyzing-order/:id',
+    pathMatch: 'full'
   },
   {
     path: 'send-invite',

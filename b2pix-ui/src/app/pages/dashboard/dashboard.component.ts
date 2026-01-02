@@ -6,6 +6,8 @@ import { UserService } from '../../services/user.service';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import { WalletType } from '../../libs/wallet/wallet.types';
 import { BuyService } from '../../shared/api/buy.service';
+import { BuyOrderService } from '../../shared/api/buy-order.service';
+import { BuyOrder, BuyOrderStatus } from '../../shared/models/buy-order.model';
 import { environment } from '../../../environments/environment';
 import { TransactionCardComponent } from '../../components/transaction-card/transaction-card.component';
 import { sBTCTokenService } from '../../libs/sbtc-token.service';
@@ -942,6 +944,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private userService = inject(UserService);
   private walletManagerService = inject(WalletManagerService);
   private buyService = inject(BuyService);
+  private buyOrderService = inject(BuyOrderService);
   private sBTCTokenService = inject(sBTCTokenService);
   private quoteService = inject(QuoteService);
 
@@ -1050,7 +1053,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   goToDisputeManagement() {
-    this.router.navigate(['/dispute-management']);
+    this.router.navigate(['/order-analysis']);
   }
 
   goToSendInvite() {
@@ -1246,23 +1249,22 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.loadBtcPrice();
       }
 
-      this.buyService.getBuysByAddress(currentAddress, {
+      this.buyOrderService.getBuyOrdersByAddress(currentAddress, {
         page: page,
-        limit: 3,
-        sort_by: 'created_at',
-        sort_order: 'desc'
+        limit: 3
       }).subscribe({
         next: (response) => {
-          const mappedBuys = response.buys.map(buy => ({
-            id: buy.id,
+          // Map BuyOrder to transaction format for display
+          const mappedBuys = response.buy_orders.map(order => ({
+            id: order.id,
             type: 'buy',
-            amount: buy.amount,
-            price: buy.pay_value,
-            payValue: buy.pay_value,
-            pricePerBtc: buy.price,
-            status: buy.status,
-            createdAt: buy.created_at,
-            expiresAt: buy.expires_at
+            amount: order.amount?.toString() || '0',
+            price: '0', // Not available in new model
+            payValue: order.buy_value.toString(),
+            pricePerBtc: '0', // Not available in new model
+            status: this.mapBuyOrderStatusToBuyStatus(order.status),
+            createdAt: order.created_at,
+            expiresAt: order.expires_at
           }));
 
           if (append) {
@@ -1286,6 +1288,27 @@ export class DashboardComponent implements OnInit, OnDestroy {
           this.isLoadingMore.set(false);
         }
       });
+    }
+  }
+
+  private mapBuyOrderStatusToBuyStatus(status: BuyOrderStatus): string {
+    switch (status) {
+      case BuyOrderStatus.Created:
+        return 'pending';
+      case BuyOrderStatus.Processing:
+        return 'paid';
+      case BuyOrderStatus.Analyzing:
+        return 'indispute';
+      case BuyOrderStatus.Confirmed:
+        return 'payment_confirmed';
+      case BuyOrderStatus.Rejected:
+        return 'cancelled';
+      case BuyOrderStatus.Canceled:
+        return 'cancelled';
+      case BuyOrderStatus.Expired:
+        return 'expired';
+      default:
+        return 'pending';
     }
   }
 

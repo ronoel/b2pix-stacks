@@ -1,11 +1,11 @@
 import { Component, inject, OnInit, ViewEncapsulation, signal } from '@angular/core';
 
 import { ActivatedRoute, Router } from '@angular/router';
-import { BuyService } from '../../shared/api/buy.service';
-import { Buy, BuyStatus } from '../../shared/models/buy.model';
+import { BuyOrderService } from '../../shared/api/buy-order.service';
+import { BuyOrder, BuyOrderStatus } from '../../shared/models/buy-order.model';
 
 @Component({
-  selector: 'app-dispute-details',
+  selector: 'app-analyzing-order',
   standalone: true,
   imports: [],
   encapsulation: ViewEncapsulation.None,
@@ -19,17 +19,17 @@ import { Buy, BuyStatus } from '../../shared/models/buy.model';
               <path d="M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               <path d="M12 19L5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            Voltar para Disputas
+            Voltar para Análise de Ordens
           </button>
-          <h1 class="page-title">Detalhes da Disputa</h1>
-          <p class="page-subtitle">Resolva esta disputa entre comprador e vendedor</p>
+          <h1 class="page-title">Detalhes da Ordem em Análise</h1>
+          <p class="page-subtitle">Analise e resolva esta ordem pendente</p>
         </div>
 
         @if (loading()) {
           <!-- Loading State -->
           <div class="loading-section">
             <div class="loading-spinner"></div>
-            <p>Carregando detalhes da disputa...</p>
+            <p>Carregando detalhes da ordem...</p>
           </div>
         } @else if (error()) {
           <!-- Error State -->
@@ -41,31 +41,31 @@ import { Buy, BuyStatus } from '../../shared/models/buy.model';
                 <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
               </svg>
             </div>
-            <h2>Erro ao carregar disputa</h2>
+            <h2>Erro ao carregar ordem</h2>
             <p>{{ error() }}</p>
-            <button class="retry-button" (click)="loadBuyDetails()">Tentar Novamente</button>
+            <button class="retry-button" (click)="loadOrderDetails()">Tentar Novamente</button>
           </div>
-        } @else if (buy()) {
-          <!-- Buy Details -->
+        } @else if (order()) {
+          <!-- Order Details -->
           <div class="buy-details">
           <!-- Status Card -->
           <div class="status-card">
             <div class="status-header">
               <h2>Status da Transação</h2>
-              <span class="status-badge dispute">{{ getStatusText(buy()!.status) }}</span>
+              <span class="status-badge" [class.analyzing]="order()!.status === 'analyzing'" [class.confirmed]="order()!.status === 'confirmed'" [class.rejected]="order()!.status === 'rejected'">{{ getStatusText(order()!.status) }}</span>
             </div>
             <div class="status-info">
               <div class="info-row">
                 <span class="label">ID da Transação:</span>
-                <span class="value">{{ buy()!.id }}</span>
+                <span class="value">{{ order()!.id }}</span>
               </div>
               <div class="info-row">
                 <span class="label">Data de Criação:</span>
-                <span class="value">{{ formatDate(buy()!.created_at) }}</span>
+                <span class="value">{{ formatDate(order()!.created_at) }}</span>
               </div>
               <div class="info-row">
                 <span class="label">Última Atualização:</span>
-                <span class="value">{{ formatDate(buy()!.updated_at) }}</span>
+                <span class="value">{{ formatDate(order()!.updated_at) }}</span>
               </div>
             </div>
           </div>
@@ -84,7 +84,7 @@ import { Buy, BuyStatus } from '../../shared/models/buy.model';
                 </div>
                 <div class="detail-content">
                   <h3>Bitcoin</h3>
-                  <p class="detail-value">{{ formatBitcoin(buy()!.amount) }} BTC</p>
+                  <p class="detail-value">{{ formatBitcoin(order()!.amount) }} BTC</p>
                   <p class="detail-label">Valor em Bitcoin</p>
                 </div>
               </div>
@@ -97,7 +97,7 @@ import { Buy, BuyStatus } from '../../shared/models/buy.model';
                 </div>
                 <div class="detail-content">
                   <h3>Valor PIX</h3>
-                  <p class="detail-value">R$ {{ formatCurrency(buy()!.pay_value) }}</p>
+                  <p class="detail-value">R$ {{ formatCurrency(order()!.buy_value) }}</p>
                   <p class="detail-label">Valor a ser pago</p>
                 </div>
               </div>
@@ -111,7 +111,7 @@ import { Buy, BuyStatus } from '../../shared/models/buy.model';
                 </div>
                 <div class="detail-content">
                   <h3>Comprador</h3>
-                  <p class="detail-value">{{ formatAddress(buy()!.address_buy) }}</p>
+                  <p class="detail-value">{{ formatAddress(order()!.address_buy) }}</p>
                   <p class="detail-label">Endereço da carteira</p>
                 </div>
               </div>
@@ -126,7 +126,7 @@ import { Buy, BuyStatus } from '../../shared/models/buy.model';
                 </div>
                 <div class="detail-content">
                   <h3>Chave PIX</h3>
-                  <p class="detail-value">{{ buy()!.pix_key }}</p>
+                  <p class="detail-value">{{ order()!.pix_key }}</p>
                   <p class="detail-label">Chave de recebimento</p>
                 </div>
               </div>
@@ -136,15 +136,15 @@ import { Buy, BuyStatus } from '../../shared/models/buy.model';
 
           <!-- Resolution Actions -->
           <div class="resolution-actions">
-            <h2>Resolver Disputa</h2>
+            <h2>Resolver Análise</h2>
             <p class="resolution-description">
-              Escolha uma das opções abaixo para resolver esta disputa. Esta ação não pode ser desfeita.
+              Escolha uma das opções abaixo para resolver esta análise. Esta ação não pode ser desfeita.
             </p>
 
             <div class="action-buttons">
               <button
                 class="resolution-button buyer"
-                (click)="resolveDispute('buyer')"
+                (click)="resolveOrder('confirmed')"
                 [disabled]="resolving()"
               >
                 <div class="button-icon">
@@ -154,14 +154,14 @@ import { Buy, BuyStatus } from '../../shared/models/buy.model';
                   </svg>
                 </div>
                 <div class="button-content">
-                  <span class="button-title">Resolver a favor do Comprador</span>
-                  <span class="button-description">O comprador receberá os tokens</span>
+                  <span class="button-title">Confirmar Ordem</span>
+                  <span class="button-description">A ordem será confirmada e o comprador receberá os bitcoins</span>
                 </div>
               </button>
 
               <button
                 class="resolution-button seller"
-                (click)="resolveDispute('seller')"
+                (click)="resolveOrder('rejected')"
                 [disabled]="resolving()"
               >
                 <div class="button-icon">
@@ -173,8 +173,8 @@ import { Buy, BuyStatus } from '../../shared/models/buy.model';
                   </svg>
                 </div>
                 <div class="button-content">
-                  <span class="button-title">Resolver a favor do Vendedor</span>
-                  <span class="button-description">Os tokens voltam para o anúncio</span>
+                  <span class="button-title">Rejeitar Ordem</span>
+                  <span class="button-description">A ordem será rejeitada</span>
                 </div>
               </button>
             </div>
@@ -182,7 +182,7 @@ import { Buy, BuyStatus } from '../../shared/models/buy.model';
             @if (resolving()) {
               <div class="resolution-loading">
                 <div class="loading-spinner small"></div>
-                <span>Resolvendo disputa...</span>
+                <span>Resolvendo ordem...</span>
               </div>
             }
           </div>
@@ -364,8 +364,20 @@ import { Buy, BuyStatus } from '../../shared/models/buy.model';
       letter-spacing: 0.5px;
     }
 
-    .status-badge.dispute {
-      background: #FEF2F2;
+    .status-badge.analyzing {
+      background: #FEF3C7;
+      color: #D97706;
+      border: 1px solid #FCD34D;
+    }
+
+    .status-badge.confirmed {
+      background: #D1FAE5;
+      color: #059669;
+      border: 1px solid #6EE7B7;
+    }
+
+    .status-badge.rejected {
+      background: #FEE2E2;
       color: #DC2626;
       border: 1px solid #FECACA;
     }
@@ -732,93 +744,93 @@ import { Buy, BuyStatus } from '../../shared/models/buy.model';
     }
   `]
 })
-export class DisputeDetailsComponent implements OnInit {
+export class AnalyzingOrderComponent implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
-  private buyService = inject(BuyService);
+  private buyOrderService = inject(BuyOrderService);
 
   // Signals
-  buy = signal<Buy | null>(null);
+  order = signal<BuyOrder | null>(null);
   loading = signal(true);
   error = signal<string | null>(null);
   resolving = signal(false);
 
   ngOnInit() {
     this.route.params.subscribe(params => {
-      const buyId = params['id'];
-      if (buyId) {
-        this.loadBuyDetails(buyId);
+      const orderId = params['id'];
+      if (orderId) {
+        this.loadOrderDetails(orderId);
       } else {
-        this.error.set('ID da compra não encontrado');
+        this.error.set('ID da ordem não encontrado');
         this.loading.set(false);
       }
     });
   }
 
-  loadBuyDetails(buyId?: string) {
+  loadOrderDetails(orderId?: string) {
     this.loading.set(true);
     this.error.set(null);
 
-    const id = buyId || this.route.snapshot.params['id'];
+    const id = orderId || this.route.snapshot.params['id'];
     if (!id) {
-      this.error.set('ID da compra não encontrado');
+      this.error.set('ID da ordem não encontrado');
       this.loading.set(false);
       return;
     }
 
-    this.buyService.getBuyById(id).subscribe({
-      next: (buy) => {
-        this.buy.set(buy);
+    this.buyOrderService.getBuyOrderById(id).subscribe({
+      next: (order) => {
+        this.order.set(order);
         this.loading.set(false);
       },
       error: (error) => {
-        console.error('Error loading buy details:', error);
-        this.error.set('Erro ao carregar detalhes da compra. Tente novamente.');
+        console.error('Error loading order details:', error);
+        this.error.set('Erro ao carregar detalhes da ordem. Tente novamente.');
         this.loading.set(false);
       }
     });
   }
 
-  resolveDispute(resolution: 'buyer' | 'seller') {
-    const currentBuy = this.buy();
-    if (!currentBuy || this.resolving()) return;
+  resolveOrder(resolution: 'confirmed' | 'rejected') {
+    const currentOrder = this.order();
+    if (!currentOrder || this.resolving()) return;
 
     this.resolving.set(true);
 
-    this.buyService.resolveDispute(currentBuy.id, resolution).subscribe({
-      next: (updatedBuy) => {
-        this.buy.set(updatedBuy);
+    this.buyOrderService.resolveAnalyzingOrder(currentOrder.id, resolution).subscribe({
+      next: (updatedOrder) => {
+        this.order.set(updatedOrder);
         this.resolving.set(false);
         // Show success message or redirect
-        this.router.navigate(['/dispute-management']);
+        this.router.navigate(['/order-analysis']);
       },
       error: (error) => {
-        console.error('Error resolving dispute:', error);
+        console.error('Error resolving order:', error);
         this.resolving.set(false);
-        // Handle error - could show a toast or alert
-        alert('Erro ao resolver disputa. Tente novamente.');
+        alert('Erro ao resolver ordem. Tente novamente.');
       }
     });
   }
 
   goBack() {
-    this.router.navigate(['/dispute-management']);
+    this.router.navigate(['/order-analysis']);
   }
 
-  getStatusText(status: BuyStatus): string {
+  getStatusText(status: BuyOrderStatus): string {
     switch (status) {
-      case BuyStatus.InDispute:
-        return 'Em Disputa';
-      case BuyStatus.DisputeResolvedBuyer:
-        return 'Resolvida - Comprador';
-      case BuyStatus.DisputeResolvedSeller:
-        return 'Resolvida - Vendedor';
+      case BuyOrderStatus.Analyzing:
+        return 'Em Análise';
+      case BuyOrderStatus.Confirmed:
+        return 'Confirmada';
+      case BuyOrderStatus.Rejected:
+        return 'Rejeitada';
       default:
         return status;
     }
   }
 
-  formatCurrency(value: string | number): string {
+  formatCurrency(value: string | number | null | undefined): string {
+    if (value === null || value === undefined) return '0,00';
     const numValue = typeof value === 'string' ? parseFloat(value) : value;
     // Convert from cents to BRL by dividing by 100
     const valueInBRL = numValue / 100;
@@ -828,7 +840,8 @@ export class DisputeDetailsComponent implements OnInit {
     }).format(valueInBRL);
   }
 
-  formatBitcoin(value: string | number): string {
+  formatBitcoin(value: string | number | null | undefined): string {
+    if (value === null || value === undefined) return '0.00000000';
     const numValue = typeof value === 'string' ? parseFloat(value) : value;
     return (numValue / 100000000).toFixed(8);
   }
