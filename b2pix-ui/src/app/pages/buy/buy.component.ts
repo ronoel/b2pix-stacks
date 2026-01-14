@@ -6,11 +6,14 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import { BuyOrderService } from '../../shared/api/buy-order.service';
 import { InvitesService } from '../../shared/api/invites.service';
 import { QuoteService } from '../../shared/api/quote.service';
+import { AccountValidationService } from '../../shared/api/account-validation.service';
+import { ValidationStatus } from '../../shared/models/account-validation.model';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-buy',
   standalone: true,
-  imports: [],
+  imports: [CommonModule],
   template: `
     <div class="buy-page">
       <!-- Main Content -->
@@ -126,22 +129,43 @@ import { QuoteService } from '../../shared/api/quote.service';
             </div>
 
             <div class="buy-action-container">
-              <button
-                class="btn btn-success btn-lg buy-btn"
-                (click)="startBuyProcess()"
-                [disabled]="isProcessingPurchase()"
-              >
-                @if (isProcessingPurchase()) {
-                  <div class="loading-spinner-sm"></div>
-                  Processando...
-                } @else {
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                  </svg>
-                  Comprar Bitcoin com PIX
-                }
-              </button>
+              @if (!isAccountValidated()) {
+                <div class="validation-required-card">
+                  <div class="validation-icon">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 9V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <circle cx="12" cy="17" r="1" fill="currentColor"/>
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                  </div>
+                  <h3>Validação de Conta Necessária</h3>
+                  <p>{{ getValidationRequiredMessage() }}</p>
+                  <button class="btn btn-primary btn-lg" (click)="goToValidation()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                    Iniciar Validação
+                  </button>
+                </div>
+              } @else {
+                <button
+                  class="btn btn-success btn-lg buy-btn"
+                  (click)="startBuyProcess()"
+                  [disabled]="isProcessingPurchase()"
+                >
+                  @if (isProcessingPurchase()) {
+                    <div class="loading-spinner-sm"></div>
+                    Processando...
+                  } @else {
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                    Comprar Bitcoin com PIX
+                  }
+                </button>
+              }
             </div>
           } @else if (getCurrentAmount() > 0) {
             <div class="info-message">
@@ -563,6 +587,74 @@ import { QuoteService } from '../../shared/api/quote.service';
       border: 2px solid #E5E7EB;
       border-radius: 16px;
       box-shadow: 0 -4px 12px 0 rgb(0 0 0 / 0.05);
+    }
+
+    .validation-required-card {
+      text-align: center;
+      padding: 32px 20px;
+      background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+      border: 2px solid #FCD34D;
+      border-radius: 16px;
+    }
+
+    .validation-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 16px;
+      background: #FBBF24;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .validation-icon svg {
+      width: 32px;
+      height: 32px;
+      color: #78350F;
+    }
+
+    .validation-required-card h3 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #78350F;
+      margin: 0 0 12px;
+    }
+
+    .validation-required-card p {
+      font-size: 15px;
+      color: #92400E;
+      line-height: 1.5;
+      margin: 0 0 24px;
+    }
+
+    .validation-required-card .btn {
+      width: 100%;
+      padding: 16px 24px;
+      font-size: 16px;
+      font-weight: 700;
+      border-radius: 12px;
+      background: #1D4ED8 !important;
+      color: #FFFFFF !important;
+      border: 2px solid #1D4ED8 !important;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .validation-required-card .btn:hover {
+      background: #1E40AF !important;
+      border-color: #1E40AF !important;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px 0 rgb(29 78 216 / 0.4);
+    }
+
+    .validation-required-card .btn svg {
+      width: 20px;
+      height: 20px;
     }
 
     .buy-btn {
@@ -1175,12 +1267,16 @@ export class BuyComponent implements OnInit, OnDestroy {
   private buyOrderService = inject(BuyOrderService);
   private invitesService = inject(InvitesService);
   private quoteService = inject(QuoteService);
+  private accountValidationService = inject(AccountValidationService);
 
   // Core signals
   selectedQuickAmount = signal<number>(0);
   customAmount = signal<number>(0);
   showConfirmationModal = signal<boolean>(false);
   isProcessingPurchase = signal<boolean>(false);
+
+  // Validation status
+  validationStatus = signal<ValidationStatus | null>(null);
 
   // Step-by-step modal state
   currentModalStep = signal<number>(1);
@@ -1209,6 +1305,9 @@ export class BuyComponent implements OnInit, OnDestroy {
 
     // Check for active order
     this.checkForActiveOrder();
+
+    // Load validation status
+    this.loadValidationStatus();
   }
 
   ngOnDestroy() {
@@ -1236,6 +1335,66 @@ export class BuyComponent implements OnInit, OnDestroy {
         error: (error) => {
           console.error('Error checking for active order:', error);
         }
+      });
+    }
+  }
+
+  /**
+   * Load account validation status
+   */
+  loadValidationStatus() {
+    this.accountValidationService.getValidationStatus().subscribe({
+      next: (status) => {
+        this.validationStatus.set(status);
+      },
+      error: (error) => {
+        console.error('Error loading validation status:', error);
+      }
+    });
+  }
+
+  /**
+   * Check if user account is fully validated (email and pix)
+   */
+  isAccountValidated(): boolean {
+    const status = this.validationStatus();
+    if (!status) return false;
+    return status.email_verified && status.pix_verified;
+  }
+
+  /**
+   * Get validation required message based on current status
+   */
+  getValidationRequiredMessage(): string {
+    const status = this.validationStatus();
+    if (!status) {
+      return 'Para comprar Bitcoin, você precisa validar seu email e conta bancária.';
+    }
+
+    if (!status.email_verified) {
+      return 'Para comprar Bitcoin, você precisa validar seu email primeiro.';
+    }
+
+    if (!status.pix_verified) {
+      return 'Para comprar Bitcoin, você precisa validar sua conta bancária (chave PIX).';
+    }
+
+    return 'Para comprar Bitcoin, você precisa validar seu email e conta bancária.';
+  }
+
+  /**
+   * Navigate to appropriate validation page
+   */
+  goToValidation(): void {
+    const status = this.validationStatus();
+
+    if (!status || !status.email_verified) {
+      this.router.navigate(['/email-validation'], {
+        queryParams: { returnUrl: '/buy' }
+      });
+    } else if (!status.pix_verified) {
+      this.router.navigate(['/pix-validation'], {
+        queryParams: { returnUrl: '/buy' }
       });
     }
   }

@@ -1,14 +1,16 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
-
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import { WalletType } from '../../libs/wallet/wallet.types';
+import { AccountValidationService } from '../../shared/api/account-validation.service';
+import { AccountInfo } from '../../shared/models/account-validation.model';
 
 @Component({
   selector: 'app-wallet-management',
   standalone: true,
-  imports: [FormsModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="wallet-management">
       <div class="container">
@@ -21,6 +23,100 @@ import { WalletType } from '../../libs/wallet/wallet.types';
             Voltar
           </button>
           <h1 class="page-title">Gerenciar Carteira</h1>
+        </div>
+
+        <!-- Account Verification Status -->
+        <div class="verification-status-card">
+          <div class="card-header">
+            <h3>Verificação de Conta</h3>
+            <p>Status das verificações necessárias para usar a plataforma</p>
+          </div>
+
+          @if (isLoadingAccountInfo()) {
+            <div class="loading-section">
+              <div class="loading-spinner"></div>
+              <p>Carregando informações da conta...</p>
+            </div>
+          } @else {
+            <div class="verification-items">
+              <!-- Email Verification -->
+              <div class="verification-item" [class.verified]="accountInfo()?.email_verified">
+                <div class="verification-icon" [class.verified]="accountInfo()?.email_verified">
+                  @if (accountInfo()?.email_verified) {
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                      <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  } @else {
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                      <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
+                      <path d="M3 8l9 6 9-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  }
+                </div>
+                <div class="verification-content">
+                  <h4>Verificação de Email</h4>
+                  @if (accountInfo()?.email_verified) {
+                    <p class="status-verified">Email verificado com sucesso</p>
+                  } @else {
+                    <p class="status-pending">Email ainda não verificado</p>
+                  }
+                </div>
+                @if (!accountInfo()?.email_verified) {
+                  <button class="btn-verify" (click)="navigateToEmailVerification()">
+                    Verificar Email
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                }
+              </div>
+
+              <!-- PIX Verification -->
+              <div class="verification-item" [class.verified]="accountInfo()?.pix_verified">
+                <div class="verification-icon" [class.verified]="accountInfo()?.pix_verified">
+                  @if (accountInfo()?.pix_verified) {
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                      <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  } @else {
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                      <rect x="2" y="6" width="20" height="12" rx="2" stroke="currentColor" stroke-width="2"/>
+                      <circle cx="17" cy="12" r="1" fill="currentColor"/>
+                    </svg>
+                  }
+                </div>
+                <div class="verification-content">
+                  <h4>Verificação de Chave PIX</h4>
+                  @if (accountInfo()?.pix_verified) {
+                    <p class="status-verified">Chave PIX verificada com sucesso</p>
+                  } @else {
+                    <p class="status-pending">Chave PIX ainda não verificada</p>
+                  }
+                </div>
+                @if (!accountInfo()?.pix_verified) {
+                  <button class="btn-verify" (click)="navigateToPixVerification()">
+                    Verificar PIX
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                }
+              </div>
+            </div>
+
+            @if (accountInfo()?.email_verified && accountInfo()?.pix_verified) {
+              <div class="all-verified-banner">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                  <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <div>
+                  <strong>Conta Totalmente Verificada!</strong>
+                  <p>Você pode usar todos os recursos da plataforma.</p>
+                </div>
+              </div>
+            }
+          }
         </div>
 
         @if (isEmbeddedWallet()) {
@@ -456,6 +552,158 @@ import { WalletType } from '../../libs/wallet/wallet.types';
     .btn-copy-small:disabled {
       background: #10B981;
       cursor: not-allowed;
+    }
+
+    .verification-status-card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+      border: 1px solid #E5E7EB;
+    }
+
+    .loading-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      gap: 16px;
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #E5E7EB;
+      border-top-color: #10B981;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .loading-section p {
+      font-size: 14px;
+      color: #6B7280;
+      margin: 0;
+    }
+
+    .verification-items {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .verification-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 20px;
+      background: #F9FAFB;
+      border: 2px solid #E5E7EB;
+      border-radius: 12px;
+      transition: all 0.2s;
+    }
+
+    .verification-item.verified {
+      background: #F0FDF4;
+      border-color: #10B981;
+    }
+
+    .verification-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: #FEF3C7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #F59E0B;
+      flex-shrink: 0;
+    }
+
+    .verification-icon.verified {
+      background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+      color: white;
+    }
+
+    .verification-content {
+      flex: 1;
+    }
+
+    .verification-content h4 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1F2937;
+      margin: 0 0 4px 0;
+    }
+
+    .verification-content p {
+      font-size: 14px;
+      margin: 0;
+    }
+
+    .status-verified {
+      color: #059669;
+      font-weight: 500;
+    }
+
+    .status-pending {
+      color: #D97706;
+      font-weight: 500;
+    }
+
+    .btn-verify {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+    }
+
+    .btn-verify:hover {
+      background: linear-gradient(135deg, #D97706 0%, #B45309 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+    }
+
+    .all-verified-banner {
+      display: flex;
+      gap: 16px;
+      padding: 20px;
+      background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%);
+      border: 2px solid #10B981;
+      border-radius: 12px;
+      margin-top: 16px;
+      color: #065F46;
+    }
+
+    .all-verified-banner svg {
+      flex-shrink: 0;
+      color: #10B981;
+      margin-top: 2px;
+    }
+
+    .all-verified-banner strong {
+      display: block;
+      font-size: 15px;
+      margin-bottom: 4px;
+      color: #065F46;
+    }
+
+    .all-verified-banner p {
+      font-size: 14px;
+      margin: 0;
+      line-height: 1.5;
+      color: #047857;
     }
 
     .warning-banner {
@@ -1074,6 +1322,22 @@ import { WalletType } from '../../libs/wallet/wallet.types';
         gap: 12px;
       }
 
+      .verification-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      .btn-verify {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .all-verified-banner {
+        flex-direction: column;
+        gap: 12px;
+      }
+
       .danger-action {
         flex-direction: column;
         align-items: stretch;
@@ -1117,6 +1381,7 @@ import { WalletType } from '../../libs/wallet/wallet.types';
 export class WalletManagementComponent implements OnInit {
   private router = inject(Router);
   private walletManager = inject(WalletManagerService);
+  private accountValidationService = inject(AccountValidationService);
 
   walletType = signal<WalletType | null>(null);
   walletAddress = signal<string>('');
@@ -1132,10 +1397,31 @@ export class WalletManagementComponent implements OnInit {
 
   showDeleteConfirmation = signal<boolean>(false);
 
+  // Account verification status
+  accountInfo = signal<AccountInfo | null>(null);
+  isLoadingAccountInfo = signal<boolean>(false);
+
   ngOnInit() {
     const type = this.walletManager.getWalletType();
     this.walletType.set(type);
     this.walletAddress.set(this.walletManager.getSTXAddress() || '');
+    this.loadAccountInfo();
+  }
+
+  loadAccountInfo() {
+    this.isLoadingAccountInfo.set(true);
+    console.log('Loading account info...');
+    this.accountValidationService.getAccount().subscribe({
+      next: (accountInfo) => {
+        console.log('Account info loaded:', accountInfo);
+        this.accountInfo.set(accountInfo);
+        this.isLoadingAccountInfo.set(false);
+      },
+      error: (error) => {
+        console.error('Error loading account info:', error);
+        this.isLoadingAccountInfo.set(false);
+      }
+    });
   }
 
   isEmbeddedWallet(): boolean {
@@ -1224,5 +1510,15 @@ export class WalletManagementComponent implements OnInit {
 
     // Navigate to the landing page
     this.router.navigate(['/']);
+  }
+
+  navigateToEmailVerification() {
+    // TODO: Implementar navegação para página de verificação de email
+    console.log('Navigate to email verification');
+  }
+
+  navigateToPixVerification() {
+    // TODO: Implementar navegação para página de verificação de PIX
+    console.log('Navigate to PIX verification');
   }
 }

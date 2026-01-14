@@ -12,15 +12,44 @@ import { environment } from '../../../environments/environment';
 import { TransactionCardComponent } from '../../components/transaction-card/transaction-card.component';
 import { sBTCTokenService } from '../../libs/sbtc-token.service';
 import { QuoteService } from '../../shared/api/quote.service';
+import { AccountValidationService } from '../../shared/api/account-validation.service';
+import { ValidationStatus } from '../../shared/models/account-validation.model';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [TransactionCardComponent],
+  imports: [CommonModule, TransactionCardComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="dashboard">
       <div class="container">
+        <!-- Validation Banner -->
+        @if (validationStatus() && !isFullyValidated()) {
+          <div class="validation-banner">
+            <div class="banner-content">
+              <div class="banner-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 9V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <circle cx="12" cy="17" r="1" fill="currentColor"/>
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                </svg>
+              </div>
+              <div class="banner-text">
+                <h4>Complete sua validação de conta</h4>
+                <p>{{ getValidationMessage() }}</p>
+              </div>
+            </div>
+            <button class="banner-btn" (click)="goToValidation()">
+              Continuar Validação
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12 5L19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        }
+
         <!-- Header -->
         <div class="dashboard-header">
           <div class="header-left">
@@ -95,7 +124,7 @@ import { QuoteService } from '../../shared/api/quote.service';
                 <span>Enviar</span>
               </button>
 
-              @if (isEmbeddedWallet()) {
+              
                 <button class="action-btn" (click)="goToWalletManagement()">
                   <div class="btn-icon">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -106,7 +135,7 @@ import { QuoteService } from '../../shared/api/quote.service';
                   </div>
                   <span>Gerenciar</span>
                 </button>
-              }
+              
             </div>
           </div>
 
@@ -937,6 +966,115 @@ import { QuoteService } from '../../shared/api/quote.service';
         justify-content: center;
       }
     }
+
+    /* Validation Banner */
+    .validation-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px 20px;
+      background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+      border: 2px solid #F59E0B;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
+    }
+
+    .banner-content {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex: 1;
+    }
+
+    .banner-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      background: rgba(245, 158, 11, 0.2);
+      border-radius: 12px;
+      color: #D97706;
+      flex-shrink: 0;
+    }
+
+    .banner-text {
+      flex: 1;
+    }
+
+    .banner-text h4 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #92400E;
+      margin: 0 0 4px 0;
+    }
+
+    .banner-text p {
+      font-size: 14px;
+      color: #78350F;
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .banner-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      background: #F59E0B;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .banner-btn:hover {
+      background: #D97706;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
+    }
+
+    .banner-btn svg {
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 768px) {
+      .validation-banner {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 16px;
+      }
+
+      .banner-content {
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+      }
+
+      .banner-icon {
+        width: 40px;
+        height: 40px;
+      }
+
+      .banner-text h4 {
+        font-size: 15px;
+      }
+
+      .banner-text p {
+        font-size: 13px;
+      }
+
+      .banner-btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
   `]
 })
 export class DashboardComponent implements OnInit, OnDestroy {
@@ -947,6 +1085,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private buyOrderService = inject(BuyOrderService);
   private sBTCTokenService = inject(sBTCTokenService);
   private quoteService = inject(QuoteService);
+  private accountValidationService = inject(AccountValidationService);
 
   recentOrders = signal<any[]>([]);
   currentPage = signal<number>(1);
@@ -963,11 +1102,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
   isLoadingBalance = signal<boolean>(false);
   btcPriceInCents = signal<number>(0);
 
+  // Account validation status
+  validationStatus = signal<ValidationStatus | null>(null);
+
   ngOnInit() {
     this.loadRecentOrders();
     this.walletAddress.set(this.walletManagerService.getSTXAddress() || '');
     this.loadBalance();
     this.loadBtcPrice();
+    this.loadValidationStatus();
   }
 
   ngOnDestroy() {
@@ -982,7 +1125,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       if (!hasExistingBalance) {
         this.isLoadingBalance.set(true);
       }
-      
+
       this.sBTCTokenService.getBalance().subscribe({
         next: (balance) => {
           this.sBtcBalance.set(balance);
@@ -1353,6 +1496,47 @@ export class DashboardComponent implements OnInit, OnDestroy {
           this.addressCopied.set(false);
         }, 2000);
       });
+    }
+  }
+
+  // Account validation methods
+  loadValidationStatus() {
+    this.accountValidationService.getValidationStatus().subscribe({
+      next: (status) => {
+        this.validationStatus.set(status);
+      },
+      error: (error) => {
+        console.error('Error loading validation status:', error);
+      }
+    });
+  }
+
+  isFullyValidated(): boolean {
+    const status = this.validationStatus();
+    return status?.email_verified && status?.pix_verified || false;
+  }
+
+  getValidationMessage(): string {
+    const status = this.validationStatus();
+    if (!status) return '';
+
+    if (!status.email_verified) {
+      return 'Valide seu email para começar a usar a plataforma';
+    }
+
+    if (!status.pix_verified) {
+      return 'Valide sua conta bancária com um depósito de confirmação';
+    }
+
+    return '';
+  }
+
+  goToValidation(): void {
+    const status = this.validationStatus();
+    if (!status?.email_verified) {
+      this.router.navigate(['/email-validation']);
+    } else {
+      this.router.navigate(['/pix-validation']);
     }
   }
 

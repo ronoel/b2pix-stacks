@@ -1,0 +1,132 @@
+<div class="email-validation-page">
+  <div class="container">
+    <div class="validation-card">
+      <!-- Header -->
+      <div class="card-header">
+        <h2>Validação de Email</h2>
+        <p class="subtitle">Confirme seu email para continuar</p>
+      </div>
+
+      <!-- Enter Email Step -->
+      @if (step() === 'enter-email') {
+        <div class="card-body">
+          <form (ngSubmit)="sendCode()">
+            <div class="form-group">
+              <label for="email">Endereço de Email</label>
+              <input
+                type="email"
+                id="email"
+                class="form-control"
+                placeholder="seu@email.com"
+                [(ngModel)]="email"
+                [ngModelOptions]="{standalone: true}"
+                [disabled]="loading()"
+                required
+              />
+            </div>
+
+            @if (error()) {
+              <div class="alert alert-danger">
+                {{ error() }}
+              </div>
+            }
+
+            <button
+              type="submit"
+              class="btn btn-primary btn-lg w-100"
+              [disabled]="loading() || !email()"
+            >
+              @if (loading()) {
+                <span class="spinner-border spinner-border-sm me-2"></span>
+              }
+              Enviar Código
+            </button>
+          </form>
+
+          <div class="info-box mt-4">
+            <i class="bi bi-info-circle"></i>
+            <div class="info-text">
+              <strong>Por que precisamos do seu email?</strong>
+              <p>Usaremos para enviar notificações importantes sobre suas transações e atualizações da plataforma.</p>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Enter Code Step -->
+      @if (step() === 'enter-code') {
+        <div class="card-body">
+          <div class="code-sent-message">
+            <i class="bi bi-envelope-check"></i>
+            <p>Código enviado para</p>
+            <strong>{{ email() }}</strong>
+          </div>
+
+          <form (ngSubmit)="verifyCode()">
+            <div class="form-group">
+              <label>Digite o código de 6 dígitos</label>
+              <app-code-input
+                (codeComplete)="onCodeComplete($event)"
+                (codeChange)="onCodeChange($event)"
+              ></app-code-input>
+            </div>
+
+            @if (error()) {
+              <div class="alert alert-danger">
+                {{ error() }}
+              </div>
+            }
+
+            <button
+              type="submit"
+              class="btn btn-primary btn-lg w-100"
+              [disabled]="loading() || code().length !== 6"
+            >
+              @if (loading()) {
+                <span class="spinner-border spinner-border-sm me-2"></span>
+              }
+              Verificar Código
+            </button>
+          </form>
+
+          <div class="resend-section">
+            @if (resendCountdown() > 0) {
+              <p class="text-muted">
+                Reenviar código em
+                <app-countdown-timer [seconds]="resendCountdown()"></app-countdown-timer>
+              </p>
+            } @else {
+              <button
+                type="button"
+                class="btn btn-link"
+                (click)="resend()"
+                [disabled]="loading()"
+              >
+                Reenviar código
+              </button>
+            }
+          </div>
+
+          <div class="info-box mt-4">
+            <i class="bi bi-info-circle"></i>
+            <div class="info-text">
+              <p>Não recebeu o código? Verifique sua caixa de spam ou aguarde alguns minutos.</p>
+              <p class="mb-0">Você pode tentar quantas vezes precisar.</p>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Success Step -->
+      @if (step() === 'success') {
+        <div class="card-body text-center">
+          <div class="success-animation">
+            <i class="bi bi-check-circle-fill"></i>
+          </div>
+          <h3>Email Verificado!</h3>
+          <p class="text-muted">Redirecionando para validação de PIX...</p>
+        </div>
+      }
+    </div>
+  </div>
+</div>

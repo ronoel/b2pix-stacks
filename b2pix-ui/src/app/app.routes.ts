@@ -3,6 +3,8 @@ import { authGuard } from './core/guards/auth.guard';
 import { validateInviteGuard } from './core/guards/validate-invite.guard';
 import { managerGuard } from './core/guards/manager.guard';
 import { inviteRequiredGuard } from './core/guards/invite-required.guard';
+import { accountValidationGuard } from './core/guards/account-validation.guard';
+import { requireWalletOnlyGuard } from './core/guards/require-wallet-only.guard';
 
 export const routes: Routes = [
   {
@@ -33,19 +35,29 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'email-validation',
+    loadComponent: () => import('./pages/email-validation/email-validation.component').then(m => m.EmailValidationComponent),
+    canActivate: [requireWalletOnlyGuard]
+  },
+  {
+    path: 'pix-validation',
+    loadComponent: () => import('./pages/pix-validation/pix-validation.component').then(m => m.PixValidationComponent),
+    canActivate: [requireWalletOnlyGuard]
+  },
+  {
     path: 'sell',
     loadComponent: () => import('./pages/sell/sell.component').then(m => m.SellComponent),
-    canActivate: [inviteRequiredGuard]
+    canActivate: [accountValidationGuard]
   },
   {
     path: 'my-ads',
     loadComponent: () => import('./pages/my-ads/my-ads.component').then(m => m.MyAdsComponent),
-    canActivate: [inviteRequiredGuard]
+    canActivate: [accountValidationGuard]
   },
   {
     path: 'my-ads/:advertisement_id',
     loadComponent: () => import('./pages/ad-details/ad-details.component').then(m => m.AdDetailsComponent),
-    canActivate: [inviteRequiredGuard]
+    canActivate: [accountValidationGuard]
   },
   {
     path: 'pix-account',
