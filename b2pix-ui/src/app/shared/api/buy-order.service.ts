@@ -1,17 +1,19 @@
 import { HttpClient, HttpParams } from "@angular/common/http";
 import { Injectable, inject } from "@angular/core";
 import { Observable, from } from 'rxjs';
-import { switchMap, catchError } from 'rxjs/operators';
+import { switchMap, catchError, map } from 'rxjs/operators';
 import { environment } from "../../../environments/environment";
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import { BuyOrder, PaginatedBuyOrdersResponse } from "../models/buy-order.model";
 import { SignedRequest } from "../models/api.model";
+import { QuoteService, QuoteResponse } from './quote.service';
 
 @Injectable({ providedIn: 'root' })
 export class BuyOrderService {
   private http = inject(HttpClient);
   private apiUrl = environment.apiUrl;
   private walletManager = inject(WalletManagerService);
+  private quoteService = inject(QuoteService);
 
   /**
    * Create a new buy order
@@ -165,6 +167,34 @@ export class BuyOrderService {
           throw new Error(error.error.error);
         }
         throw error;
+      })
+    );
+  }
+
+  /**
+   * Get BTC price and add 2.5% markup
+   */
+  getBtcPrice(): Observable<QuoteResponse> {
+    return this.quoteService.getBtcPrice().pipe(
+      map(response => {
+        const priceInCents = parseInt(response.price, 10);
+        const markedUpPrice = Math.ceil(priceInCents * 1.023); // Add 2.5% markup
+        return { price: markedUpPrice.toString() };
+      })
+    );
+  }
+
+  /**
+   * Get satoshis amount for a given BRL price in cents
+   * @param priceInCents Amount in BRL cents
+   * @returns Observable with satoshis amount
+   */
+  getSatoshisForPrice(priceInCents: number): Observable<number> {
+    return this.getBtcPrice().pipe(
+      map(quote => {
+        const pricePerSatoshiInCents = parseInt(quote.price, 10);
+        const satoshis = Math.floor(priceInCents / pricePerSatoshiInCents);
+        return satoshis;
       })
     );
   }

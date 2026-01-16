@@ -90,7 +90,7 @@ import { CommonModule } from '@angular/common';
         <!-- Bitcoin Estimate Display -->
         <div class="estimate-section">
           <div class="section-header">
-            <h2 class="section-title">Estimativa de Compra</h2>
+            <h2 class="section-title">Valor estimado para Compra</h2>
             @if (currentQuotePrice()) {
               <div class="btc-price-display">
                 <span class="price-label">Preço BTC:</span>
@@ -1266,7 +1266,7 @@ export class BuyComponent implements OnInit, OnDestroy {
   private walletManagerService = inject(WalletManagerService);
   private buyOrderService = inject(BuyOrderService);
   private invitesService = inject(InvitesService);
-  private quoteService = inject(QuoteService);
+  // private quoteService = inject(QuoteService);
   private accountValidationService = inject(AccountValidationService);
 
   // Core signals
@@ -1291,7 +1291,7 @@ export class BuyComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     // Start quote polling
-    this.quoteSubscription = this.quoteService.getBtcPriceStream().subscribe({
+    this.quoteSubscription = this.buyOrderService.getBtcPrice().subscribe({
       next: (quote) => {
         const priceInCents = parseInt(quote.price, 10);
         this.currentQuotePrice.set(priceInCents);

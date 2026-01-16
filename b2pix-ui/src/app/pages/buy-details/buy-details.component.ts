@@ -1013,6 +1013,9 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   paymentRequest = signal<PaymentRequest | null>(null);
   isLoadingPaymentRequest = signal(false);
 
+  // BTC amount in sats cache
+  private btcAmountInSats = signal(0);
+
   // Auto-refresh timer
   private refreshTimeout: any = null;
 
@@ -1197,17 +1200,17 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     const buy = this.buyData();
     if (!buy) return 0;
 
-    const status = buy.status?.toString().toLowerCase();
+    this.buyOrderService.getSatoshisForPrice(buy.buy_value).subscribe({
+      next: (sats) => {
+        this.btcAmountInSats.set(sats);
+      },
+      error: (error) => {
+        console.error('Error getting sats for price:', error);
+        this.btcAmountInSats.set(0);
+      }
+    });
 
-    // For confirmed status, use actual amount
-    if (status === 'confirmed' && buy.amount !== null) {
-      return Number(buy.amount);
-    }
-
-    // For processing/analyzing, calculate estimated BTC from BRL amount
-    // This is an estimate - we'd need current quote for accuracy
-    // For now, return 0 as we don't have the quote data here
-    return 0;
+    return this.btcAmountInSats();
   }
 
   getBtcAmount(): number {
