@@ -192,8 +192,11 @@ export class BuyOrderService {
   getSatoshisForPrice(priceInCents: number): Observable<number> {
     return this.getBtcPrice().pipe(
       map(quote => {
-        const pricePerSatoshiInCents = parseInt(quote.price, 10);
-        const satoshis = Math.floor(priceInCents / pricePerSatoshiInCents);
+        const btcPriceInCents = parseInt(quote.price, 10);
+        // btcPrice is the total price of 1 BTC in cents
+        // 1 BTC = 100,000,000 satoshis
+        // satoshis = (priceInCents * 100000000) / btcPriceInCents
+        const satoshis = Math.floor((priceInCents * 100000000) / btcPriceInCents);
         return satoshis;
       })
     );

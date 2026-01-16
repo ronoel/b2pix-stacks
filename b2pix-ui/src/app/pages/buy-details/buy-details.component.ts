@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy, signal, ViewEncapsulation } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal, ViewEncapsulation, effect, computed, Injector } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { LoadingService } from '../../services/loading.service';
@@ -989,6 +989,7 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   private loadingService = inject(LoadingService);
   private buyOrderService = inject(BuyOrderService);
   private paymentRequestService = inject(PaymentRequestService);
+  private injector = inject(Injector);
 
   // Component state
   buyData = signal<BuyOrder | null>(null);
@@ -1015,11 +1016,39 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
 
   // BTC amount in sats cache
   private btcAmountInSats = signal(0);
+  private btcAmountInBtc = computed(() => {
+    const sats = this.btcAmountInSats();
+    return sats / 100000000;
+  });
 
   // Auto-refresh timer
   private refreshTimeout: any = null;
 
   ngOnInit() {
+    // Watch for buyData changes and calculate BTC amount
+    const injector = this.injector;
+    effect(() => {
+      const buy = this.buyData();
+      console.log('buyData changed:', buy);
+      if (buy?.buy_value) {
+        const buyValue = Number(buy.buy_value);
+        console.log('Calculating BTC amount for buy_value:', buy.buy_value, '(parsed:', buyValue, ')');
+        this.buyOrderService.getSatoshisForPrice(buyValue).subscribe({
+          next: (sats) => {
+            console.log('Received sats from server:', sats, 'BTC:', sats / 100000000);
+            this.btcAmountInSats.set(sats);
+          },
+          error: (error) => {
+            console.error('Error getting sats for price:', error);
+            this.btcAmountInSats.set(0);
+          }
+        });
+      } else {
+        console.log('No buy_value available, buyData:', buy);
+        this.btcAmountInSats.set(0);
+      }
+    }, { injector });
+
     const buyId = this.route.snapshot.paramMap.get('id');
 
     if (buyId) {
@@ -1197,29 +1226,21 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   }
 
   getBtcAmountInSats(): number {
-    const buy = this.buyData();
-    if (!buy) return 0;
-
-    this.buyOrderService.getSatoshisForPrice(buy.buy_value).subscribe({
-      next: (sats) => {
-        this.btcAmountInSats.set(sats);
-      },
-      error: (error) => {
-        console.error('Error getting sats for price:', error);
-        this.btcAmountInSats.set(0);
-      }
-    });
-
-    return this.btcAmountInSats();
+    const value = this.btcAmountInSats();
+    console.log('getBtcAmountInSats returning:', value);
+    return value;
   }
 
   getBtcAmount(): number {
-    const sats = this.getBtcAmountInSats();
-    return sats / 100000000;
+    const btc = this.btcAmountInBtc();
+    console.log('getBtcAmount returning:', btc);
+    return btc;
   }
 
   formatBTC(amount: number): string {
-    return amount.toFixed(8);
+    const formatted = amount.toFixed(8);
+    console.log('formatBTC: amount=', amount, 'formatted=', formatted);
+    return formatted;
   }
 
   formatSats(sats: number | string): string {
