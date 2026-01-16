@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy, signal, ViewEncapsulation, effect, computed, Injector } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal, ViewEncapsulation, effect, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { LoadingService } from '../../services/loading.service';
@@ -989,7 +989,6 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   private loadingService = inject(LoadingService);
   private buyOrderService = inject(BuyOrderService);
   private paymentRequestService = inject(PaymentRequestService);
-  private injector = inject(Injector);
 
   // Component state
   buyData = signal<BuyOrder | null>(null);
@@ -1024,18 +1023,14 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   // Auto-refresh timer
   private refreshTimeout: any = null;
 
-  ngOnInit() {
+  constructor() {
     // Watch for buyData changes and calculate BTC amount
-    const injector = this.injector;
     effect(() => {
       const buy = this.buyData();
-      console.log('buyData changed:', buy);
       if (buy?.buy_value) {
         const buyValue = Number(buy.buy_value);
-        console.log('Calculating BTC amount for buy_value:', buy.buy_value, '(parsed:', buyValue, ')');
         this.buyOrderService.getSatoshisForPrice(buyValue).subscribe({
           next: (sats) => {
-            console.log('Received sats from server:', sats, 'BTC:', sats / 100000000);
             this.btcAmountInSats.set(sats);
           },
           error: (error) => {
@@ -1044,11 +1039,12 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
           }
         });
       } else {
-        console.log('No buy_value available, buyData:', buy);
         this.btcAmountInSats.set(0);
       }
-    }, { injector });
+    });
+  }
 
+  ngOnInit() {
     const buyId = this.route.snapshot.paramMap.get('id');
 
     if (buyId) {
@@ -1226,21 +1222,15 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   }
 
   getBtcAmountInSats(): number {
-    const value = this.btcAmountInSats();
-    console.log('getBtcAmountInSats returning:', value);
-    return value;
+    return this.btcAmountInSats();
   }
 
   getBtcAmount(): number {
-    const btc = this.btcAmountInBtc();
-    console.log('getBtcAmount returning:', btc);
-    return btc;
+    return this.btcAmountInBtc();
   }
 
   formatBTC(amount: number): string {
-    const formatted = amount.toFixed(8);
-    console.log('formatBTC: amount=', amount, 'formatted=', formatted);
-    return formatted;
+    return amount.toFixed(8);
   }
 
   formatSats(sats: number | string): string {
