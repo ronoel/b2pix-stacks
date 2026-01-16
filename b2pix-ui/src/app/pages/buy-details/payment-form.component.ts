@@ -27,10 +27,16 @@ import { FormsModule } from '@angular/forms';
               <span class="amount-label-compact">Você pagará</span>
               <div class="payment-amount-compact">R$ {{ fiatAmount }}</div>
             </div>
-            <div class="amount-arrow">→</div>
             <div class="amount-item-compact">
               <span class="amount-label-compact">Receberá</span>
-              <div class="btc-amount-compact">{{ btcAmount }} BTC</div>
+              <div class="btc-amount-container">
+                <span class="btc-approximation-symbol">~</span>
+                <div class="btc-amount-compact">{{ btcAmount }} BTC</div>
+                <svg class="btc-info-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" title="Valor aproximado, pode variar conforme taxa de câmbio">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                  <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </div>
             </div>
           </div>
         </div>
@@ -211,13 +217,6 @@ import { FormsModule } from '@angular/forms';
       flex: 1;
     }
 
-    .amount-arrow {
-      font-size: 18px;
-      color: #9CA3AF;
-      font-weight: 600;
-      flex-shrink: 0;
-    }
-
     .amount-label-compact {
       font-size: 10px;
       color: #6B7280;
@@ -237,6 +236,31 @@ import { FormsModule } from '@angular/forms';
       font-weight: 700;
       color: #059669;
       font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    }
+
+    /* BTC Approximation Indicator */
+    .btc-amount-container {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btc-approximation-symbol {
+      font-size: 16px;
+      font-weight: 700;
+      color: #059669;
+      line-height: 1;
+    }
+
+    .btc-info-icon {
+      color: #6B7280;
+      flex-shrink: 0;
+      cursor: help;
+      transition: color 0.2s ease;
+    }
+
+    .btc-info-icon:hover {
+      color: #059669;
     }
 
     /* PIX Section - Highlighted */
@@ -613,10 +637,6 @@ import { FormsModule } from '@angular/forms';
 
       .amount-row-compact {
         gap: 8px;
-      }
-
-      .amount-arrow {
-        font-size: 16px;
       }
 
       .amount-label-compact {
