@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { Observable, from } from 'rxjs';
 import { switchMap, tap } from 'rxjs/operators';
-import { WalletService } from '../../libs/wallet.service';
+import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import { InvitesService } from './invites.service';
 import { SignedRequest } from '../models/api.model';
 
@@ -20,7 +20,7 @@ export interface BankSetupResponse {
 export class BankAccountService {
   private http = inject(HttpClient);
   private apiUrl = environment.apiUrl;
-  private walletService = inject(WalletService);
+  private walletManager = inject(WalletManagerService);
   private invitesService = inject(InvitesService);
 
   private getTimestamp(): string {
@@ -31,10 +31,10 @@ export class BankAccountService {
    * Complete bank setup with credentials and certificate in a single atomic operation
    */
   setupBank(clientId: string, secretKey: string, certificateBase64: string, filename: string): Observable<BankSetupResponse> {
-    const address = this.walletService.getSTXAddress();
+    const address = this.walletManager.getSTXAddress();
     const payload = `B2PIX - Configurar Banco\n${environment.domain}\n${address}\n${clientId}\n${secretKey}\n${this.getTimestamp()}`;
 
-    return from(this.walletService.signMessage(payload)).pipe(
+    return from(this.walletManager.signMessage(payload)).pipe(
       switchMap(signedMessage => {
         const data: BankSetupRequest = {
           publicKey: signedMessage.publicKey,

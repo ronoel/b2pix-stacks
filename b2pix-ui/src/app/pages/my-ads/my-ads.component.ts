@@ -3,7 +3,7 @@ import { Router } from '@angular/router';
 import { Advertisement, AdvertisementStatus } from '../../shared/models/advertisement.model';
 import { AdvertisementService } from '../../shared/api/advertisement.service';
 import { InvitesService } from '../../shared/api/invites.service';
-import { WalletService } from '../../libs/wallet.service';
+import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import { LoadingService } from '../../services/loading.service';
 import { ListingCardComponent } from '../../components/listing-card/listing-card.component';
 import { Subscription } from 'rxjs';
@@ -442,7 +442,7 @@ export class MyAdsComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private advertisementService = inject(AdvertisementService);
   private invitesService = inject(InvitesService);
-  private walletService = inject(WalletService);
+  private walletManager = inject(WalletManagerService);
   private loadingService = inject(LoadingService);
 
   // Signals for reactive state management
@@ -456,7 +456,7 @@ export class MyAdsComponent implements OnInit, OnDestroy {
   private subscription?: Subscription;
 
   // Computed signals
-  userAddress = computed(() => this.walletService.walletAddressSignal());
+  userAddress = computed(() => this.walletManager.walletAddressSignal());
 
   constructor() {
     // Effect to reload ads when wallet address changes

@@ -1,7 +1,6 @@
 import { Component, inject, ViewEncapsulation, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
-import { WalletService } from '../../libs/wallet.service';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import { WalletSelectionModalComponent, WalletSelectionType } from '../wallet-selection-modal/wallet-selection-modal.component';
 import { EmbeddedWalletCreateComponent } from '../embedded-wallet-create/embedded-wallet-create.component';
@@ -37,7 +36,7 @@ import { EmbeddedWalletImportComponent } from '../embedded-wallet-import/embedde
           </div>
           
           <div class="toolbar-right">
-            @if (walletService.isLoggedInSignal()) {
+            @if (walletManager.isLoggedInSignal()) {
               <!-- Wallet Connected State -->
               <div class="wallet-connected">
                 <div class="wallet-info">
@@ -45,8 +44,8 @@ import { EmbeddedWalletImportComponent } from '../embedded-wallet-import/embedde
                     <div class="status-dot"></div>
                     <span class="status-text">Conectado</span>
                   </div>
-                  <div class="wallet-address" title="{{ walletService.walletAddressSignal() }}">
-                    {{ walletService.walletAddressSignal() ? (walletService.walletAddressSignal() | slice:0:4 ) + '...' + (walletService.walletAddressSignal() | slice:-4 ) : '' }}
+                  <div class="wallet-address" title="{{ walletManager.walletAddressSignal() }}">
+                    {{ walletManager.walletAddressSignal() ? (walletManager.walletAddressSignal() | slice:0:4 ) + '...' + (walletManager.walletAddressSignal() | slice:-4 ) : '' }}
                   </div>
                 </div>
                 <button class="btn btn-ghost disconnect-btn" (click)="disconnect()" aria-label="Desconectar Wallet">
@@ -468,8 +467,7 @@ import { EmbeddedWalletImportComponent } from '../embedded-wallet-import/embedde
   `]
 })
 export class ToolbarComponent {
-  walletService = inject(WalletService);
-  private walletManager = inject(WalletManagerService);
+  walletManager = inject(WalletManagerService);
   private router = inject(Router);
 
   // UI state signals
@@ -491,7 +489,7 @@ export class ToolbarComponent {
   }
 
   disconnect() {
-    this.walletService.signOut();
+    this.walletManager.signOut();
   }
 
   onWalletSelected(type: WalletSelectionType) {
@@ -499,7 +497,7 @@ export class ToolbarComponent {
 
     if (type === 'external') {
       // Connect external wallet (Leather, Xverse, etc.)
-      this.walletService.signIn();
+      this.walletManager.connectExternalWallet();
     } else if (type === 'create') {
       // Show create screen
       this.showEmbeddedCreate.set(true);

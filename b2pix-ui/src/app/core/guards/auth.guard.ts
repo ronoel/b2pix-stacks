@@ -1,13 +1,13 @@
 import { inject } from "@angular/core";
 import { CanActivateFn, Router } from "@angular/router";
-import { WalletService } from "../../libs/wallet.service";
+import { WalletManagerService } from "../../libs/wallet/wallet-manager.service";
 
 export const authGuard: CanActivateFn = () => {
-  const walletService = inject(WalletService);
+  const walletManager = inject(WalletManagerService);
   const router = inject(Router);
 
   // Check if wallet is connected
-  if (!walletService.isLoggedIn()) {
+  if (!walletManager.isLoggedIn()) {
     router.navigate(['/']);
     return false;
   }

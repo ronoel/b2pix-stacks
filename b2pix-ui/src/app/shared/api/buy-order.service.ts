@@ -3,7 +3,7 @@ import { Injectable, inject } from "@angular/core";
 import { Observable, from } from 'rxjs';
 import { switchMap, catchError } from 'rxjs/operators';
 import { environment } from "../../../environments/environment";
-import { WalletService } from '../../libs/wallet.service';
+import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import { BuyOrder, PaginatedBuyOrdersResponse } from "../models/buy-order.model";
 import { SignedRequest } from "../models/api.model";
 
@@ -11,7 +11,7 @@ import { SignedRequest } from "../models/api.model";
 export class BuyOrderService {
   private http = inject(HttpClient);
   private apiUrl = environment.apiUrl;
-  private walletService = inject(WalletService);
+  private walletManager = inject(WalletManagerService);
 
   /**
    * Create a new buy order
@@ -20,7 +20,7 @@ export class BuyOrderService {
   createBuyOrder(buyValueInCents: number): Observable<BuyOrder> {
     const payload = `B2PIX - Criar Ordem de Compra\n---\n${buyValueInCents}\n---`;
 
-    return from(this.walletService.signMessage(payload)).pipe(
+    return from(this.walletManager.signMessage(payload)).pipe(
       switchMap(signedMessage => {
         const data: SignedRequest = {
           publicKey: signedMessage.publicKey,
@@ -63,7 +63,7 @@ export class BuyOrderService {
     const pixCode = pixConfirmationCode || 'NONE';
     const payload = `B2PIX - Marcar Ordem como Paga\n---\n${orderId}\n${pixCode}\n---`;
 
-    return from(this.walletService.signMessage(payload)).pipe(
+    return from(this.walletManager.signMessage(payload)).pipe(
       switchMap(signedMessage => {
         const data: SignedRequest = {
           publicKey: signedMessage.publicKey,
@@ -91,7 +91,7 @@ export class BuyOrderService {
   cancelBuyOrder(orderId: string): Observable<BuyOrder> {
     const payload = `B2PIX - Cancelar Ordem\n---\n${orderId}\n---`;
 
-    return from(this.walletService.signMessage(payload)).pipe(
+    return from(this.walletManager.signMessage(payload)).pipe(
       switchMap(signedMessage => {
         const data: SignedRequest = {
           publicKey: signedMessage.publicKey,
@@ -147,7 +147,7 @@ export class BuyOrderService {
   resolveAnalyzingOrder(orderId: string, resolution: 'confirmed' | 'rejected'): Observable<BuyOrder> {
     const payload = `B2PIX - Resolver Análise de Ordem\n---\n${orderId}\n${resolution}\n---`;
 
-    return from(this.walletService.signMessage(payload)).pipe(
+    return from(this.walletManager.signMessage(payload)).pipe(
       switchMap(signedMessage => {
         const data: SignedRequest = {
           publicKey: signedMessage.publicKey,

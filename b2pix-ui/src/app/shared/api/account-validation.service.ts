@@ -165,7 +165,7 @@ export class AccountValidationService {
 
     return from(this.walletManager.signMessage(payloadString)).pipe(
       switchMap(signedMessage => {
-        const data = {
+        const data: SignedRequest = {
           publicKey: signedMessage.publicKey,
           signature: signedMessage.signature,
           payload: payloadString
@@ -303,7 +303,7 @@ export class AccountValidationService {
 
     return from(this.walletManager.signMessage(payloadString)).pipe(
       switchMap(signedMessage => {
-        const data = {
+        const data: SignedRequest = {
           payload: payloadString,
           signature: signedMessage.signature,
           publicKey: signedMessage.publicKey

@@ -13,7 +13,7 @@ import { TransactionCardComponent } from '../../components/transaction-card/tran
 import { sBTCTokenService } from '../../libs/sbtc-token.service';
 import { QuoteService } from '../../shared/api/quote.service';
 import { AccountValidationService } from '../../shared/api/account-validation.service';
-import { ValidationStatus } from '../../shared/models/account-validation.model';
+import { AccountInfo } from '../../shared/models/account-validation.model';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -1113,7 +1113,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   btcPriceInCents = signal<number>(0);
 
   // Account validation status
-  validationStatus = signal<ValidationStatus | null>(null);
+  validationStatus = signal<AccountInfo | null>(null);
 
   ngOnInit() {
     this.loadRecentOrders();
@@ -1515,9 +1515,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   // Account validation methods
   loadValidationStatus() {
-    this.accountValidationService.getValidationStatus().subscribe({
-      next: (status) => {
-        this.validationStatus.set(status);
+    this.accountValidationService.getAccount().subscribe({
+      next: (account) => {
+        this.validationStatus.set(account);
       },
       error: (error) => {
         console.error('Error loading validation status:', error);

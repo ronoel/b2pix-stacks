@@ -1,7 +1,6 @@
 import { Component, inject, effect, ViewEncapsulation, signal } from '@angular/core';
 
 import { Router } from '@angular/router';
-import { WalletService } from '../../libs/wallet.service';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import { LandingFeaturesComponent } from './components/features.component';
 import { HowItWorksComponent } from './components/how-it-works.component';
@@ -68,7 +67,7 @@ import { EmbeddedWalletImportComponent } from '../../components/embedded-wallet-
 
             <!-- CTA Button -->
             <div class="cta-section">
-              @if(walletService.isLoggedInSignal()) {
+              @if(walletManager.isLoggedInSignal()) {
                 <button class="btn btn-primary btn-large" (click)="accessDashboard()">
                   Entrar
                 </button>
@@ -540,10 +539,9 @@ import { EmbeddedWalletImportComponent } from '../../components/embedded-wallet-
 })
 export class LandingComponent {
   private router = inject(Router);
-  walletService = inject(WalletService);
-  private walletManager = inject(WalletManagerService);
+  walletManager = inject(WalletManagerService);
   private connectWalletClicked = false;
-  public isLoggedIn = this.walletService.isLoggedInSignal();
+  public isLoggedIn = this.walletManager.isLoggedInSignal();
 
   // UI state signals
   showSelectionModal = signal(false);
@@ -554,7 +552,7 @@ export class LandingComponent {
   constructor() {
     effect(() => {
       // Only redirect if user just connected wallet and has a claimed invite
-      if (this.walletService.isLoggedInSignal() && this.connectWalletClicked) {
+      if (this.walletManager.isLoggedInSignal() && this.connectWalletClicked) {
         this.router.navigate(['/dashboard']);
       }
     });
@@ -582,7 +580,7 @@ export class LandingComponent {
     if (type === 'external') {
       // Connect external wallet (Leather, Xverse, etc.)
       this.connectWalletClicked = true;
-      this.walletService.signIn();
+      this.walletManager.connectExternalWallet();
     } else if (type === 'create') {
       // Show create screen
       this.showEmbeddedCreate.set(true);

@@ -1,7 +1,7 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { map, catchError, of } from 'rxjs';
-import { WalletService } from '../../libs/wallet.service';
+import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import { AccountValidationService } from '../../shared/api/account-validation.service';
 
 /**
@@ -9,21 +9,21 @@ import { AccountValidationService } from '../../shared/api/account-validation.se
  * Substitui o inviteRequiredGuard
  */
 export const accountValidationGuard: CanActivateFn = (route, state) => {
-  const walletService = inject(WalletService);
+  const walletManager = inject(WalletManagerService);
   const validationService = inject(AccountValidationService);
   const router = inject(Router);
 
   // 1. Verificar se carteira está conectada
-  if (!walletService.isLoggedIn()) {
+  if (!walletManager.isLoggedIn()) {
     router.navigate(['/']);
     return false;
   }
 
-  // 2. Verificar status de validação
-  return validationService.getValidationStatus().pipe(
-    map((status) => {
+  // 2. Verificar status de validação usando getAccount()
+  return validationService.getAccount().pipe(
+    map((account) => {
       // Verificar email primeiro
-      if (!status.email_verified) {
+      if (!account.email_verified) {
         router.navigate(['/email-validation'], {
           queryParams: { returnUrl: state.url }
         });
@@ -31,7 +31,7 @@ export const accountValidationGuard: CanActivateFn = (route, state) => {
       }
 
       // Verificar PIX
-      if (!status.pix_verified) {
+      if (!account.pix_verified) {
         router.navigate(['/pix-validation'], {
           queryParams: { returnUrl: state.url }
         });

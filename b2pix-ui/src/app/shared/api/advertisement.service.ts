@@ -4,7 +4,7 @@ import { Observable, from } from 'rxjs';
 import { switchMap, catchError, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { BoltContractSBTCService } from '../../libs/bolt-contract-sbtc.service';
-import { WalletService } from '../../libs/wallet.service';
+import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import { Advertisement, AdvertisementStatus, Deposit, PricingMode } from '../models/advertisement.model';
 import { SignedRequest } from '../models/api.model';
 
@@ -51,7 +51,7 @@ export class AdvertisementService {
   private http = inject(HttpClient);
   private apiUrl = environment.apiUrl;
   private boltContractSBTCService = inject(BoltContractSBTCService);
-  private walletService = inject(WalletService);
+  private walletManager = inject(WalletManagerService);
 
   constructor() {
   }
@@ -183,7 +183,7 @@ export class AdvertisementService {
     const action = 'B2PIX - Finalizar Anúncio';
     const payload = `${action}\n${environment.domain}\n${advertisementId}\n${this.getTimestamp()}`;
 
-    return from(this.walletService.signMessage(payload)).pipe(
+    return from(this.walletManager.signMessage(payload)).pipe(
       switchMap(signedMessage => {
         const data: SignedRequest = {
           publicKey: signedMessage.publicKey,
@@ -221,7 +221,7 @@ export class AdvertisementService {
     const action = 'B2PIX - Alterar Valor';
     const payload = `${action}\n${environment.domain}\n${advertisementId}\n${pricingMode}\n${pricingValue}\n${minAmount}\n${maxAmount}\n${this.getTimestamp()}`;
 
-    return from(this.walletService.signMessage(payload)).pipe(
+    return from(this.walletManager.signMessage(payload)).pipe(
       switchMap(signedMessage => {
         const data: SignedRequest = {
           publicKey: signedMessage.publicKey,

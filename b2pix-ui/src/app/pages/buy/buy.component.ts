@@ -7,7 +7,7 @@ import { BuyOrderService } from '../../shared/api/buy-order.service';
 import { InvitesService } from '../../shared/api/invites.service';
 import { QuoteService } from '../../shared/api/quote.service';
 import { AccountValidationService } from '../../shared/api/account-validation.service';
-import { ValidationStatus } from '../../shared/models/account-validation.model';
+import { AccountInfo } from '../../shared/models/account-validation.model';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -1275,8 +1275,8 @@ export class BuyComponent implements OnInit, OnDestroy {
   showConfirmationModal = signal<boolean>(false);
   isProcessingPurchase = signal<boolean>(false);
 
-  // Validation status
-  validationStatus = signal<ValidationStatus | null>(null);
+  // Account info
+  accountInfo = signal<AccountInfo | null>(null);
 
   // Step-by-step modal state
   currentModalStep = signal<number>(1);
@@ -1343,56 +1343,56 @@ export class BuyComponent implements OnInit, OnDestroy {
    * Load account validation status
    */
   loadValidationStatus() {
-    this.accountValidationService.getValidationStatus().subscribe({
-      next: (status) => {
-        this.validationStatus.set(status);
+    this.accountValidationService.getAccount().subscribe({
+      next: (account) => {
+        this.accountInfo.set(account);
       },
       error: (error) => {
-        console.error('Error loading validation status:', error);
+        console.error('Error loading account:', error);
       }
     });
   }
 
   /**
-   * Check if user account is fully validated (email and pix)
+   * Check if user account is fully validated (pix_verified indicates full validation)
    */
   isAccountValidated(): boolean {
-    const status = this.validationStatus();
-    if (!status) return false;
-    return status.email_verified && status.pix_verified;
+    const account = this.accountInfo();
+    if (!account) return false;
+    return account.pix_verified;
   }
 
   /**
    * Get validation required message based on current status
    */
   getValidationRequiredMessage(): string {
-    const status = this.validationStatus();
-    if (!status) {
+    const account = this.accountInfo();
+    if (!account) {
       return 'Para comprar Bitcoin, você precisa validar seu email e conta bancária.';
     }
 
-    if (!status.email_verified) {
+    if (!account.email_verified) {
       return 'Para comprar Bitcoin, você precisa validar seu email primeiro.';
     }
 
-    if (!status.pix_verified) {
+    if (!account.pix_verified) {
       return 'Para comprar Bitcoin, você precisa validar sua conta bancária (chave PIX).';
     }
 
-    return 'Para comprar Bitcoin, você precisa validar seu email e conta bancária.';
+    return 'Sua conta está totalmente validada.';
   }
 
   /**
    * Navigate to appropriate validation page
    */
   goToValidation(): void {
-    const status = this.validationStatus();
+    const account = this.accountInfo();
 
-    if (!status || !status.email_verified) {
+    if (!account || !account.email_verified) {
       this.router.navigate(['/email-validation'], {
         queryParams: { returnUrl: '/buy' }
       });
-    } else if (!status.pix_verified) {
+    } else if (!account.pix_verified) {
       this.router.navigate(['/pix-validation'], {
         queryParams: { returnUrl: '/buy' }
       });
