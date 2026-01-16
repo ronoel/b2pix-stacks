@@ -105,6 +105,11 @@ export const routes: Routes = [
     canActivate: [authGuard, managerGuard]
   },
   {
+    path: 'pix-moderation',
+    loadComponent: () => import('./pages/pix-moderation/pix-moderation.component').then(m => m.PixModerationComponent),
+    canActivate: [authGuard, managerGuard]
+  },
+  {
     path: 'send/sBTC',
     loadComponent: () => import('./pages/send-sbtc/send-sbtc.component').then(m => m.SendSBTCComponent),
     canActivate: [authGuard]

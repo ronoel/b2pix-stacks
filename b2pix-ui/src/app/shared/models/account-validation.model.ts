@@ -100,3 +100,29 @@ export interface ApiError {
 
 export type EmailVerificationStep = 'enter-email' | 'enter-code' | 'success';
 export type PixVerificationStep = 'enter-pix' | 'confirm-pix-key' | 'deposit-instructions' | 'processing' | 'success' | 'failed';
+
+// ============================================================================
+// PIX Moderation Types (Manager only)
+// ============================================================================
+
+export interface AccountPixVerify {
+  address: string;
+  user_pix_key: string;
+  destination_pix_key: string;
+  pix_confirmation_value: string;
+  confirmation_value_brl: string;
+  pix_confirmation_code: string;
+  pix_end_to_end_id: string | null;
+  status: 'processing' | 'verified' | 'failed';
+  attempts: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export type PixResolution = 'verified' | 'failed';
+
+export interface ResolvePixVerificationPayload {
+  payload: string;
+  signature: string;
+  public_key: string;
+}

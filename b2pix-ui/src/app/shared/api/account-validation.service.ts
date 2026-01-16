@@ -12,7 +12,9 @@ import {
   EmailVerificationStatus,
   PixVerificationStatus,
   AccountInfo,
-  ValidationStatus
+  ValidationStatus,
+  AccountPixVerify,
+  PixResolution
 } from "../models/account-validation.model";
 
 @Injectable({ providedIn: 'root' })
@@ -269,6 +271,53 @@ export class AccountValidationService {
 
   clearAccountCache(): void {
     this.accountCache.clear();
+  }
+
+  // ==================== PIX MODERATION (Manager only) ====================
+
+  /**
+   * Obtém todas as verificações PIX com status "processing"
+   * Apenas para manager
+   */
+  getProcessingPixVerifications(): Observable<AccountPixVerify[]> {
+    return this.http.get<AccountPixVerify[]>(
+      `${this.apiUrl}/v1/account/pix/processing`
+    ).pipe(
+      catchError(() => of([]))
+    );
+  }
+
+  /**
+   * Resolve uma verificação PIX (aprova ou rejeita)
+   * Apenas para manager
+   */
+  resolvePixVerification(address: string, resolution: PixResolution): Observable<AccountPixVerify> {
+    const timestamp = new Date().toISOString();
+    const payloadString = [
+      'B2PIX - Resolver Verificação de PIX',
+      'b2pix.org',
+      address,
+      resolution,
+      timestamp
+    ].join('\n');
+
+    return from(this.walletManager.signMessage(payloadString)).pipe(
+      switchMap(signedMessage => {
+        const data = {
+          payload: payloadString,
+          signature: signedMessage.signature,
+          publicKey: signedMessage.publicKey
+        };
+        return this.http.post<AccountPixVerify>(
+          `${this.apiUrl}/v1/account/pix/resolve`,
+          data
+        );
+      }),
+      tap(() => {
+        this.clearAccountCache();
+      }),
+      catchError(this.handleError)
+    );
   }
 
   // ==================== ERROR HANDLING ====================
