@@ -1,6 +1,7 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { LoadingService } from '../../services/loading.service';
 import { QuoteService } from '../../shared/api/quote.service';
 import { SellOrderService } from '../../shared/api/sell-order.service';
@@ -23,7 +24,7 @@ import { environment } from '../../../environments/environment';
   templateUrl: './sell.component.html',
   styleUrls: ['./sell.component.scss']
 })
-export class SellComponent implements OnInit {
+export class SellComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   protected loadingService = inject(LoadingService);
   private quoteService = inject(QuoteService);
@@ -46,6 +47,7 @@ export class SellComponent implements OnInit {
   isLoadingBalance = signal(false);
   currentBtcPrice = signal(0); // Price in BRL
   isLoadingQuote = signal(true);
+  private priceSubscription?: Subscription;
 
   // Amount input
   amountInSats = signal<bigint>(BigInt(0));
@@ -80,9 +82,15 @@ export class SellComponent implements OnInit {
   ngOnInit() {
     this.loadAccountValidation();
     this.loadBalance();
-    this.loadBtcPrice();
+    this.startPricePolling();
     this.loadSellOrders();
     this.checkForActiveSellOrder();
+  }
+
+  ngOnDestroy() {
+    if (this.priceSubscription) {
+      this.priceSubscription.unsubscribe();
+    }
   }
 
   // Account validation methods
@@ -157,9 +165,10 @@ export class SellComponent implements OnInit {
   }
 
   // Quote methods
-  loadBtcPrice() {
+  startPricePolling() {
     this.isLoadingQuote.set(true);
-    this.quoteService.getBtcPrice().subscribe({
+    // Use getBtcPriceStream() for automatic polling every 30 seconds
+    this.priceSubscription = this.quoteService.getBtcPriceStream().subscribe({
       next: (response) => {
         // Convert price from cents to reais
         const priceInReais = parseInt(response.price) / 100;
