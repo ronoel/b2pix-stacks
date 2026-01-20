@@ -47,7 +47,12 @@ export const routes: Routes = [
   {
     path: 'sell',
     loadComponent: () => import('./pages/sell/sell.component').then(m => m.SellComponent),
-    canActivate: [accountValidationGuard]
+    canActivate: [authGuard]
+  },
+  {
+    path: 'sell/:id',
+    loadComponent: () => import('./pages/sell/sell-details/sell-details.component').then(m => m.SellDetailsComponent),
+    canActivate: [authGuard]
   },
   {
     path: 'my-ads',
