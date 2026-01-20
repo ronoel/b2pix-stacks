@@ -29,7 +29,7 @@ export class SellOrderService {
    * @param amountInSats Amount in satoshis to sell
    * @returns Observable of created SellOrder
    */
-  createSellOrder(amountInSats: bigint): Observable<SellOrder> {
+  createSellOrder(amountInSats: number): Observable<SellOrder> {
     const recipient = environment.b2pixAddress;
     const address = this.walletManager.getSTXAddress();
 
@@ -44,7 +44,7 @@ export class SellOrderService {
         return this.http.post<SellOrder>(`${this.apiUrl}/v1/sell-orders`, {
           transaction: transactionSerialized,
           address: address,
-          amount: amountInSats.toString()
+          amount: amountInSats
         });
       }),
       catchError((error: any) => {
@@ -130,10 +130,10 @@ export class SellOrderService {
    * @param btcPriceInBrl Current BTC price in BRL
    * @returns Equivalent amount in satoshis
    */
-  brlToSats(brlAmount: number, btcPriceInBrl: number): bigint {
-    if (btcPriceInBrl <= 0 || brlAmount <= 0) return BigInt(0);
+  brlToSats(brlAmount: number, btcPriceInBrl: number): number {
+    if (btcPriceInBrl <= 0 || brlAmount <= 0) return 0;
     const btcAmount = brlAmount / btcPriceInBrl;
-    return BigInt(Math.floor(btcAmount * this.SATS_PER_BTC));
+    return Math.floor(btcAmount * this.SATS_PER_BTC);
   }
 
   /**
@@ -142,9 +142,9 @@ export class SellOrderService {
    * @param btcPriceInBrl Current BTC price in BRL
    * @returns Equivalent amount in BRL
    */
-  satsToBrl(sats: bigint, btcPriceInBrl: number): number {
-    if (btcPriceInBrl <= 0 || sats <= BigInt(0)) return 0;
-    const btcAmount = Number(sats) / this.SATS_PER_BTC;
+  satsToBrl(sats: number, btcPriceInBrl: number): number {
+    if (btcPriceInBrl <= 0 || sats <= 0) return 0;
+    const btcAmount = sats / this.SATS_PER_BTC;
     return btcAmount * btcPriceInBrl;
   }
 
@@ -156,11 +156,11 @@ export class SellOrderService {
    * @param btcPriceInBrl Current BTC price in BRL
    * @returns Maximum sellable satoshis
    */
-  getMaxSellableSats(balance: bigint, fee: number, maxBrlLimit: number, btcPriceInBrl: number): bigint {
+  getMaxSellableSats(balance: number, fee: number, maxBrlLimit: number, btcPriceInBrl: number): number {
     const maxSatsFromBrl = this.brlToSats(maxBrlLimit, btcPriceInBrl);
-    const maxSatsFromBalance = balance - BigInt(fee);
+    const maxSatsFromBalance = balance - fee;
 
-    if (maxSatsFromBalance <= BigInt(0)) return BigInt(0);
+    if (maxSatsFromBalance <= 0) return 0;
 
     return maxSatsFromBalance > maxSatsFromBrl ? maxSatsFromBrl : maxSatsFromBalance;
   }

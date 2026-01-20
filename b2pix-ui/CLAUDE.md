@@ -203,46 +203,46 @@ Keep in component when:
 
 ### Data Types and API Compatibility
 
-**Monetary Values and Large Numbers**
+**Monetary Values and Bitcoin**
 
-The backend uses Rust types that require special handling:
+The backend uses Rust `u64` type for monetary values:
 
-- **BRL (Reais)**: Stored as **cents** in the backend as `u128`
-- **Bitcoin**: Stored as **satoshis** in the backend as `u128`
+- **BRL (Reais)**: Stored as **cents** in the backend as `u64` → returned as `number` in API
+- **Bitcoin**: Stored as **satoshis** in the backend as `u64` → returned as `number` in API
 
 **Component Implementation Pattern**:
 
 ```typescript
-// ✅ Use BigInt internally in components
-amountInSats = signal<bigint>(BigInt(0));
-amountInCents = signal<bigint>(BigInt(0));
+// ✅ Use number type for BRL cents and Bitcoin satoshis
+amountInSats = signal<number>(0);
+amountInCents = signal<number>(0);
 
-// ✅ Convert to string only when making API requests
-createOrder(amountInSats: bigint): Observable<Order> {
+// ✅ API requests and responses use number directly
+createOrder(amountInSats: number): Observable<Order> {
   return this.http.post<Order>('/api/orders', {
-    amount: amountInSats.toString() // Convert BigInt to string for u128 compatibility
+    amount: amountInSats // number is compatible with Rust u64
   });
 }
 ```
 
-**Why BigInt?**
-- Native JavaScript support for large integers
-- Type safety and precision
-- No floating-point errors
-- Direct `.toString()` conversion for API requests
+**Why number?**
+- JavaScript `number` safely represents values up to 2^53 (9 quadrillion)
+- Rust `u64` max is 2^64, but typical BRL/BTC amounts fit within safe integer range
+- Direct compatibility with API without conversion
+- Standard TypeScript type for numeric values
 
 **Example Flow**:
 
 ```typescript
 // In component
-amountInSats = signal<bigint>(BigInt(50000)); // 50,000 sats
+amountInSats = signal<number>(50000); // 50,000 sats
 
 // In service
-createSellOrder(amountInSats: bigint): Observable<SellOrder> {
+createSellOrder(amountInSats: number): Observable<SellOrder> {
   return this.http.post<SellOrder>(`${this.apiUrl}/sell-orders`, {
     transaction: txData,
     address: walletAddress,
-    amount: amountInSats.toString() // String for Rust u128
+    amount: amountInSats // Directly compatible with Rust u64
   });
 }
 ```

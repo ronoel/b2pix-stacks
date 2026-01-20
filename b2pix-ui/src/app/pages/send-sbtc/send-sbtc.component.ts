@@ -674,7 +674,7 @@ export class SendSBTCComponent implements OnInit {
   txIdCopied = signal<boolean>(false);
 
   // Balance
-  sBtcBalance = signal<bigint>(BigInt(0));
+  sBtcBalance = signal<number>(0);
   isLoadingBalance = signal<boolean>(false);
 
   // Fee and Price
@@ -740,10 +740,10 @@ export class SendSBTCComponent implements OnInit {
 
   setMaxAmount() {
     const balance = this.sBtcBalance();
-    const fee = BigInt(this.fee());
+    const fee = this.fee();
     if (balance > fee) {
       // Subtract fee from balance to get the maximum sendable amount
-      this.sendAmount = Number(balance - fee);
+      this.sendAmount = balance - fee;
     } else {
       this.sendAmount = 0;
     }

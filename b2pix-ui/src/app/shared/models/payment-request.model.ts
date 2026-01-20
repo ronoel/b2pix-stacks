@@ -12,7 +12,6 @@ export enum PaymentRequestStatus {
 }
 
 export enum PaymentSourceType {
-  Advertisement = 'advertisement',
   Buy = 'buy_order'
 }
 

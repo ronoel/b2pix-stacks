@@ -1108,7 +1108,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   addressCopied = signal<boolean>(false);
 
   // sBTC balance
-  sBtcBalance = signal<bigint>(BigInt(0));
+  sBtcBalance = signal<number>(0);
   isLoadingBalance = signal<boolean>(false);
   btcPriceInCents = signal<number>(0);
 
@@ -1131,7 +1131,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const address = this.walletManagerService.getSTXAddress();
     if (address) {
       // Only show loading spinner if there's no balance loaded yet
-      const hasExistingBalance = this.sBtcBalance() !== BigInt(0);
+      const hasExistingBalance = this.sBtcBalance() !== 0;
       if (!hasExistingBalance) {
         this.isLoadingBalance.set(true);
       }

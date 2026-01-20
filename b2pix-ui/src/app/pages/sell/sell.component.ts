@@ -43,14 +43,14 @@ export class SellComponent implements OnInit, OnDestroy {
   accountInfo = signal<AccountInfo | null>(null);
 
   // Balance and pricing
-  sBtcBalance = signal<bigint>(BigInt(0));
+  sBtcBalance = signal<number>(0);
   isLoadingBalance = signal(false);
   currentBtcPrice = signal(0); // Price in BRL
   isLoadingQuote = signal(true);
   private priceSubscription?: Subscription;
 
   // Amount input
-  amountInSats = signal<bigint>(BigInt(0));
+  amountInSats = signal<number>(0);
   amountInBrl = signal<number>(0);
   inputMode = signal<'sats' | 'brl'>('brl'); // Default to BRL mode
   selectedQuickAmount = signal<number>(0);
@@ -161,7 +161,7 @@ export class SellComponent implements OnInit, OnDestroy {
   }
 
   hasBalance(): boolean {
-    return this.sBtcBalance() > BigInt(0);
+    return this.sBtcBalance() > 0;
   }
 
   // Quote methods
@@ -251,13 +251,13 @@ export class SellComponent implements OnInit, OnDestroy {
       if (this.currentBtcPrice() > 0 && value > 0) {
         this.amountInSats.set(this.sellOrderService.brlToSats(value, this.currentBtcPrice()));
       } else {
-        this.amountInSats.set(BigInt(0));
+        this.amountInSats.set(0);
       }
     } else {
-      this.amountInSats.set(BigInt(Math.floor(value)));
+      this.amountInSats.set(Math.floor(value));
       // Calculate BRL from sats using service
       if (this.currentBtcPrice() > 0 && value > 0) {
-        this.amountInBrl.set(this.sellOrderService.satsToBrl(BigInt(Math.floor(value)), this.currentBtcPrice()));
+        this.amountInBrl.set(this.sellOrderService.satsToBrl(Math.floor(value), this.currentBtcPrice()));
       } else {
         this.amountInBrl.set(0);
       }
@@ -268,8 +268,8 @@ export class SellComponent implements OnInit, OnDestroy {
     const balance = this.sBtcBalance();
     const price = this.currentBtcPrice();
 
-    if (balance <= BigInt(0) || price <= 0) {
-      this.amountInSats.set(BigInt(0));
+    if (balance <= 0 || price <= 0) {
+      this.amountInSats.set(0);
       this.amountInBrl.set(0);
       return;
     }
@@ -312,7 +312,7 @@ export class SellComponent implements OnInit, OnDestroy {
     const amount = this.amountInSats();
     const brlAmount = this.getEstimatedBrlAmount();
     return (
-      amount > BigInt(0) &&
+      amount > 0 &&
       amount <= this.sBtcBalance() &&
       brlAmount >= this.MIN_SELL_BRL &&
       brlAmount <= this.MAX_SELL_BRL &&
@@ -442,7 +442,7 @@ export class SellComponent implements OnInit, OnDestroy {
   closeSuccessModal() {
     this.showSuccessModal.set(false);
     this.createdOrderId.set(null);
-    this.amountInSats.set(BigInt(0));
+    this.amountInSats.set(0);
     this.amountInBrl.set(0);
     this.selectedQuickAmount.set(0);
   }
