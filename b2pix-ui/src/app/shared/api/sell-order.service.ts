@@ -44,7 +44,7 @@ export class SellOrderService {
         return this.http.post<SellOrder>(`${this.apiUrl}/v1/sell-orders`, {
           transaction: transactionSerialized,
           address: address,
-          amount: Number(amountInSats)
+          amount: amountInSats.toString()
         });
       }),
       catchError((error: any) => {

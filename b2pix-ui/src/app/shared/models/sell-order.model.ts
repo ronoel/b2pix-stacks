@@ -27,7 +27,7 @@ export interface SellOrder {
 export interface CreateSellOrderRequest {
   transaction: string; // Serialized transaction for BoltProtocol
   address: string; // Source wallet address
-  amount: number; // Amount in satoshis
+  amount: string; // Amount in satoshis as string (for u128 compatibility)
 }
 
 export interface PaginatedSellOrdersResponse {

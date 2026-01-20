@@ -201,6 +201,52 @@ Keep in component when:
 - **Comments**: Only when the logic is not obvious
 - **DRY**: Extract duplicated code only when used 3+ times
 
+### Data Types and API Compatibility
+
+**Monetary Values and Large Numbers**
+
+The backend uses Rust types that require special handling:
+
+- **BRL (Reais)**: Stored as **cents** in the backend as `u128`
+- **Bitcoin**: Stored as **satoshis** in the backend as `u128`
+
+**Component Implementation Pattern**:
+
+```typescript
+// ✅ Use BigInt internally in components
+amountInSats = signal<bigint>(BigInt(0));
+amountInCents = signal<bigint>(BigInt(0));
+
+// ✅ Convert to string only when making API requests
+createOrder(amountInSats: bigint): Observable<Order> {
+  return this.http.post<Order>('/api/orders', {
+    amount: amountInSats.toString() // Convert BigInt to string for u128 compatibility
+  });
+}
+```
+
+**Why BigInt?**
+- Native JavaScript support for large integers
+- Type safety and precision
+- No floating-point errors
+- Direct `.toString()` conversion for API requests
+
+**Example Flow**:
+
+```typescript
+// In component
+amountInSats = signal<bigint>(BigInt(50000)); // 50,000 sats
+
+// In service
+createSellOrder(amountInSats: bigint): Observable<SellOrder> {
+  return this.http.post<SellOrder>(`${this.apiUrl}/sell-orders`, {
+    transaction: txData,
+    address: walletAddress,
+    amount: amountInSats.toString() // String for Rust u128
+  });
+}
+```
+
 ### Value Formatting
 
 Use consistent methods for formatting:
