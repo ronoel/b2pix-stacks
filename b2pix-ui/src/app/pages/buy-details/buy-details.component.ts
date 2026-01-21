@@ -118,7 +118,7 @@ import { PaymentFormComponent } from './payment-form.component';
 
                     <div class="info-item">
                       <span class="info-label">Satoshis:</span>
-                      <span class="info-value mono">{{ formatSats(buyData()!.amount!.toString()) }} sats</span>
+                      <span class="info-value mono">{{ formatSats(buyData()!.amount!) }} sats</span>
                     </div>
                   }
                 </div>
@@ -140,7 +140,7 @@ import { PaymentFormComponent } from './payment-form.component';
 
                       <div class="info-item">
                         <span class="info-label">Valor:</span>
-                        <span class="info-value mono">{{ formatSats(paymentRequest()!.amount.toString()) }} sats</span>
+                        <span class="info-value mono">{{ formatSats(paymentRequest()!.amount) }} sats</span>
                       </div>
 
                       @if (paymentRequest()!.blockchain_tx_id) {
@@ -1028,8 +1028,7 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     effect(() => {
       const buy = this.buyData();
       if (buy?.buy_value) {
-        const buyValue = Number(buy.buy_value);
-        this.buyOrderService.getSatoshisForPrice(buyValue).subscribe({
+        this.buyOrderService.getSatoshisForPrice(buy.buy_value).subscribe({
           next: (sats) => {
             this.btcAmountInSats.set(sats);
           },
@@ -1210,7 +1209,7 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     const buy = this.buyData();
     if (!buy) return 0;
 
-    return Number(buy.buy_value) / 100;
+    return buy.buy_value / 100;
   }
 
   formatCurrency(value: number): string {
@@ -1233,8 +1232,8 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     return amount.toFixed(8);
   }
 
-  formatSats(sats: number | string): string {
-    return new Intl.NumberFormat('pt-BR').format(Number(sats));
+  formatSats(sats: number): string {
+    return new Intl.NumberFormat('pt-BR').format(sats);
   }
 
   onTransactionIdChange(transactionId: string) {

@@ -116,7 +116,7 @@ import { CommonModule } from '@angular/common';
               </div>
               <div class="estimate-row">
                 <span class="estimate-label">Em satoshis:</span>
-                <span class="estimate-value sats">{{ formatSats(getEstimatedBitcoinAmountInSats().toString()) }} sats</span>
+                <span class="estimate-value sats">{{ formatSats(getEstimatedBitcoinAmountInSats()) }} sats</span>
               </div>
               <div class="estimate-note">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -301,7 +301,7 @@ import { CommonModule } from '@angular/common';
                     <div class="final-estimate">
                       <span class="estimate-label">Estimativa de Bitcoin:</span>
                       <span class="estimate-value">{{ formatBitcoinAmount(getEstimatedBitcoinAmount()) }} BTC</span>
-                      <span class="estimate-sats">({{ formatSats(getEstimatedBitcoinAmountInSats().toString()) }} sats)</span>
+                      <span class="estimate-sats">({{ formatSats(getEstimatedBitcoinAmountInSats()) }} sats)</span>
                     </div>
 
                     <div class="final-warning">
@@ -1443,8 +1443,8 @@ export class BuyComponent implements OnInit, OnDestroy {
     }).format(value);
   }
 
-  formatSats(amount: string): string {
-    return new Intl.NumberFormat('pt-BR').format(Number(amount));
+  formatSats(amount: number): string {
+    return new Intl.NumberFormat('pt-BR').format(amount);
   }
 
   startBuyProcess() {
