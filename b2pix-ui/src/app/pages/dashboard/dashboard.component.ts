@@ -210,6 +210,16 @@ import { CommonModule } from '@angular/common';
                   </div>
                   <span>Validacao Pix</span>
                 </button>
+
+                <button class="action-btn admin" (click)="goToSellOrderManagement()">
+                  <div class="btn-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <path d="M17 7L7 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M17 17H7V7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                  <span>Vendas</span>
+                </button>
               </div>
             </div>
           }
@@ -1219,6 +1229,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   goToPixModeration() {
     this.router.navigate(['/pix-moderation']);
+  }
+
+  goToSellOrderManagement() {
+    this.router.navigate(['/sell-order-management']);
   }
 
   goToSendBitcoin() {

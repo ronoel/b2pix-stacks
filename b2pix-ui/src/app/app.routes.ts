@@ -105,6 +105,11 @@ export const routes: Routes = [
     canActivate: [authGuard, managerGuard]
   },
   {
+    path: 'sell-order-management',
+    loadComponent: () => import('./pages/sell-order-management/sell-order-management.component').then(m => m.SellOrderManagementComponent),
+    canActivate: [authGuard, managerGuard]
+  },
+  {
     path: 'send/sBTC',
     loadComponent: () => import('./pages/send-sbtc/send-sbtc.component').then(m => m.SendSBTCComponent),
     canActivate: [authGuard]

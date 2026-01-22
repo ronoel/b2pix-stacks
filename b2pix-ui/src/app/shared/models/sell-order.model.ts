@@ -37,6 +37,16 @@ export interface PaginatedSellOrdersResponse {
   has_more: boolean;
 }
 
+export interface SignedRequest {
+  signature: string;
+  publicKey: string;
+  payload: string;
+}
+
+export interface ConfirmPaymentRequest extends SignedRequest {
+  // Inherits all SignedRequest properties
+}
+
 export function isFinalStatus(status: SellOrderStatus): boolean {
   return status === SellOrderStatus.Paid || status === SellOrderStatus.Failed;
 }

@@ -8,7 +8,8 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import {
   SellOrder,
   SellOrderStatus,
-  PaginatedSellOrdersResponse
+  PaginatedSellOrdersResponse,
+  ConfirmPaymentRequest
 } from '../models/sell-order.model';
 
 export interface GetSellOrdersParams {
@@ -116,6 +117,71 @@ export class SellOrderService {
    */
   getFee(): number {
     return this.boltContractSBTCService.getFee();
+  }
+
+  /**
+   * Get confirmed sell orders (Confirmed status, awaiting PIX payment)
+   * Manager only - lists orders ready for payment
+   * @param params Query parameters for pagination
+   * @returns Observable of paginated sell orders with Confirmed status
+   */
+  getConfirmedSellOrders(params?: GetSellOrdersParams): Observable<PaginatedSellOrdersResponse> {
+    let httpParams = new HttpParams();
+
+    if (params?.page !== undefined) {
+      httpParams = httpParams.set('page', params.page.toString());
+    }
+    if (params?.limit !== undefined) {
+      httpParams = httpParams.set('limit', params.limit.toString());
+    }
+
+    return this.http.get<PaginatedSellOrdersResponse>(`${this.apiUrl}/v1/sell-orders/confirmed`, {
+      params: httpParams
+    }).pipe(
+      catchError((error) => {
+        console.error('Error fetching confirmed sell orders:', error);
+        throw error;
+      })
+    );
+  }
+
+  /**
+   * Confirm PIX payment for a sell order
+   * Manager only - requires signed request
+   * @param sellOrderId The sell order ID
+   * @param pixId PIX transaction ID (optional, use "NONE" if not available)
+   * @returns Observable of updated SellOrder
+   */
+  confirmPayment(sellOrderId: string, pixId: string | null): Observable<SellOrder> {
+    // Build payload according to spec
+    const timestamp = new Date().toISOString();
+    const payload = [
+      'B2PIX - Confirmar Pagamento PIX',
+      'b2pix.org',
+      sellOrderId,
+      pixId || 'NONE',
+      timestamp
+    ].join('\n');
+
+    // Sign message using wallet manager
+    return from(this.walletManager.signMessage(payload)).pipe(
+      switchMap((signatureResponse) => {
+        const request: ConfirmPaymentRequest = {
+          signature: signatureResponse.signature,
+          publicKey: signatureResponse.publicKey,
+          payload: payload
+        };
+
+        return this.http.post<SellOrder>(
+          `${this.apiUrl}/v1/sell-orders/${sellOrderId}/pay`,
+          request
+        );
+      }),
+      catchError((error: any) => {
+        console.error('Error confirming payment:', error);
+        throw error;
+      })
+    );
   }
 
   // ============================================
