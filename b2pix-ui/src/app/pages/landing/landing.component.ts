@@ -2,7 +2,6 @@ import { Component, inject, effect, ViewEncapsulation, signal } from '@angular/c
 
 import { Router } from '@angular/router';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
-import { LandingFeaturesComponent } from './components/features.component';
 import { HowItWorksComponent } from './components/how-it-works.component';
 import { TrustSectionComponent } from './components/trust-section.component';
 import { SocialSectionComponent } from './components/social-section.component';
@@ -14,7 +13,6 @@ import { EmbeddedWalletImportComponent } from '../../components/embedded-wallet-
 @Component({
   selector: 'app-landing',
   imports: [
-    LandingFeaturesComponent,
     HowItWorksComponent,
     TrustSectionComponent,
     SocialSectionComponent,
@@ -46,22 +44,51 @@ import { EmbeddedWalletImportComponent } from '../../components/embedded-wallet-
                 Compre e venda <span class="text-gradient">Bitcoin</span> com PIX
               </h2>
               <p class="hero-description">
-                Plataforma P2P sem custódia, focada em privacidade e automação.
-                Acesso exclusivo por convite.
+                A forma mais simples e segura de comprar Bitcoin no Brasil.
+                Sem custódia, sem intermediários, 100% automatizado.
               </p>
             </div>
 
-            <!-- Features Component -->
-            <app-landing-features />
+            <!-- Features Section -->
+            <div class="features-section">
+              <div class="feature-card">
+                <div class="feature-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div class="feature-content">
+                  <h3 class="feature-title">P2P Direto</h3>
+                  <p class="feature-description">Compre e venda diretamente de outros usuários, sem intermediários ou corretoras</p>
+                </div>
+              </div>
 
-            <!-- Waiting List Section -->
-            <div class="waiting-list-section">
-              <div class="waiting-list-card">
-                <h3 class="waiting-list-title">Ainda não tem um convite?</h3>
-                <p class="waiting-list-description">Entre na lista de espera e aguarde o próximo lote.</p>
-                <a href="https://forms.gle/sfiQjCAY6BkTqkWg6" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-large">
-                  Entrar na Lista de Espera
-                </a>
+              <div class="feature-card">
+                <div class="feature-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div class="feature-content">
+                  <h3 class="feature-title">Sem Custódia</h3>
+                  <p class="feature-description">Seus Bitcoins ficam na sua carteira, você tem controle total dos seus fundos</p>
+                </div>
+              </div>
+
+              <div class="feature-card">
+                <div class="feature-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div class="feature-content">
+                  <h3 class="feature-title">100% Automático</h3>
+                  <p class="feature-description">Pagamento verificado automaticamente, Bitcoin liberado instantaneamente</p>
+                </div>
               </div>
             </div>
 
@@ -69,7 +96,7 @@ import { EmbeddedWalletImportComponent } from '../../components/embedded-wallet-
             <div class="cta-section">
               @if(walletManager.isLoggedInSignal()) {
                 <button class="btn btn-primary btn-large" (click)="accessDashboard()">
-                  Entrar
+                  Acessar Plataforma
                 </button>
               } @else {
                 @if (hasEmbeddedWallet()) {
@@ -78,12 +105,12 @@ import { EmbeddedWalletImportComponent } from '../../components/embedded-wallet-
                   </button>
                 } @else {
                   <button class="btn btn-primary btn-large" (click)="showWalletSelection()">
-                    Conectar/Criar Carteira
+                    Começar Agora
                   </button>
                 }
               }
 
-              <p class="cta-note">Acesso exclusivo por convite</p>
+              <p class="cta-note">Comece em menos de 1 minuto</p>
             </div>
 
             <!-- Social Media Component -->
@@ -289,6 +316,65 @@ import { EmbeddedWalletImportComponent } from '../../components/embedded-wallet-
       margin: 0 auto;
     }
 
+    /* Features Section */
+    .features-section {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin-bottom: 48px;
+      max-width: 900px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .feature-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 24px 16px;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 16px;
+      border: 1px solid #E5E7EB;
+    }
+
+    .feature-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+      border-radius: 12px;
+      color: #1E40AF;
+      margin-bottom: 16px;
+    }
+
+    .feature-icon svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .feature-content {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .feature-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1F2937;
+      margin: 0;
+    }
+
+    .feature-description {
+      font-size: 13px;
+      color: #6B7280;
+      line-height: 1.5;
+      margin: 0;
+    }
+
     /* CTA Section */
     .cta-section {
       margin-bottom: 48px;
@@ -302,86 +388,6 @@ import { EmbeddedWalletImportComponent } from '../../components/embedded-wallet-
       margin-top: 16px;
       color: #9CA3AF;
       font-size: 14px;
-    }
-
-    /* Waiting List Section */
-    .waiting-list-section {
-      margin-bottom: 48px;
-      display: flex;
-      justify-content: center;
-    }
-
-    .waiting-list-card {
-      background: linear-gradient(135deg, #EFF6FF 0%, #FEF3C7 100%);
-      border: 2px solid #FBBF24;
-      border-radius: 16px;
-      padding: 32px;
-      text-align: center;
-      max-width: 500px;
-      box-shadow: 0 8px 16px -4px rgb(251 191 36 / 0.3);
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .waiting-list-card::before {
-      content: '';
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-      animation: shimmer 3s infinite;
-    }
-
-    @keyframes shimmer {
-      0% {
-        transform: translateX(-100%) translateY(-100%) rotate(45deg);
-      }
-      100% {
-        transform: translateX(100%) translateY(100%) rotate(45deg);
-      }
-    }
-
-    .waiting-list-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 12px 24px -6px rgb(251 191 36 / 0.4);
-      border-color: #F59E0B;
-    }
-
-    .waiting-list-title {
-      font-size: 20px;
-      font-weight: 700;
-      color: #1F2937;
-      margin: 0 0 12px 0;
-      position: relative;
-      z-index: 1;
-    }
-
-    .waiting-list-description {
-      font-size: 16px;
-      color: #4B5563;
-      margin: 0 0 24px 0;
-      line-height: 1.6;
-      position: relative;
-      z-index: 1;
-    }
-
-    .waiting-list-card .btn-secondary {
-      background: linear-gradient(135deg, #F59E0B 0%, #F97316 100%);
-      color: white;
-      border: none;
-      font-weight: 700;
-      box-shadow: 0 4px 12px 0 rgb(245 158 11 / 0.4);
-      position: relative;
-      z-index: 1;
-    }
-
-    .waiting-list-card .btn-secondary:hover:not(:disabled) {
-      background: linear-gradient(135deg, #D97706 0%, #EA580C 100%);
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px 0 rgb(245 158 11 / 0.5);
     }
 
     /* Background Elements */
@@ -460,6 +466,28 @@ import { EmbeddedWalletImportComponent } from '../../components/embedded-wallet-
         font-size: 16px;
       }
 
+      .features-section {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        max-width: 400px;
+      }
+
+      .feature-card {
+        flex-direction: row;
+        text-align: left;
+        padding: 20px;
+        gap: 16px;
+      }
+
+      .feature-icon {
+        margin-bottom: 0;
+        flex-shrink: 0;
+      }
+
+      .feature-content {
+        gap: 4px;
+      }
+
       .bg-circle-1 {
         width: 200px;
         height: 200px;
@@ -495,18 +523,6 @@ import { EmbeddedWalletImportComponent } from '../../components/embedded-wallet-
       .cta-section {
         flex-direction: column;
         gap: 12px;
-      }
-
-      .waiting-list-card {
-        padding: 24px;
-      }
-
-      .waiting-list-title {
-        font-size: 18px;
-      }
-
-      .waiting-list-description {
-        font-size: 14px;
       }
     }
 

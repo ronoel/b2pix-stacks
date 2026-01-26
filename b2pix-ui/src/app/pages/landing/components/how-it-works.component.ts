@@ -16,23 +16,23 @@ import { Component } from '@angular/core';
             <div class="step-number">1</div>
             <div class="step-content">
               <h4 class="step-title">Conecte sua Carteira</h4>
-              <p class="step-description">Use sua carteira Stacks para acessar a plataforma de forma segura e sem custódia.</p>
+              <p class="step-description">Crie uma carteira integrada ou conecte sua carteira externa. Simples, rápido e seguro.</p>
             </div>
           </div>
 
           <div class="step-card">
             <div class="step-number">2</div>
             <div class="step-content">
-              <h4 class="step-title">Escolha sua Oferta</h4>
-              <p class="step-description">Navegue pelas ofertas disponíveis e selecione a que melhor atende suas necessidades de compra ou venda.</p>
+              <h4 class="step-title">Escolha o Valor</h4>
+              <p class="step-description">Defina quanto quer comprar em Reais. A plataforma calcula automaticamente quanto receberá em Bitcoin.</p>
             </div>
           </div>
 
           <div class="step-card">
             <div class="step-number">3</div>
             <div class="step-content">
-              <h4 class="step-title">Transação Automática</h4>
-              <p class="step-description">Faça o PIX e o sistema verifica automaticamente. Seus Bitcoins são liberados instantaneamente via smart contract.</p>
+              <h4 class="step-title">Pague e Receba</h4>
+              <p class="step-description">Faça o PIX e pronto. O pagamento é verificado automaticamente e os Bitcoins são enviados direto para sua carteira.</p>
             </div>
           </div>
         </div>
