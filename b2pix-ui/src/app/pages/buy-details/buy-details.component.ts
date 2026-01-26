@@ -54,7 +54,7 @@ import { PaymentFormComponent } from './payment-form.component';
           <!-- Payment Form for Pending Status -->
           @if (isPendingPayment()) {
             <app-payment-form
-              [formattedTime]="getFormattedTime()"
+              [formattedTime]="formattedTime()"
               [fiatAmount]="formatCurrency(getTotalFiatAmount())"
               [btcAmount]="formatBTC(getBtcAmount())"
               [pixKey]="buyData()!.pix_key"
@@ -1008,6 +1008,14 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   // Timer for payment (for pending status)
   paymentTimeLeft = signal(0);
   private paymentTimer: any;
+  
+  // Computed signal for formatted time
+  formattedTime = computed(() => {
+    const time = this.paymentTimeLeft();
+    const minutes = Math.floor(time / 60);
+    const seconds = time % 60;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  });
 
   // Payment request state (for completed status)
   paymentRequest = signal<PaymentRequest | null>(null);
@@ -1196,13 +1204,6 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     // Don't reload buy data - the component will automatically show expired state
     // based on local time check. No need to fetch from server since status
     // might still be "pending" on server side, but we know it's expired locally.
-  }
-
-  getFormattedTime(): string {
-    const time = this.paymentTimeLeft();
-    const minutes = Math.floor(time / 60);
-    const seconds = time % 60;
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   }
 
   getTotalFiatAmount(): number {
