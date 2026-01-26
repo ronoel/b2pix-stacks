@@ -1,6 +1,8 @@
-import { Component, inject, OnInit, OnDestroy, signal, ViewEncapsulation, effect, computed } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal, ViewEncapsulation, effect, computed, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
+import { interval, Subscription } from 'rxjs';
+import { takeWhile } from 'rxjs/operators';
 import { LoadingService } from '../../services/loading.service';
 import { BuyOrderService } from '../../shared/api/buy-order.service';
 import { PaymentRequestService } from '../../shared/api/payment-request.service';
@@ -989,6 +991,7 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   private loadingService = inject(LoadingService);
   private buyOrderService = inject(BuyOrderService);
   private paymentRequestService = inject(PaymentRequestService);
+  private cdr = inject(ChangeDetectorRef);
 
   // Component state
   buyData = signal<BuyOrder | null>(null);
@@ -1007,7 +1010,7 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
 
   // Timer for payment (for pending status)
   paymentTimeLeft = signal(0);
-  private paymentTimer: any;
+  private paymentTimer: Subscription | null = null;
   
   // Computed signal for formatted time
   formattedTime = computed(() => {
@@ -1158,11 +1161,20 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Clear any existing timer first
+    this.clearPaymentTimer();
+
+    // Update immediately
     this.updatePaymentTimeLeft(buy);
 
-    this.paymentTimer = setInterval(() => {
-      this.updatePaymentTimeLeft(buy);
-    }, 1000); // Update every 1 second for smooth countdown
+    // Start the interval timer using RxJS for proper change detection
+    this.paymentTimer = interval(1000)
+      .pipe(
+        takeWhile(() => this.paymentTimeLeft() > 0)
+      )
+      .subscribe(() => {
+        this.updatePaymentTimeLeft(buy);
+      });
   }
 
   private updatePaymentTimeLeft(buy: BuyOrder) {
@@ -1172,7 +1184,12 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     // Cap displayed time at 5 minutes (300 seconds)
     const timeLeftSeconds = Math.max(0, Math.min(300, Math.floor(timeLeftMs / 1000)));
 
+    console.log('Timer update:', { now: now.toISOString(), expiresAt: expiresAt.toISOString(), timeLeftMs, timeLeftSeconds });
+    
     this.paymentTimeLeft.set(timeLeftSeconds);
+    
+    // Manually trigger change detection to update the view
+    this.cdr.detectChanges();
 
     // Show warning modal when less than 1 minute remaining (only once)
     if (timeLeftSeconds > 0 && timeLeftSeconds < 60 && !this.hasShownTimeWarning) {
@@ -1189,7 +1206,7 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
 
   clearPaymentTimer() {
     if (this.paymentTimer) {
-      clearInterval(this.paymentTimer);
+      this.paymentTimer.unsubscribe();
       this.paymentTimer = null;
     }
   }
@@ -1313,10 +1330,10 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
         this.clearPaymentTimer();
 
         // Show success message
-        alert('Pagamento confirmado com sucesso! Aguarde a liberação dos bitcoins.');
+        // alert('Pagamento confirmado com sucesso! Aguarde a liberação dos bitcoins.');
 
-        // Reload to show details view
-        this.loadBuyData(buy.id);
+        // Reload to show details view and start auto-refresh
+        this.loadBuyData(buy.id, false);
       },
       error: (error) => {
         console.error('Error confirming payment:', error);
@@ -1587,16 +1604,13 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
 
     const statusStr = status.toString().toLowerCase();
 
-    // Don't monitor created (user is on payment form) or final statuses
-    const noMonitoringNeeded = [
-      'created',    // User is filling payment form
-      'canceled',
-      'expired',
-      'confirmed',
-      'rejected'
+    // Explicitly monitor these statuses that need auto-refresh
+    const statusesNeedingMonitoring = [
+      'processing',  // User marked as paid, payment being verified
+      'analyzing'    // Payment verification failed, manual review needed
     ];
 
-    return !noMonitoringNeeded.includes(statusStr);
+    return statusesNeedingMonitoring.includes(statusStr);
   }
 
   /**
