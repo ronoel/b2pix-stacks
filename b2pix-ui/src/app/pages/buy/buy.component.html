@@ -172,73 +172,7 @@
     </div>
 
     <!-- Buy Order History -->
-    <div class="history-section">
-      <div class="section-header">
-        <h2 class="section-title">Histórico de Compras</h2>
-        <button class="btn btn-outline btn-sm" (click)="loadBuyOrders()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M3 12C3 7.02944 7.02944 3 12 3C14.5755 3 16.9 4.15205 18.5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M21 12C21 16.9706 16.9706 21 12 21C9.42446 21 7.09995 19.848 5.5 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M13 2L18 6L14 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M11 22L6 18L10 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          Atualizar
-        </button>
-      </div>
-
-      @if (isLoadingHistory()) {
-        <div class="loading-state">
-          <div class="loading-spinner"></div>
-          <p>Carregando histórico...</p>
-        </div>
-      } @else if (buyOrders().length > 0) {
-        <div class="history-list">
-          @for (order of buyOrders(); track order.id) {
-            <div class="order-card" (click)="viewOrderDetails(order)">
-              <div class="order-main">
-                <div class="order-info">
-                  <div class="order-amount">R$ {{ formatBrlCents(order.buy_value) }}</div>
-                  <div class="order-date">{{ formatDateTime(order.created_at) }}</div>
-                </div>
-                <div class="order-status">
-                  <span class="status-badge" [class]="getStatusClass(order.status)">
-                    {{ getStatusLabel(order.status) }}
-                  </span>
-                  @if (order.amount) {
-                    <div class="order-value">{{ formatSats(order.amount) }} sats</div>
-                  }
-                </div>
-              </div>
-            </div>
-          }
-        </div>
-
-        @if (hasMoreOrders()) {
-          <div class="load-more">
-            <button class="btn btn-outline" (click)="loadMoreOrders()" [disabled]="isLoadingMore()">
-              @if (isLoadingMore()) {
-                <div class="loading-spinner-sm"></div>
-                Carregando...
-              } @else {
-                Carregar mais
-              }
-            </button>
-          </div>
-        }
-      } @else {
-        <div class="empty-history">
-          <div class="empty-icon">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-              <path d="M12 8V16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M12 8H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <h3>Nenhuma compra encontrada</h3>
-          <p>Você ainda não realizou nenhuma compra de Bitcoin.</p>
-        </div>
-      }
-    </div>
+    <app-buy-history />
 
     <!-- Purchase Confirmation Modal - Step by Step (keeping same 4-step flow) -->
     @if (showConfirmationModal()) {

@@ -7,13 +7,13 @@ import { BuyOrderService } from '../../shared/api/buy-order.service';
 import { InvitesService } from '../../shared/api/invites.service';
 import { AccountValidationService } from '../../shared/api/account-validation.service';
 import { AccountInfo } from '../../shared/models/account-validation.model';
-import { BuyOrder, BuyOrderStatus } from '../../shared/models/buy-order.model';
 import { CommonModule } from '@angular/common';
+import { BuyHistoryComponent } from './components/buy-history.component';
 
 @Component({
   selector: 'app-buy',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, BuyHistoryComponent],
   templateUrl: './buy.component.html',
   styleUrl: './buy.component.scss'
 })
@@ -47,13 +47,6 @@ export class BuyComponent implements OnInit, OnDestroy {
   isLoadingQuote = signal(true);
   private quoteSubscription?: Subscription;
 
-  // Buy order history
-  buyOrders = signal<BuyOrder[]>([]);
-  isLoadingHistory = signal(false);
-  isLoadingMore = signal(false);
-  hasMoreOrders = signal(false);
-  currentPage = signal(1);
-
   ngOnInit() {
     // Start quote polling
     this.quoteSubscription = this.buyOrderService.getBtcPrice().subscribe({
@@ -73,9 +66,6 @@ export class BuyComponent implements OnInit, OnDestroy {
 
     // Load validation status
     this.loadValidationStatus();
-
-    // Load buy order history
-    this.loadBuyOrders();
   }
 
   ngOnDestroy() {
@@ -348,113 +338,5 @@ export class BuyComponent implements OnInit, OnDestroy {
 
   goBack() {
     this.router.navigate(['/dashboard']);
-  }
-
-  // Buy order history methods
-  loadBuyOrders() {
-    const address = this.walletManagerService.getSTXAddress();
-    if (address) {
-      this.isLoadingHistory.set(true);
-      this.buyOrderService.getBuyOrdersByAddress(address, {
-        page: 1,
-        limit: 5
-      }).subscribe({
-        next: (response) => {
-          this.buyOrders.set(response.buy_orders);
-          this.hasMoreOrders.set(response.has_more);
-          this.currentPage.set(1);
-          this.isLoadingHistory.set(false);
-        },
-        error: (error) => {
-          console.error('Error loading buy orders:', error);
-          this.isLoadingHistory.set(false);
-        }
-      });
-    }
-  }
-
-  loadMoreOrders() {
-    const address = this.walletManagerService.getSTXAddress();
-    if (address) {
-      const nextPage = this.currentPage() + 1;
-      this.isLoadingMore.set(true);
-      this.buyOrderService.getBuyOrdersByAddress(address, {
-        page: nextPage,
-        limit: 5
-      }).subscribe({
-        next: (response) => {
-          this.buyOrders.set([...this.buyOrders(), ...response.buy_orders]);
-          this.hasMoreOrders.set(response.has_more);
-          this.currentPage.set(nextPage);
-          this.isLoadingMore.set(false);
-        },
-        error: (error) => {
-          console.error('Error loading more buy orders:', error);
-          this.isLoadingMore.set(false);
-        }
-      });
-    }
-  }
-
-  viewOrderDetails(order: BuyOrder) {
-    this.router.navigate(['/buy', order.id]);
-  }
-
-  getStatusLabel(status: BuyOrderStatus): string {
-    switch (status) {
-      case BuyOrderStatus.Created:
-        return 'Pendente';
-      case BuyOrderStatus.Processing:
-        return 'Verificando Pagamento';
-      case BuyOrderStatus.Analyzing:
-        return 'Em Análise';
-      case BuyOrderStatus.Confirmed:
-        return 'Confirmado';
-      case BuyOrderStatus.Rejected:
-        return 'Rejeitado';
-      case BuyOrderStatus.Canceled:
-        return 'Cancelado';
-      case BuyOrderStatus.Expired:
-        return 'Expirado';
-      default:
-        return 'Pendente';
-    }
-  }
-
-  getStatusClass(status: BuyOrderStatus): string {
-    switch (status) {
-      case BuyOrderStatus.Confirmed:
-        return 'completed';
-      case BuyOrderStatus.Created:
-        return 'pending';
-      case BuyOrderStatus.Processing:
-        return 'processing';
-      case BuyOrderStatus.Analyzing:
-        return 'processing';
-      case BuyOrderStatus.Rejected:
-      case BuyOrderStatus.Canceled:
-      case BuyOrderStatus.Expired:
-        return 'warning';
-      default:
-        return 'pending';
-    }
-  }
-
-  formatDateTime(dateString: string): string {
-    return new Intl.DateTimeFormat('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(new Date(dateString));
-  }
-
-  formatBrlCents(cents: number): string {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'decimal',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(cents / 100);
   }
 }
