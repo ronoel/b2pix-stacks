@@ -1,8 +1,9 @@
-import { Component, inject, OnInit, OnDestroy, signal, ViewEncapsulation, effect, computed, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal, ViewEncapsulation, effect, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
-import { interval, Subscription } from 'rxjs';
-import { takeWhile } from 'rxjs/operators';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { interval, Subject } from 'rxjs';
+import { takeUntil, startWith } from 'rxjs/operators';
 import { LoadingService } from '../../services/loading.service';
 import { BuyOrderService } from '../../shared/api/buy-order.service';
 import { PaymentRequestService } from '../../shared/api/payment-request.service';
@@ -219,7 +220,7 @@ import { PaymentFormComponent } from './payment-form.component';
                   <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
                   <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-                <div class="warning-timer-display">{{ getFormattedTime() }}</div>
+                <div class="warning-timer-display">{{ formattedTime() }}</div>
               </div>
               <p class="warning-message-text">
                 Resta menos de <strong>1 minuto</strong> para concluir o pagamento.
@@ -991,7 +992,6 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   private loadingService = inject(LoadingService);
   private buyOrderService = inject(BuyOrderService);
   private paymentRequestService = inject(PaymentRequestService);
-  private cdr = inject(ChangeDetectorRef);
 
   // Component state
   buyData = signal<BuyOrder | null>(null);
@@ -1008,9 +1008,30 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   private hasShownTimeWarning = false;
   private hasShownTimeoutAlert = false;
 
-  // Timer for payment (for pending status)
-  paymentTimeLeft = signal(0);
-  private paymentTimer: Subscription | null = null;
+  // Timer for payment using pure signals
+  private expiresAt = signal<Date | null>(null);
+  private timerActive = signal(false);
+  private destroy$ = new Subject<void>();
+  
+  // Create a tick signal from RxJS interval - updates every second when timer is active
+  private tick = toSignal(
+    interval(1000).pipe(startWith(0)),
+    { initialValue: 0 }
+  );
+  
+  // Computed signal for time left - recalculates on every tick
+  paymentTimeLeft = computed(() => {
+    // Read tick to trigger recalculation every second
+    this.tick();
+    
+    const expires = this.expiresAt();
+    if (!expires || !this.timerActive()) return 0;
+    
+    const now = new Date();
+    const timeLeftMs = expires.getTime() - now.getTime();
+    // Return actual remaining seconds (never negative)
+    return Math.max(0, Math.floor(timeLeftMs / 1000));
+  });
   
   // Computed signal for formatted time
   formattedTime = computed(() => {
@@ -1052,6 +1073,24 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
         this.btcAmountInSats.set(0);
       }
     });
+    
+    // Watch for timer changes and handle warnings/timeout
+    effect(() => {
+      const timeLeft = this.paymentTimeLeft();
+      
+      // Show warning modal when less than 1 minute remaining (only once)
+      if (timeLeft > 0 && timeLeft < 60 && !this.hasShownTimeWarning) {
+        this.hasShownTimeWarning = true;
+        this.hasReadWarning.set(false);
+        this.showTimeWarningModal.set(true);
+      }
+      
+      // Handle timeout
+      if (this.timerActive() && timeLeft <= 0) {
+        this.timerActive.set(false);
+        this.handlePaymentTimeout();
+      }
+    });
   }
 
   ngOnInit() {
@@ -1068,6 +1107,8 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.clearPaymentTimer();
     this.clearRefreshTimeout();
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   loadBuyData(buyId?: string, showLoading: boolean = true) {
@@ -1161,54 +1202,14 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Clear any existing timer first
-    this.clearPaymentTimer();
-
-    // Update immediately
-    this.updatePaymentTimeLeft(buy);
-
-    // Start the interval timer using RxJS for proper change detection
-    this.paymentTimer = interval(1000)
-      .pipe(
-        takeWhile(() => this.paymentTimeLeft() > 0)
-      )
-      .subscribe(() => {
-        this.updatePaymentTimeLeft(buy);
-      });
-  }
-
-  private updatePaymentTimeLeft(buy: BuyOrder) {
-    const now = new Date();
-    const expiresAt = new Date(buy.expires_at);
-    const timeLeftMs = expiresAt.getTime() - now.getTime();
-    // Cap displayed time at 5 minutes (300 seconds)
-    const timeLeftSeconds = Math.max(0, Math.min(300, Math.floor(timeLeftMs / 1000)));
-
-    console.log('Timer update:', { now: now.toISOString(), expiresAt: expiresAt.toISOString(), timeLeftMs, timeLeftSeconds });
-    
-    this.paymentTimeLeft.set(timeLeftSeconds);
-    
-    // Manually trigger change detection to update the view
-    this.cdr.detectChanges();
-
-    // Show warning modal when less than 1 minute remaining (only once)
-    if (timeLeftSeconds > 0 && timeLeftSeconds < 60 && !this.hasShownTimeWarning) {
-      this.hasShownTimeWarning = true;
-      this.hasReadWarning.set(false); // Reset checkbox when opening modal
-      this.showTimeWarningModal.set(true);
-    }
-
-    if (timeLeftSeconds <= 0) {
-      this.clearPaymentTimer();
-      this.handlePaymentTimeout();
-    }
+    // Set expiration time and activate timer
+    this.expiresAt.set(new Date(buy.expires_at));
+    this.timerActive.set(true);
   }
 
   clearPaymentTimer() {
-    if (this.paymentTimer) {
-      this.paymentTimer.unsubscribe();
-      this.paymentTimer = null;
-    }
+    this.timerActive.set(false);
+    this.expiresAt.set(null);
   }
 
   handlePaymentTimeout() {
