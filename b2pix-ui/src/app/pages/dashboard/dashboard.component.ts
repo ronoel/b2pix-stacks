@@ -1,15 +1,10 @@
 import { Component, OnInit, OnDestroy, signal, inject, ViewEncapsulation } from '@angular/core';
-import { BuyStatus } from '../../shared/models/buy.model';
 
 import { Router } from '@angular/router';
 import { UserService } from '../../services/user.service';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import { WalletType } from '../../libs/wallet/wallet.types';
-import { BuyService } from '../../shared/api/buy.service';
-import { BuyOrderService } from '../../shared/api/buy-order.service';
-import { BuyOrder, BuyOrderStatus } from '../../shared/models/buy-order.model';
 import { environment } from '../../../environments/environment';
-import { TransactionCardComponent } from '../../components/transaction-card/transaction-card.component';
 import { sBTCTokenService } from '../../libs/sbtc-token.service';
 import { QuoteService } from '../../shared/api/quote.service';
 import { AccountValidationService } from '../../shared/api/account-validation.service';
@@ -19,7 +14,7 @@ import { CommonModule } from '@angular/common';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, TransactionCardComponent],
+  imports: [CommonModule],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="dashboard">
@@ -225,65 +220,6 @@ import { CommonModule } from '@angular/common';
           }
         </div>
 
-        <!-- Recent Activity -->
-        <div class="activity-section">
-          <div class="section-header">
-            <h2 class="section-title">Compras Recentes</h2>
-            <button class="btn btn-outline btn-sm" (click)="loadRecentOrders()">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M3 12C3 7.02944 7.02944 3 12 3C14.5755 3 16.9 4.15205 18.5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M21 12C21 16.9706 16.9706 21 12 21C9.42446 21 7.09995 19.848 5.5 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M13 2L18 6L14 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M11 22L6 18L10 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              Atualizar
-            </button>
-          </div>
-          @if (recentTransactions().length > 0) {
-            <div class="activity-list">
-              @for (transaction of recentTransactions(); track transaction.id) {
-                <app-transaction-card
-                  [transaction]="transaction"
-                  (cardClick)="onTransactionClick($event)"
-                />
-              }
-            </div>
-
-            @if (hasMoreBuys()) {
-              <div class="load-more-section">
-                <button
-                  class="btn btn-outline load-more-btn"
-                  (click)="loadMoreBuys()"
-                  [disabled]="isLoadingMore()"
-                >
-                  @if (isLoadingMore()) {
-                    <div class="loading-spinner-sm"></div>
-                    Carregando...
-                  } @else {
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 5V19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M5 12L12 19L19 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    Carregar mais transações
-                  }
-                </button>
-              </div>
-            }
-          } @else {
-            <div class="empty-transactions">
-              <div class="empty-icon">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                  <path d="M12 8V16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M12 8H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-              <h3>Nenhuma transação encontrada</h3>
-              <p>Você ainda não fez nenhuma compra de Bitcoin. Que tal começar agora?</p>
-              <button class="btn btn-primary" (click)="goToBuy()">Comprar Bitcoin</button>
-            </div>
-          }
-        </div>
       </div>
 
       <!-- Receive Bitcoin Modal -->
@@ -557,80 +493,6 @@ import { CommonModule } from '@angular/common';
       color: #1E40AF;
     }
 
-    /* Activity Section */
-    .activity-section {
-      margin-bottom: 32px;
-    }
-
-    .section-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-
-    .section-title {
-      font-size: 18px;
-      font-weight: 600;
-      color: #1F2937;
-      margin: 0;
-    }
-
-    .activity-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    /* Load More Section */
-    .load-more-section {
-      display: flex;
-      justify-content: center;
-      padding: 20px 0;
-      margin-top: 12px;
-    }
-
-    .load-more-btn {
-      min-width: 200px;
-      transition: all 0.2s ease;
-    }
-
-    .load-more-btn:hover:not(:disabled) {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 8px 0 rgb(0 0 0 / 0.1);
-    }
-
-    /* Empty Transactions State */
-    .empty-transactions {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 16px;
-      padding: 40px 24px;
-      text-align: center;
-      background: #FFFFFF;
-      border-radius: 12px;
-      border: 2px dashed #E5E7EB;
-    }
-
-    .empty-transactions .empty-icon {
-      color: #9CA3AF;
-    }
-
-    .empty-transactions h3 {
-      font-size: 18px;
-      color: #1F2937;
-      margin: 0;
-      font-weight: 600;
-    }
-
-    .empty-transactions p {
-      color: #6B7280;
-      margin: 0;
-      max-width: 300px;
-      font-size: 14px;
-    }
-
     /* Responsive Design */
     @media (max-width: 768px) {
       .dashboard {
@@ -689,18 +551,6 @@ import { CommonModule } from '@angular/common';
         width: 36px;
         height: 36px;
       }
-
-      .activity-section {
-        margin-bottom: 24px;
-      }
-
-      .section-title {
-        font-size: 16px;
-      }
-
-      .empty-transactions {
-        padding: 32px 20px;
-      }
     }
 
     @media (max-width: 480px) {
@@ -735,10 +585,6 @@ import { CommonModule } from '@angular/common';
 
       .action-btn span {
         text-align: left;
-      }
-
-      .empty-transactions {
-        padding: 28px 16px;
       }
     }
 
@@ -1101,16 +947,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private userService = inject(UserService);
   private walletManagerService = inject(WalletManagerService);
-  private buyService = inject(BuyService);
-  private buyOrderService = inject(BuyOrderService);
   private sBTCTokenService = inject(sBTCTokenService);
   private quoteService = inject(QuoteService);
   private accountValidationService = inject(AccountValidationService);
-
-  recentOrders = signal<any[]>([]);
-  currentPage = signal<number>(1);
-  hasMoreBuys = signal<boolean>(false);
-  isLoadingMore = signal<boolean>(false);
 
   // Receive modal states
   showReceiveModal = signal<boolean>(false);
@@ -1126,7 +965,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   validationStatus = signal<AccountInfo | null>(null);
 
   ngOnInit() {
-    this.loadRecentOrders();
     this.walletAddress.set(this.walletManagerService.getSTXAddress() || '');
     this.loadBalance();
     this.loadBtcPrice();
@@ -1198,10 +1036,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   currentUser = this.userService.currentUser;
   currentBtcPrice = this.userService.currentBtcPrice;
 
-  recentTransactions() {
-    return this.recentOrders();
-  }
-
   logout() {
     this.userService.logout();
     this.router.navigate(['/']);
@@ -1251,11 +1085,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.router.navigate(['/sbtc-to-btc']);
   }
 
-  onTransactionClick(transaction: any) {
-    // Navigate to buy details for all transactions
-    this.router.navigate(['/buy', transaction.id]);
-  }
-
   isManager(): boolean {
     const currentAddress = this.walletManagerService.getSTXAddress();
     return currentAddress === environment.b2pixAddress;
@@ -1287,217 +1116,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const sats = typeof satoshis === 'string' ? parseInt(satoshis) : satoshis;
     const btc = sats / 100000000; // Convert satoshis to BTC
     return btc.toFixed(8);
-  }
-
-  formatDateTime(dateString: string): string {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    }).format(date);
-  }
-
-  /**
-   * Check if a transaction is actually expired (expires_at has passed)
-   * even if the server status still shows as pending
-   */
-  private isTransactionExpired(transaction: any): boolean {
-    if (!transaction || !transaction.expiresAt) return false;
-
-    const now = new Date();
-    const expiresAt = new Date(transaction.expiresAt);
-    return now.getTime() > expiresAt.getTime();
-  }
-
-  getStatusClass(status: BuyStatus, transaction?: any): string {
-    // Check if it's pending but actually expired
-    if (status === BuyStatus.Pending && transaction && this.isTransactionExpired(transaction)) {
-      return 'warning';
-    }
-
-    switch (status) {
-      // case BuyStatus.Completed:
-      case BuyStatus.PaymentConfirmed:
-      case BuyStatus.DisputeFavorBuyer:
-      case BuyStatus.DisputeResolvedBuyer:
-        return 'completed';
-      case BuyStatus.Pending:
-        return 'pending';
-      case BuyStatus.Paid:
-        return 'processing';
-      case BuyStatus.Cancelled:
-      case BuyStatus.Expired:
-        return 'warning';
-      case BuyStatus.InDispute:
-      case BuyStatus.DisputeFavorSeller:
-      case BuyStatus.DisputeResolvedSeller:
-        return 'warning';
-      default:
-        return 'warning';
-    }
-  }
-
-  getStatusLabel(status: BuyStatus, transaction?: any): string {
-    // Check if it's pending but actually expired
-    if (status === BuyStatus.Pending && transaction && this.isTransactionExpired(transaction)) {
-      return 'Expirada';
-    }
-
-    switch (status) {
-      case BuyStatus.Pending:
-        return 'Pendente';
-      case BuyStatus.Paid:
-        return 'Verificando Pagamento';
-      case BuyStatus.PaymentConfirmed:
-        return 'Pagamento Confirmado';
-      // case BuyStatus.Completed:
-      //   return 'Concluída';
-      case BuyStatus.Cancelled:
-        return 'Cancelada';
-      case BuyStatus.Expired:
-        return 'Expirada';
-      case BuyStatus.InDispute:
-        return 'Em Disputa';
-      case BuyStatus.DisputeFavorBuyer:
-        return 'Disputa a Favor do Comprador';
-      case BuyStatus.DisputeFavorSeller:
-        return 'Disputa a Favor do Vendedor';
-      case BuyStatus.DisputeResolvedBuyer:
-        return 'Disputa Resolvida a Favor do Comprador';
-      case BuyStatus.DisputeResolvedSeller:
-        return 'Disputa Resolvida a Favor do Vendedor';
-      default:
-        return 'Em análise';
-    }
-  }
-
-  formatDate(date: string): string {
-    return new Date(date).toLocaleDateString('pt-BR');
-  }
-
-  getTransactionTitle(transaction: any): string {
-    if (transaction.type === 'buy') return 'Compra de Bitcoin';
-    if (transaction.type === 'sell') return 'Venda de Bitcoin';
-    return 'Transação';
-  }
-
-  getTransactionDetails(transaction: any): string {
-    const amount = transaction.amount || '0';
-    const price = transaction.price || '0';
-    return `${amount} BTC por R$ ${this.formatCurrency(parseFloat(price))}`;
-  }
-
-  getTimeAgo(date: string): string {
-    const now = new Date();
-    const transactionDate = new Date(date);
-    const diffInMs = now.getTime() - transactionDate.getTime();
-    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-    const diffInDays = Math.floor(diffInHours / 24);
-
-    if (diffInDays > 0) {
-      return `${diffInDays}d atrás`;
-    } else if (diffInHours > 0) {
-      return `${diffInHours}h atrás`;
-    } else {
-      return 'Agora mesmo';
-    }
-  }
-
-  loadRecentOrders(append: boolean = false) {
-    const currentAddress = this.walletManagerService.getSTXAddress();
-    if (currentAddress) {
-      const page = append ? this.currentPage() : 1;
-
-      if (append) {
-        this.isLoadingMore.set(true);
-      } else {
-        // When refreshing (not appending), also update balance and BTC price
-        this.loadBalance();
-        this.loadBtcPrice();
-      }
-
-      this.buyOrderService.getBuyOrdersByAddress(currentAddress, {
-        page: page,
-        limit: 3
-      }).subscribe({
-        next: (response) => {
-          // Map BuyOrder to transaction format for display
-          const mappedBuys = response.buy_orders.map(order => ({
-            id: order.id,
-            type: 'buy',
-            amount: order.amount?.toString() || '0',
-            price: '0', // Not available in new model
-            payValue: order.buy_value.toString(),
-            pricePerBtc: '0', // Not available in new model
-            status: this.mapBuyOrderStatusToBuyStatus(order.status),
-            createdAt: order.created_at,
-            expiresAt: order.expires_at
-          }));
-
-          if (append) {
-            // Append new buys to existing ones
-            this.recentOrders.set([...this.recentOrders(), ...mappedBuys]);
-            this.isLoadingMore.set(false);
-          } else {
-            // Replace with new buys (initial load)
-            this.recentOrders.set(mappedBuys);
-            this.currentPage.set(1);
-          }
-
-          // Check if there are more pages available
-          this.hasMoreBuys.set(response.has_more);
-        },
-        error: (error) => {
-          console.error('Error loading recent orders:', error);
-          if (!append) {
-            this.recentOrders.set([]);
-          }
-          this.isLoadingMore.set(false);
-        }
-      });
-    }
-  }
-
-  private mapBuyOrderStatusToBuyStatus(status: BuyOrderStatus): string {
-    switch (status) {
-      case BuyOrderStatus.Created:
-        return 'pending';
-      case BuyOrderStatus.Processing:
-        return 'paid';
-      case BuyOrderStatus.Analyzing:
-        return 'indispute';
-      case BuyOrderStatus.Confirmed:
-        return 'payment_confirmed';
-      case BuyOrderStatus.Rejected:
-        return 'cancelled';
-      case BuyOrderStatus.Canceled:
-        return 'cancelled';
-      case BuyOrderStatus.Expired:
-        return 'expired';
-      default:
-        return 'pending';
-    }
-  }
-
-  loadMoreBuys() {
-    this.currentPage.set(this.currentPage() + 1);
-    this.loadRecentOrders(true);
-  }
-
-  formatTransactionId(txId: string): string {
-    if (!txId || txId.length <= 12) return txId;
-    return `${txId.substring(0, 8)}...${txId.substring(txId.length - 4)}`;
-  }
-
-  getBlockchainExplorerUrl(txId: string): string {
-    // Add 0x prefix if not present and generate Hiro explorer link
-    const transactionId = txId.startsWith('0x') ? txId : `0x${txId}`;
-    const chain = environment.network === 'mainnet' ? 'mainnet' : 'testnet';
-    return `https://explorer.hiro.so/txid/${transactionId}?chain=${chain}`;
   }
 
   formatSats(amount: string): string {
