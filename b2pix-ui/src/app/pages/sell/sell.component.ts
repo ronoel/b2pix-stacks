@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { LoadingService } from '../../services/loading.service';
-import { QuoteService } from '../../shared/api/quote.service';
 import { SellOrderService } from '../../shared/api/sell-order.service';
 import { AccountValidationService } from '../../shared/api/account-validation.service';
 import { sBTCTokenService } from '../../libs/sbtc-token.service';
@@ -27,7 +26,6 @@ import { environment } from '../../../environments/environment';
 export class SellComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   protected loadingService = inject(LoadingService);
-  private quoteService = inject(QuoteService);
   private sellOrderService = inject(SellOrderService);
   private accountValidationService = inject(AccountValidationService);
   private sBTCTokenService = inject(sBTCTokenService);
@@ -169,12 +167,11 @@ export class SellComponent implements OnInit, OnDestroy {
   // Quote methods
   startPricePolling() {
     this.isLoadingQuote.set(true);
-    // Use getBtcPriceStream() for automatic polling every 30 seconds
-    this.priceSubscription = this.quoteService.getBtcPriceStream().subscribe({
-      next: (response) => {
+    this.priceSubscription = this.sellOrderService.getBtcPrice().subscribe({
+      next: (quote) => {
         // Convert price from cents to reais
-        const priceInReais = parseInt(response.price) / 100;
-        this.currentBtcPrice.set(priceInReais);
+        const priceInCents = parseInt(quote.price, 10);
+        this.currentBtcPrice.set(priceInCents / 100);
         this.isLoadingQuote.set(false);
       },
       error: (error) => {
