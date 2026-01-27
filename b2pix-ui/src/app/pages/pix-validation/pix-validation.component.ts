@@ -107,7 +107,16 @@ export class PixValidationComponent implements OnInit, OnDestroy {
         break;
       case 'verified':
         this.step.set('success');
-        setTimeout(() => this.router.navigateByUrl(this.returnUrl), 1500);
+        // Refresh account data before redirecting
+        this.validationService.getAccount().subscribe({
+          next: () => {
+            setTimeout(() => this.router.navigateByUrl(this.returnUrl), 1500);
+          },
+          error: () => {
+            // Even if refresh fails, still redirect
+            setTimeout(() => this.router.navigateByUrl(this.returnUrl), 1500);
+          }
+        });
         break;
       case 'failed':
         this.step.set('failed');
@@ -195,7 +204,16 @@ export class PixValidationComponent implements OnInit, OnDestroy {
         if (response.status === 'verified') {
           // Pagamento encontrado e validado - sucesso!
           this.step.set('success');
-          setTimeout(() => this.router.navigateByUrl(this.returnUrl), 2000);
+          // Refresh account data before redirecting
+          this.validationService.getAccount().subscribe({
+            next: () => {
+              setTimeout(() => this.router.navigateByUrl(this.returnUrl), 2000);
+            },
+            error: () => {
+              // Even if refresh fails, still redirect
+              setTimeout(() => this.router.navigateByUrl(this.returnUrl), 2000);
+            }
+          });
         } else if (response.status === 'failed') {
           // Máximo de tentativas excedido
           this.step.set('failed');
@@ -261,7 +279,16 @@ export class PixValidationComponent implements OnInit, OnDestroy {
           if (verify?.status === 'verified') {
             this.stopPolling();
             this.step.set('success');
-            setTimeout(() => this.router.navigateByUrl(this.returnUrl), 2000);
+            // Refresh account data before redirecting
+            this.validationService.getAccount().subscribe({
+              next: () => {
+                setTimeout(() => this.router.navigateByUrl(this.returnUrl), 2000);
+              },
+              error: () => {
+                // Even if refresh fails, still redirect
+                setTimeout(() => this.router.navigateByUrl(this.returnUrl), 2000);
+              }
+            });
           } else if (verify?.status === 'failed') {
             this.stopPolling();
             this.step.set('failed');

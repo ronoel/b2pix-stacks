@@ -92,10 +92,21 @@ export class EmailValidationComponent implements OnInit, OnDestroy {
         this.loading.set(false);
         this.step.set('success');
 
-        // Redirecionar após 1.5 segundos
-        setTimeout(() => {
-          this.router.navigateByUrl(this.returnUrl);
-        }, 1500);
+        // Refresh account data before redirecting
+        this.validationService.getAccount().subscribe({
+          next: () => {
+            // Account data refreshed, now redirect after 1.5 segundos
+            setTimeout(() => {
+              this.router.navigateByUrl(this.returnUrl);
+            }, 1500);
+          },
+          error: () => {
+            // Even if refresh fails, still redirect
+            setTimeout(() => {
+              this.router.navigateByUrl(this.returnUrl);
+            }, 1500);
+          }
+        });
       },
       error: (err) => {
         this.loading.set(false);
