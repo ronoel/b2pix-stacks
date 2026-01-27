@@ -172,13 +172,13 @@ export class BuyOrderService {
   }
 
   /**
-   * Get BTC price and add 2.5% markup
+   * Get BTC price and add 2.3% markup
    */
   getBtcPrice(): Observable<QuoteResponse> {
     return this.quoteService.getBtcPrice().pipe(
       map(response => {
         const priceInCents = parseInt(response.price, 10);
-        const markedUpPrice = Math.ceil(priceInCents * 1.023); // Add 2.5% markup
+        const markedUpPrice = Math.ceil(priceInCents * 1.023); // Add 2.3% markup
         return { price: markedUpPrice.toString() };
       })
     );
