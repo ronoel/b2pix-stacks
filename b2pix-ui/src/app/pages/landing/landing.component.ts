@@ -567,7 +567,7 @@ export class LandingComponent {
 
   constructor() {
     effect(() => {
-      // Only redirect if user just connected wallet and has a claimed invite
+      // Redirect to dashboard after wallet connection
       if (this.walletManager.isLoggedInSignal() && this.connectWalletClicked) {
         this.router.navigate(['/dashboard']);
       }

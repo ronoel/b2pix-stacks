@@ -6,7 +6,6 @@ import { AccountValidationService } from '../../shared/api/account-validation.se
 
 /**
  * Guard que verifica se o usuário tem email e PIX verificados
- * Substitui o inviteRequiredGuard
  */
 export const accountValidationGuard: CanActivateFn = (route, state) => {
   const walletManager = inject(WalletManagerService);

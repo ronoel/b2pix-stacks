@@ -4,7 +4,6 @@ import { Subscription } from 'rxjs';
 import { LoadingService } from '../../services/loading.service';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import { BuyOrderService } from '../../shared/api/buy-order.service';
-import { InvitesService } from '../../shared/api/invites.service';
 import { AccountValidationService } from '../../shared/api/account-validation.service';
 import { AccountInfo } from '../../shared/models/account-validation.model';
 import { CommonModule } from '@angular/common';
@@ -23,8 +22,6 @@ export class BuyComponent implements OnInit, OnDestroy {
   private loadingService = inject(LoadingService);
   private walletManagerService = inject(WalletManagerService);
   private buyOrderService = inject(BuyOrderService);
-  private invitesService = inject(InvitesService);
-  // private quoteService = inject(QuoteService);
   private accountValidationService = inject(AccountValidationService);
 
   // Core signals
@@ -212,43 +209,7 @@ export class BuyComponent implements OnInit, OnDestroy {
   }
 
   startBuyProcess() {
-    // Check invite status before showing modal
-    this.loadingService.show('Verificando convite...');
-
-    this.invitesService.getWalletInvite().subscribe({
-      next: (invite) => {
-        this.loadingService.hide();
-
-        if (!invite) {
-          this.router.navigate(['/invite-validation'], {
-            queryParams: { returnUrl: '/buy' }
-          });
-          return;
-        }
-
-        if (invite.status === 'blocked') {
-          this.router.navigate(['/blocked']);
-          return;
-        }
-
-        if (invite.status !== 'claimed') {
-          this.router.navigate(['/invite-validation'], {
-            queryParams: { returnUrl: '/buy' }
-          });
-          return;
-        }
-
-        // Invite is valid, show confirmation modal
-        this.showConfirmationModal.set(true);
-      },
-      error: (error) => {
-        this.loadingService.hide();
-        console.error('Error checking invite status:', error);
-        this.router.navigate(['/invite-validation'], {
-          queryParams: { returnUrl: '/buy' }
-        });
-      }
-    });
+    this.showConfirmationModal.set(true);
   }
 
   closeConfirmationModal() {

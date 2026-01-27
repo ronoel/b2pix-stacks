@@ -1,23 +1,12 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
-import { validateInviteGuard } from './core/guards/validate-invite.guard';
 import { managerGuard } from './core/guards/manager.guard';
-import { inviteRequiredGuard } from './core/guards/invite-required.guard';
-import { accountValidationGuard } from './core/guards/account-validation.guard';
 import { requireWalletOnlyGuard } from './core/guards/require-wallet-only.guard';
 
 export const routes: Routes = [
   {
     path: '',
     loadComponent: () => import('./pages/landing/landing.component').then(m => m.LandingComponent)
-  },
-  {
-    path: 'request-invite',
-    loadComponent: () => import('./pages/request-invite/request-invite.component').then(m => m.RequestInviteComponent)
-  },
-  {
-    path: 'pending-approval',
-    loadComponent: () => import('./pages/pending-approval/pending-approval.component').then(m => m.PendingApprovalComponent)
   },
   {
     path: 'dashboard',
@@ -60,11 +49,6 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
-    path: 'invite-validation',
-    loadComponent: () => import('./pages/invite-validation/invite-validation.component').then(m => m.InviteValidationComponent),
-    canActivate: [validateInviteGuard]
-  },
-  {
     path: 'blocked',
     loadComponent: () => import('./pages/blocked/blocked.component').then(m => m.BlockedComponent)
   },
@@ -88,11 +72,6 @@ export const routes: Routes = [
     path: 'dispute-details/:id',
     redirectTo: 'analyzing-order/:id',
     pathMatch: 'full'
-  },
-  {
-    path: 'send-invite',
-    loadComponent: () => import('./pages/send-invite/send-invite.component').then(m => m.SendInviteComponent),
-    canActivate: [authGuard, managerGuard]
   },
   {
     path: 'payment-requests',

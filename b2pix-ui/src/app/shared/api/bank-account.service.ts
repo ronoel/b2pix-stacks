@@ -2,9 +2,8 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { Observable, from } from 'rxjs';
-import { switchMap, tap } from 'rxjs/operators';
+import { switchMap } from 'rxjs/operators';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
-import { InvitesService } from './invites.service';
 import { SignedRequest } from '../models/api.model';
 
 export interface BankSetupRequest extends SignedRequest {
@@ -21,7 +20,6 @@ export class BankAccountService {
   private http = inject(HttpClient);
   private apiUrl = environment.apiUrl;
   private walletManager = inject(WalletManagerService);
-  private invitesService = inject(InvitesService);
 
   private getTimestamp(): string {
     return new Date().toISOString();
@@ -43,12 +41,7 @@ export class BankAccountService {
           certificate: certificateBase64,
           filename
         };
-        return this.http.post<BankSetupResponse>(`${this.apiUrl}/v1/bank-credentials/banksetup`, data).pipe(
-          tap(() => {
-            // Clear cache when claiming an invite as the status might change
-            this.invitesService.clearInviteCache();
-          })
-        );
+        return this.http.post<BankSetupResponse>(`${this.apiUrl}/v1/bank-credentials/banksetup`, data);
       })
     );
   }

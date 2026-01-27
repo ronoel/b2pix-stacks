@@ -176,16 +176,6 @@ import { CommonModule } from '@angular/common';
                   <span>Disputas</span>
                 </button>
 
-                <button class="action-btn admin" (click)="goToSendInvite()">
-                  <div class="btn-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                      <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </div>
-                  <span>Convites</span>
-                </button>
-
                 <button class="action-btn admin" (click)="goToPaymentRequests()">
                   <div class="btn-icon">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -1051,10 +1041,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   goToDisputeManagement() {
     this.router.navigate(['/order-analysis']);
-  }
-
-  goToSendInvite() {
-    this.router.navigate(['/send-invite']);
   }
 
   goToPaymentRequests() {
