@@ -1,10 +1,11 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, from, of, delay } from 'rxjs';
+import { Observable, from } from 'rxjs';
 import { switchMap, catchError, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { BoltContractSBTCService } from '../../libs/bolt-contract-sbtc.service';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
+import { QuoteService, QuoteResponse } from './quote.service';
 import {
   SellOrder,
   SellOrderStatus,
@@ -23,6 +24,7 @@ export class SellOrderService {
   private apiUrl = environment.apiUrl;
   private boltContractSBTCService = inject(BoltContractSBTCService);
   private walletManager = inject(WalletManagerService);
+  private quoteService = inject(QuoteService);
 
   /**
    * Create a new sell order
@@ -76,8 +78,7 @@ export class SellOrderService {
     }).pipe(
       catchError((error) => {
         console.error('Error fetching sell orders:', error);
-        // Return mock data for now since API may not be ready
-        return this.getMockSellOrders(address, params);
+        throw error;
       })
     );
   }
@@ -91,8 +92,7 @@ export class SellOrderService {
     return this.http.get<SellOrder>(`${this.apiUrl}/v1/sell-orders/${id}`).pipe(
       catchError((error) => {
         console.error('Error fetching sell order:', error);
-        // Return mock data for now
-        return this.getMockSellOrderById(id);
+        throw error;
       })
     );
   }
@@ -231,40 +231,35 @@ export class SellOrderService {
     return maxSatsFromBalance > maxSatsFromBrl ? maxSatsFromBrl : maxSatsFromBalance;
   }
 
-  // ============================================
-  // MOCK DATA - Remove when API is implemented
-  // ============================================
-
-  private getMockSellOrders(address: string, params?: GetSellOrdersParams): Observable<PaginatedSellOrdersResponse> {
-    // Return empty list for now - real data will come from API
-    const mockResponse: PaginatedSellOrdersResponse = {
-      items: [],
-      page: params?.page || 1,
-      limit: params?.limit || 5,
-      has_more: false
-    };
-
-    return of(mockResponse).pipe(delay(300));
+  /**
+   * Get BTC price with -2.3% discount (for selling)
+   * @returns Observable with discounted BTC price in cents
+   */
+  getBtcPrice(): Observable<QuoteResponse> {
+    return this.quoteService.getBtcPrice().pipe(
+      map(response => {
+        const priceInCents = parseInt(response.price, 10);
+        const discountedPrice = Math.floor(priceInCents * 0.977); // Subtract 2.3% markup
+        return { price: discountedPrice.toString() };
+      })
+    );
   }
 
-  private getMockSellOrderById(id: string): Observable<SellOrder> {
-    const mockOrder: SellOrder = {
-      id: id,
-      address_seller: this.walletManager.getSTXAddress() || '',
-      amount: 50000,
-      pix_key: '12345678900',
-      status: SellOrderStatus.Pending,
-      is_final: false,
-      sell_value: null,
-      pix_id: null,
-      tx_hash: null,
-      confirmed_at: null,
-      paid_at: null,
-      error_message: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-
-    return of(mockOrder).pipe(delay(300));
+  /**
+   * Get satoshis amount for a given BRL price in cents (with -2.3% discount applied)
+   * @param priceInCents Amount in BRL cents
+   * @returns Observable with satoshis amount
+   */
+  getSatoshisForPrice(priceInCents: number): Observable<number> {
+    return this.getBtcPrice().pipe(
+      map(quote => {
+        const btcPriceInCents = parseInt(quote.price, 10);
+        // btcPrice is the total price of 1 BTC in cents (already discounted by 2.3%)
+        // 1 BTC = 100,000,000 satoshis
+        // satoshis = (priceInCents * 100000000) / btcPriceInCents
+        const satoshis = Math.floor((priceInCents * 100000000) / btcPriceInCents);
+        return satoshis;
+      })
+    );
   }
 }
