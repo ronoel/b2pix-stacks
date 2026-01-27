@@ -171,26 +171,32 @@ export class BuyComponent implements OnInit, OnDestroy {
     return this.customAmount();
   }
 
-  getEstimatedBitcoinAmount(): number {
+  /**
+   * Calculate estimated Bitcoin amount in satoshis (single source of truth)
+   */
+  getEstimatedBitcoinAmountInSats(): number {
     const amountBrl = this.getCurrentAmount();
     const quote = this.currentQuotePrice();
 
     if (!quote || amountBrl <= 0) return 0;
 
-    // Convert BRL to cents, then to BTC
+    // Convert BRL to cents
     const amountInCents = amountBrl * 100;
     const pricePerBtcInCents = quote;
 
-    // BTC = (amount in cents) / (price per BTC in cents)
-    return amountInCents / pricePerBtcInCents;
+    // Calculate BTC amount
+    const btcAmount = amountInCents / pricePerBtcInCents;
+    
+    // Convert to satoshis (1 BTC = 100,000,000 sats)
+    return Math.floor(btcAmount * 100000000);
   }
 
-  getEstimatedBitcoinAmountInSats(): number {
-    return Math.floor(this.getEstimatedBitcoinAmount() * 100000000);
-  }
-
-  formatBitcoinAmount(amount: number): string {
-    return amount.toFixed(8);
+  /**
+   * Format satoshis as BTC with 8 decimal places
+   */
+  formatBitcoinAmount(sats: number): string {
+    const btc = sats / 100000000;
+    return btc.toFixed(8);
   }
 
   formatCurrency(value: number): string {

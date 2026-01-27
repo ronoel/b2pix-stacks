@@ -95,7 +95,7 @@
           </div>
           <div class="estimate-row highlight">
             <span class="estimate-label">Você receberá (estimativa):</span>
-            <span class="estimate-value btc">{{ formatBitcoinAmount(getEstimatedBitcoinAmount()) }} BTC</span>
+            <span class="estimate-value btc">{{ formatBitcoinAmount(getEstimatedBitcoinAmountInSats()) }} BTC</span>
           </div>
           <div class="estimate-row">
             <span class="estimate-label">Em satoshis:</span>
@@ -286,7 +286,7 @@
 
                 <div class="final-estimate">
                   <span class="estimate-label">Estimativa de Bitcoin:</span>
-                  <span class="estimate-value">{{ formatBitcoinAmount(getEstimatedBitcoinAmount()) }} BTC</span>
+                  <span class="estimate-value">{{ formatBitcoinAmount(getEstimatedBitcoinAmountInSats()) }} BTC</span>
                   <span class="estimate-sats">({{ formatSats(getEstimatedBitcoinAmountInSats()) }} sats)</span>
                 </div>
 
