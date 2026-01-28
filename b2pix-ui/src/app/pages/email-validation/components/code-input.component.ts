@@ -35,10 +35,13 @@ import { FormsModule } from '@angular/forms';
     .code-inputs {
       display: flex;
       gap: 0.5rem;
+      width: 100%;
+      max-width: 22rem;
     }
 
     .code-digit {
-      width: 3rem;
+      flex: 1;
+      min-width: 0;
       height: 3.5rem;
       text-align: center;
       font-size: 1.5rem;
@@ -56,6 +59,18 @@ import { FormsModule } from '@angular/forms';
 
     .code-digit:not(:placeholder-shown) {
       border-color: #198754;
+    }
+
+    @media (max-width: 576px) {
+      .code-inputs {
+        gap: 0.375rem;
+        max-width: 100%;
+      }
+
+      .code-digit {
+        height: 3rem;
+        font-size: 1.25rem;
+      }
     }
   `]
 })
@@ -133,14 +148,19 @@ export class CodeInputComponent implements AfterViewInit {
       const newDigits = numbers.split('').concat(Array(6).fill('')).slice(0, 6);
       this.digits.set(newDigits);
 
-      // Focar no último dígito preenchido ou no próximo vazio
-      const nextEmptyIndex = newDigits.findIndex(d => d === '');
-      const focusIndex = nextEmptyIndex === -1 ? 5 : Math.max(0, nextEmptyIndex);
-      setTimeout(() => {
-        this.inputs.get(focusIndex)?.nativeElement.focus();
-      }, 0);
+      // Atualizar os valores dos inputs diretamente para garantir que funcionem em mobile
+      requestAnimationFrame(() => {
+        this.inputs.forEach((input, index) => {
+          input.nativeElement.value = newDigits[index];
+        });
 
-      this.checkComplete(newDigits);
+        // Focar no último dígito preenchido ou no próximo vazio
+        const nextEmptyIndex = newDigits.findIndex(d => d === '');
+        const focusIndex = nextEmptyIndex === -1 ? 5 : Math.max(0, nextEmptyIndex);
+        this.inputs.get(focusIndex)?.nativeElement.focus();
+
+        this.checkComplete(newDigits);
+      });
     }
   }
 
