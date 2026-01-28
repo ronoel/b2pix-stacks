@@ -30,6 +30,7 @@ import { FormsModule } from '@angular/forms';
       display: flex;
       justify-content: center;
       margin: 1.5rem 0;
+      width: 100%;
     }
 
     .code-inputs {
@@ -40,8 +41,9 @@ import { FormsModule } from '@angular/forms';
     }
 
     .code-digit {
-      flex: 1;
+      flex: 1 1 0;
       min-width: 0;
+      width: 0;
       height: 3.5rem;
       text-align: center;
       font-size: 1.5rem;
@@ -49,6 +51,7 @@ import { FormsModule } from '@angular/forms';
       border: 2px solid #dee2e6;
       border-radius: 0.5rem;
       transition: all 0.2s;
+      padding: 0;
     }
 
     .code-digit:focus {
@@ -62,14 +65,31 @@ import { FormsModule } from '@angular/forms';
     }
 
     @media (max-width: 576px) {
+      .code-input-container {
+        margin: 1rem 0;
+      }
+
       .code-inputs {
-        gap: 0.375rem;
+        gap: 0.25rem;
         max-width: 100%;
       }
 
       .code-digit {
-        height: 3rem;
-        font-size: 1.25rem;
+        height: 2.75rem;
+        font-size: 1.125rem;
+        border-radius: 0.375rem;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .code-inputs {
+        gap: 0.125rem;
+      }
+
+      .code-digit {
+        height: 2.5rem;
+        font-size: 1rem;
+        border-width: 1.5px;
       }
     }
   `]
