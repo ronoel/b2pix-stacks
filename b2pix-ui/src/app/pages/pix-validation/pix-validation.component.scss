@@ -202,8 +202,20 @@
   h3 {
     text-align: center;
     color: #333;
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
     font-size: 1.5rem;
+  }
+
+  .validation-explanation {
+    text-align: center;
+    color: #6B7280;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: #F0F9FF;
+    border: 1px solid #BAE6FD;
+    border-radius: 0.5rem;
   }
 }
 

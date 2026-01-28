@@ -237,7 +237,7 @@ export class BuyComponent implements OnInit, OnDestroy {
   }
 
   nextStep() {
-    if (this.canProceedToNextStep() && this.currentModalStep() < 4) {
+    if (this.canProceedToNextStep() && this.currentModalStep() < 3) {
       this.currentModalStep.set(this.currentModalStep() + 1);
     }
   }

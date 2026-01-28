@@ -4,7 +4,7 @@
       <!-- Header -->
       <div class="card-header">
         <h2>Validação de Conta Bancária</h2>
-        <p class="subtitle">Confirme sua chave PIX com um depósito</p>
+        <p class="subtitle">Para validar sua conta, é necessário fazer um pequeno depósito de verificação</p>
       </div>
 
       <!-- Enter PIX Key Step -->
@@ -108,17 +108,18 @@
 
           <div class="deposit-instructions">
             <h3>Validação da conta bancária</h3>
+            <p class="validation-explanation">Este depósito é necessário para confirmar que você é o titular da conta bancária. Após a validação, você poderá realizar compras e vendas normalmente.</p>
 
             <div class="instruction-step">
               <div class="step-number">1</div>
               <div class="step-content">
-                <h4>Valor do depósito</h4>
+                <h4>Valor do depósito de validação</h4>
                 <div class="value-display">
                   R$ {{ pixVerification()!.confirmation_value_brl }}
                 </div>
                 <p class="value-warning">
                   <i class="bi bi-exclamation-triangle"></i>
-                  <strong>Atenção:</strong> Envie exatamente este valor.
+                  <strong>Atenção:</strong> Envie exatamente este valor para validar sua conta.
                 </p>
               </div>
             </div>
