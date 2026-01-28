@@ -136,6 +136,23 @@ export class WalletManagerService {
   }
 
   /**
+   * Import embedded wallet from mnemonic with WebAuthn passkey
+   */
+  async importEmbeddedWalletWithPasskey(mnemonic: string, username: string = 'user'): Promise<void> {
+    try {
+      const adapter = new EmbeddedWalletAdapter();
+      const connectionData = await adapter.importFromMnemonicWithPasskey(mnemonic, username);
+
+      this.currentAdapter = adapter;
+      this.isLoggedInSignal.set(true);
+      this.userAddressSignal.set(connectionData.address);
+      this.walletTypeSignal.set(WalletType.EMBEDDED);
+    } catch (error) {
+      throw new Error('Failed to import embedded wallet with passkey: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
+  }
+
+  /**
    * Unlock existing embedded wallet with password
    */
   async unlockEmbeddedWallet(password: string): Promise<void> {

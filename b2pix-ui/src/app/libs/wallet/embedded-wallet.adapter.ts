@@ -193,6 +193,41 @@ export class EmbeddedWalletAdapter implements WalletAdapter {
     }
   }
 
+  /**
+   * Import wallet from mnemonic with WebAuthn passkey
+   */
+  async importFromMnemonicWithPasskey(mnemonic: string, username: string = 'user'): Promise<WalletConnectionData> {
+    try {
+      const wallet = await generateWallet({
+        secretKey: mnemonic,
+        password: '' // No password needed for WebAuthn
+      });
+
+      const account = wallet.accounts[0];
+      this.address = getStxAddress({ account, network: this.getNetworkName() });
+      this.privateKey = account.stxPrivateKey;
+      this.mnemonic = mnemonic;
+      this.publicKey = compressPublicKey(privateKeyToPublic(this.privateKey));
+
+      // Create WebAuthn credential and store encrypted wallet data
+      await this.saveWalletWithWebAuthn(username);
+
+      this.connected = true;
+
+      if (!this.address) {
+        throw new Error('Failed to import address');
+      }
+
+      return {
+        address: this.address,
+        publicKey: this.publicKey || undefined,
+        walletType: WalletType.EMBEDDED
+      };
+    } catch (error) {
+      throw new Error('Failed to import wallet with passkey: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
+  }
+
   disconnect(): void {
     this.connected = false;
     this.address = null;
