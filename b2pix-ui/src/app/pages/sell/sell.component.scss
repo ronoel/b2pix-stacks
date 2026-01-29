@@ -121,59 +121,6 @@
   }
 }
 
-// Market Info Card (Bitcoin Quote)
-.market-info-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 20px;
-  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
-  border-radius: 12px;
-  margin-bottom: 24px;
-  box-shadow: 0 4px 12px 0 rgb(245 158 11 / 0.3);
-
-  .market-icon { color: rgba(255, 255, 255, 0.9); }
-
-  .market-content { flex: 1; }
-
-  .market-label {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.9);
-    margin-bottom: 6px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .market-value {
-    font-size: 28px;
-    font-weight: 700;
-    color: white;
-    margin-bottom: 6px;
-
-    &.loading {
-      font-size: 16px;
-      opacity: 0.8;
-    }
-  }
-
-  .market-status {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.8);
-    font-weight: 500;
-
-    .status-indicator {
-      width: 6px;
-      height: 6px;
-      background: rgba(255, 255, 255, 0.9);
-      border-radius: 50%;
-      animation: pulse 2s ease-in-out infinite;
-    }
-  }
-}
 
 // Sell Form Section
 .sell-form-section {
@@ -832,13 +779,6 @@
     flex-direction: column;
     align-items: flex-start;
     text-align: left;
-  }
-
-  .market-info-card {
-    padding: 16px;
-    gap: 12px;
-
-    .market-value { font-size: 24px; }
   }
 
   .sell-form-section { padding: 20px; }
