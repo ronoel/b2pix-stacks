@@ -4,8 +4,6 @@ import { Subscription } from 'rxjs';
 import { LoadingService } from '../../services/loading.service';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import { BuyOrderService } from '../../shared/api/buy-order.service';
-import { AccountValidationService } from '../../shared/api/account-validation.service';
-import { AccountInfo } from '../../shared/models/account-validation.model';
 import { CommonModule } from '@angular/common';
 import { BuyHistoryComponent } from './components/buy-history.component';
 
@@ -22,16 +20,12 @@ export class BuyComponent implements OnInit, OnDestroy {
   private loadingService = inject(LoadingService);
   private walletManagerService = inject(WalletManagerService);
   private buyOrderService = inject(BuyOrderService);
-  private accountValidationService = inject(AccountValidationService);
 
   // Core signals
   selectedQuickAmount = signal<number>(0);
   customAmount = signal<number>(0);
   showConfirmationModal = signal<boolean>(false);
   isProcessingPurchase = signal<boolean>(false);
-
-  // Account info
-  accountInfo = signal<AccountInfo | null>(null);
 
   // Step-by-step modal state
   currentModalStep = signal<number>(1);
@@ -60,9 +54,6 @@ export class BuyComponent implements OnInit, OnDestroy {
 
     // Check for active order
     this.checkForActiveOrder();
-
-    // Load validation status
-    this.loadValidationStatus();
   }
 
   ngOnDestroy() {
@@ -90,66 +81,6 @@ export class BuyComponent implements OnInit, OnDestroy {
         error: (error) => {
           console.error('Error checking for active order:', error);
         }
-      });
-    }
-  }
-
-  /**
-   * Load account validation status
-   */
-  loadValidationStatus() {
-    this.accountValidationService.getAccount().subscribe({
-      next: (account) => {
-        this.accountInfo.set(account);
-      },
-      error: (error) => {
-        console.error('Error loading account:', error);
-      }
-    });
-  }
-
-  /**
-   * Check if user account is fully validated (pix_verified indicates full validation)
-   */
-  isAccountValidated(): boolean {
-    const account = this.accountInfo();
-    if (!account) return false;
-    return account.pix_verified;
-  }
-
-  /**
-   * Get validation required message based on current status
-   */
-  getValidationRequiredMessage(): string {
-    const account = this.accountInfo();
-    if (!account) {
-      return 'Para comprar Bitcoin, você precisa validar seu email e conta bancária.';
-    }
-
-    if (!account.email_verified) {
-      return 'Para comprar Bitcoin, você precisa validar seu email primeiro.';
-    }
-
-    if (!account.pix_verified) {
-      return 'Para comprar Bitcoin, você precisa validar sua conta bancária (chave PIX).';
-    }
-
-    return 'Sua conta está totalmente validada.';
-  }
-
-  /**
-   * Navigate to appropriate validation page
-   */
-  goToValidation(): void {
-    const account = this.accountInfo();
-
-    if (!account || !account.email_verified) {
-      this.router.navigate(['/email-validation'], {
-        queryParams: { returnUrl: '/buy' }
-      });
-    } else if (!account.pix_verified) {
-      this.router.navigate(['/pix-validation'], {
-        queryParams: { returnUrl: '/buy' }
       });
     }
   }

@@ -4,10 +4,8 @@ import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { LoadingService } from '../../services/loading.service';
 import { SellOrderService } from '../../shared/api/sell-order.service';
-import { AccountValidationService } from '../../shared/api/account-validation.service';
 import { sBTCTokenService } from '../../libs/sbtc-token.service';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
-import { AccountInfo } from '../../shared/models/account-validation.model';
 import {
   SellOrder,
   SellOrderStatus,
@@ -27,7 +25,6 @@ export class SellComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   protected loadingService = inject(LoadingService);
   private sellOrderService = inject(SellOrderService);
-  private accountValidationService = inject(AccountValidationService);
   private sBTCTokenService = inject(sBTCTokenService);
   private walletManagerService = inject(WalletManagerService);
 
@@ -38,9 +35,6 @@ export class SellComponent implements OnInit, OnDestroy {
   readonly MIN_SELL_BRL_VALIDATION = 45;  // R$ 45,00 actual validation minimum (allows price fluctuation)
   readonly MAX_SELL_BRL_VALIDATION = 210; // R$ 210,00 actual validation limit (allows price fluctuation)
   readonly QUICK_AMOUNTS_BRL = [50, 100, 150, 200];
-
-  // Account validation
-  accountInfo = signal<AccountInfo | null>(null);
 
   // Balance and pricing
   sBtcBalance = signal<number>(0);
@@ -80,7 +74,6 @@ export class SellComponent implements OnInit, OnDestroy {
   Number = Number;
 
   ngOnInit() {
-    this.loadAccountValidation();
     this.loadBalance();
     this.startPricePolling();
     this.loadSellOrders();
@@ -90,55 +83,6 @@ export class SellComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     if (this.priceSubscription) {
       this.priceSubscription.unsubscribe();
-    }
-  }
-
-  // Account validation methods
-  loadAccountValidation() {
-    this.accountValidationService.getAccount().subscribe({
-      next: (account) => {
-        this.accountInfo.set(account);
-      },
-      error: (error) => {
-        console.error('Error loading account:', error);
-      }
-    });
-  }
-
-  isAccountValidated(): boolean {
-    const account = this.accountInfo();
-    if (!account) return false;
-    return account.pix_verified;
-  }
-
-  getValidationRequiredMessage(): string {
-    const account = this.accountInfo();
-    if (!account) {
-      return 'Para vender Bitcoin, você precisa validar seu email e conta bancária.';
-    }
-
-    if (!account.email_verified) {
-      return 'Para vender Bitcoin, você precisa validar seu email primeiro.';
-    }
-
-    if (!account.pix_verified) {
-      return 'Para vender Bitcoin, você precisa validar sua conta bancária (chave PIX).';
-    }
-
-    return 'Sua conta está totalmente validada.';
-  }
-
-  goToValidation(): void {
-    const account = this.accountInfo();
-
-    if (!account || !account.email_verified) {
-      this.router.navigate(['/email-validation'], {
-        queryParams: { returnUrl: '/sell' }
-      });
-    } else if (!account.pix_verified) {
-      this.router.navigate(['/pix-validation'], {
-        queryParams: { returnUrl: '/sell' }
-      });
     }
   }
 

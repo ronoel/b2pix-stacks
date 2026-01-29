@@ -5,7 +5,8 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import { AccountValidationService } from '../../shared/api/account-validation.service';
 
 /**
- * Guard que verifica se o usuário tem email e PIX verificados
+ * Guard que verifica se o usuário tem email e PIX verificados.
+ * Se não estiver validado, redireciona para a página de validação necessária.
  */
 export const accountValidationGuard: CanActivateFn = (route, state) => {
   const walletManager = inject(WalletManagerService);
@@ -21,17 +22,9 @@ export const accountValidationGuard: CanActivateFn = (route, state) => {
   // 2. Verificar status de validação usando getAccount()
   return validationService.getAccount().pipe(
     map((account) => {
-      // Verificar email primeiro
-      if (!account.email_verified) {
-        router.navigate(['/email-validation'], {
-          queryParams: { returnUrl: state.url }
-        });
-        return false;
-      }
-
-      // Verificar PIX
-      if (!account.pix_verified) {
-        router.navigate(['/pix-validation'], {
+      // Se email OU PIX não estão verificados, redirecionar para página de validação
+      if (!account.email_verified || !account.pix_verified) {
+        router.navigate(['/account-validation-required'], {
           queryParams: { returnUrl: state.url }
         });
         return false;
@@ -42,8 +35,8 @@ export const accountValidationGuard: CanActivateFn = (route, state) => {
     }),
     catchError((error) => {
       console.error('Validation check error:', error);
-      // Em caso de erro, redirecionar para validação de email
-      router.navigate(['/email-validation'], {
+      // Em caso de erro, redirecionar para página de validação
+      router.navigate(['/account-validation-required'], {
         queryParams: { returnUrl: state.url }
       });
       return of(false);

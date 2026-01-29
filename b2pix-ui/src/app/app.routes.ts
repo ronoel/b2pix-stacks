@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { managerGuard } from './core/guards/manager.guard';
 import { requireWalletOnlyGuard } from './core/guards/require-wallet-only.guard';
+import { accountValidationGuard } from './core/guards/account-validation.guard';
 
 export const routes: Routes = [
   {
@@ -16,12 +17,17 @@ export const routes: Routes = [
   {
     path: 'buy',
     loadComponent: () => import('./pages/buy/buy.component').then(m => m.BuyComponent),
-    canActivate: [authGuard]
+    canActivate: [authGuard, accountValidationGuard]
   },
   {
     path: 'buy/:id',
     loadComponent: () => import('./pages/buy-details/buy-details.component').then(m => m.BuyDetailsComponent),
     canActivate: [authGuard]
+  },
+  {
+    path: 'account-validation-required',
+    loadComponent: () => import('./pages/account-validation-required/account-validation-required.component').then(m => m.AccountValidationRequiredComponent),
+    canActivate: [requireWalletOnlyGuard]
   },
   {
     path: 'email-validation',
@@ -36,7 +42,7 @@ export const routes: Routes = [
   {
     path: 'sell',
     loadComponent: () => import('./pages/sell/sell.component').then(m => m.SellComponent),
-    canActivate: [authGuard]
+    canActivate: [authGuard, accountValidationGuard]
   },
   {
     path: 'sell/:id',

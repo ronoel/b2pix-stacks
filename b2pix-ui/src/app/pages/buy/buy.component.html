@@ -112,43 +112,22 @@
         </div>
 
         <div class="buy-action-container">
-          @if (!isAccountValidated()) {
-            <div class="validation-required-card">
-              <div class="validation-icon">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 9V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <circle cx="12" cy="17" r="1" fill="currentColor"/>
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                </svg>
-              </div>
-              <h3>Validação de Conta Necessária</h3>
-              <p>{{ getValidationRequiredMessage() }}</p>
-              <button class="btn btn-primary btn-lg" (click)="goToValidation()">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                </svg>
-                Iniciar Validação
-              </button>
-            </div>
-          } @else {
-            <button
-              class="btn btn-success btn-lg buy-btn"
-              (click)="startBuyProcess()"
-              [disabled]="isProcessingPurchase()"
-            >
-              @if (isProcessingPurchase()) {
-                <div class="loading-spinner-sm"></div>
-                Processando...
-              } @else {
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                </svg>
-                Comprar Bitcoin com PIX
-              }
-            </button>
-          }
+          <button
+            class="btn btn-success btn-lg buy-btn"
+            (click)="startBuyProcess()"
+            [disabled]="isProcessingPurchase()"
+          >
+            @if (isProcessingPurchase()) {
+              <div class="loading-spinner-sm"></div>
+              Processando...
+            } @else {
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              </svg>
+              Comprar Bitcoin com PIX
+            }
+          </button>
         </div>
       } @else if (getCurrentAmount() > 0) {
         <div class="info-message">

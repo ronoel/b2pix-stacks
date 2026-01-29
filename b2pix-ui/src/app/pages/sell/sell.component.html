@@ -16,30 +16,6 @@
       </div>
     </div>
 
-    <!-- Account Validation Required -->
-    @if (!isAccountValidated()) {
-    <div class="validation-required-section">
-      <div class="validation-card">
-        <div class="validation-icon">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-            <path d="M12 9V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-            <circle cx="12" cy="17" r="1" fill="currentColor" />
-            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
-          </svg>
-        </div>
-        <h3>Validação de Conta Necessária</h3>
-        <p>{{ getValidationRequiredMessage() }}</p>
-        <button class="btn btn-primary btn-lg" (click)="goToValidation()">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-              stroke-linejoin="round" />
-            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
-          </svg>
-          Iniciar Validação
-        </button>
-      </div>
-    </div>
-    } @else {
     <!-- Active Order Warning -->
     @if (activeSellOrder()) {
     <div class="active-order-banner">
@@ -331,7 +307,6 @@
       </div>
       }
     </div>
-    }
 
     <!-- Confirmation Modal -->
     @if (showConfirmationModal()) {
