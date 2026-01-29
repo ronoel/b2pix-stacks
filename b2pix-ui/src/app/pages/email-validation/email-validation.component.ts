@@ -128,6 +128,16 @@ export class EmailValidationComponent implements OnInit, OnDestroy {
     this.sendCode();
   }
 
+  changeEmail(): void {
+    this.step.set('enter-email');
+    this.code.set('');
+    this.error.set('');
+    this.resendCountdown.set(0);
+    if (this.resendTimer) {
+      clearInterval(this.resendTimer);
+    }
+  }
+
   onCodeComplete(code: string): void {
     this.code.set(code);
     // Auto-verificar quando completar os 6 dígitos

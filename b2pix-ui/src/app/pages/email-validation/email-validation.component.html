@@ -60,6 +60,14 @@
             <i class="bi bi-envelope-check"></i>
             <p>Código enviado para</p>
             <strong>{{ email() }}</strong>
+            <button
+              type="button"
+              class="btn-change-email"
+              (click)="changeEmail()"
+              [disabled]="loading()"
+            >
+              Alterar email
+            </button>
           </div>
 
           <form (ngSubmit)="verifyCode()">
