@@ -647,9 +647,6 @@ export class LandingComponent {
     this.showEmbeddedUnlock.set(false);
 
     // Show success message
-    alert('Carteira excluída com sucesso! Você pode criar uma nova carteira agora.');
-
-    // Automatically show the create wallet screen
-    this.showEmbeddedCreate.set(true);
+    alert('Carteira excluída com sucesso!');
   }
 }

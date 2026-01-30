@@ -544,10 +544,10 @@ export class ToolbarComponent {
     // Close the unlock modal
     this.showEmbeddedUnlock.set(false);
 
-    // Show success message
-    alert('Carteira excluída com sucesso! Você pode criar uma nova carteira agora.');
+    // Show success message and redirect to landing page
+    alert('Carteira excluída com sucesso!');
 
-    // Automatically show the create wallet screen
-    this.showEmbeddedCreate.set(true);
+    // Navigate to landing page
+    this.router.navigate(['/']);
   }
 } 

@@ -23,7 +23,7 @@ import { EncryptionMethod } from '../../libs/wallet/wallet.types';
 
         @if (usePasskey()) {
           <p class="unlock-description">
-            Use seu passkey (biometria ou PIN) para acessar sua Carteira Fácil
+            Use seu passkey (biometria ou PIN) para acessar sua carteira
           </p>
 
           @if (errorMessage()) {
@@ -52,7 +52,7 @@ import { EncryptionMethod } from '../../libs/wallet/wallet.types';
           </div>
         } @else {
           <p class="unlock-description">
-            Digite sua senha para acessar sua Carteira Fácil
+            Digite sua senha para acessar sua carteira
           </p>
 
           <div class="form-group">
