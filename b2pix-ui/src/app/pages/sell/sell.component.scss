@@ -713,6 +713,95 @@
   }
 }
 
+// PIX Key Confirmation Checkbox
+.pix-key-confirmation {
+  margin-bottom: 24px;
+
+  .checkbox-container {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    padding-left: 32px;
+
+    input[type="checkbox"] {
+      position: absolute;
+      opacity: 0;
+      cursor: pointer;
+      height: 0;
+      width: 0;
+    }
+
+    .checkmark {
+      position: absolute;
+      left: 0;
+      top: 2px;
+      height: 20px;
+      width: 20px;
+      background-color: #FFFFFF;
+      border: 2px solid #D1D5DB;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+
+      &::after {
+        content: '';
+        position: absolute;
+        display: none;
+        left: 6px;
+        top: 2px;
+        width: 5px;
+        height: 10px;
+        border: solid white;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+      }
+    }
+
+    input:checked ~ .checkmark {
+      background-color: #16A34A;
+      border-color: #16A34A;
+
+      &::after {
+        display: block;
+      }
+    }
+
+    input:focus ~ .checkmark {
+      box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2);
+    }
+
+    &:hover .checkmark {
+      border-color: #16A34A;
+    }
+
+    .checkbox-text {
+      font-size: 14px;
+      color: #374151;
+      line-height: 1.5;
+
+      .pix-key-value {
+        display: block;
+        margin-top: 8px;
+        padding: 10px 14px;
+        background: #F0FDF4;
+        border: 2px solid #BBF7D0;
+        border-radius: 8px;
+        color: #166534;
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        font-size: 15px;
+        word-break: break-all;
+      }
+
+      .pix-key-loading {
+        color: #9CA3AF;
+        font-style: italic;
+      }
+    }
+  }
+}
+
 // Success/Error Modals
 .success-modal,
 .error-modal {

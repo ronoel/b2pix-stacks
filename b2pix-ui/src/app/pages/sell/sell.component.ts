@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { LoadingService } from '../../services/loading.service';
 import { SellOrderService } from '../../shared/api/sell-order.service';
+import { AccountValidationService } from '../../shared/api/account-validation.service';
 import { sBTCTokenService } from '../../libs/sbtc-token.service';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import {
@@ -25,6 +26,7 @@ export class SellComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   protected loadingService = inject(LoadingService);
   private sellOrderService = inject(SellOrderService);
+  private accountValidationService = inject(AccountValidationService);
   private sBTCTokenService = inject(sBTCTokenService);
   private walletManagerService = inject(WalletManagerService);
 
@@ -63,6 +65,10 @@ export class SellComponent implements OnInit, OnDestroy {
   showErrorModal = signal(false);
   errorMessage = signal('');
   createdOrderId = signal<string | null>(null);
+
+  // Confirmation checkbox
+  pixKeyConfirmed = signal(false);
+  userPixKey = signal<string | null>(null);
 
   // Processing state
   isProcessing = signal(false);
@@ -327,15 +333,47 @@ export class SellComponent implements OnInit, OnDestroy {
   // Sell process
   startSellProcess() {
     if (!this.canSell()) return;
+    this.pixKeyConfirmed.set(false);
+    this.loadUserPixKey();
     this.showConfirmationModal.set(true);
+  }
+
+  loadUserPixKey() {
+    this.accountValidationService.getValidationStatus().subscribe({
+      next: (status) => {
+        this.userPixKey.set(status.pix_key || null);
+      },
+      error: (error) => {
+        console.error('Error loading PIX key:', error);
+        this.userPixKey.set(null);
+      }
+    });
+  }
+
+  onPixKeyConfirmChange(event: Event) {
+    const checkbox = event.target as HTMLInputElement;
+    this.pixKeyConfirmed.set(checkbox.checked);
+  }
+
+  formatPixKey(pixKey: string): string {
+    const digits = pixKey.replace(/\D/g, '');
+    if (digits.length === 11) {
+      // CPF: XXX.XXX.XXX-XX
+      return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    } else if (digits.length === 14) {
+      // CNPJ: XX.XXX.XXX/XXXX-XX
+      return digits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+    }
+    return pixKey;
   }
 
   closeConfirmationModal() {
     this.showConfirmationModal.set(false);
+    this.pixKeyConfirmed.set(false);
   }
 
   confirmSell() {
-    if (!this.canSell()) return;
+    if (!this.canSell() || !this.pixKeyConfirmed()) return;
 
     this.isProcessing.set(true);
     this.loadingService.show('Criando ordem de venda...');

@@ -355,11 +355,27 @@
             </ul>
           </div>
 
+          <!-- PIX Key Confirmation Checkbox -->
+          <div class="pix-key-confirmation">
+            <label class="checkbox-container">
+              <input type="checkbox" [checked]="pixKeyConfirmed()" (change)="onPixKeyConfirmChange($event)">
+              <span class="checkmark"></span>
+              <span class="checkbox-text">
+                Confirmo que o PIX será enviado para a chave PIX (CPF/CNPJ) vinculada à minha conta:
+                @if (userPixKey()) {
+                <strong class="pix-key-value">{{ formatPixKey(userPixKey()!) }}</strong>
+                } @else {
+                <span class="pix-key-loading">carregando...</span>
+                }
+              </span>
+            </label>
+          </div>
+
           <div class="modal-actions">
             <button class="btn btn-outline" (click)="closeConfirmationModal()">
               Cancelar
             </button>
-            <button class="btn btn-success btn-lg" (click)="confirmSell()" [disabled]="isProcessing()">
+            <button class="btn btn-success btn-lg" (click)="confirmSell()" [disabled]="isProcessing() || !pixKeyConfirmed()">
               @if (isProcessing()) {
               <div class="loading-spinner-sm"></div>
               Processando...
