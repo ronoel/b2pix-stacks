@@ -1,0 +1,180 @@
+<div class="payment-container">
+  <!-- Timer Warning - Compact -->
+  <div class="timer-warning-compact">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+      <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span class="timer-label-compact">Tempo restante:</span>
+    <div class="timer-display-compact">{{ formattedTime }}</div>
+  </div>
+
+  <div class="payment-card">
+    <!-- Amount Section - Compact -->
+    <div class="amount-section-compact">
+      <div class="amount-row-compact">
+        <div class="amount-item-compact">
+          <span class="amount-label-compact">Você pagará</span>
+          <div class="payment-amount-compact">R$ {{ fiatAmount }}</div>
+        </div>
+        <div class="amount-item-compact">
+          <span class="amount-label-compact">Receberá</span>
+          <div class="btc-amount-container">
+            <span class="btc-approximation-symbol">~</span>
+            <div class="btc-amount-compact">{{ btcAmount }} BTC</div>
+            <svg class="btc-info-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" title="Valor aproximado, pode variar conforme taxa de câmbio">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PIX Copia e Cola Section - HIGHLIGHTED -->
+    <div class="pix-section-highlight">
+      <div class="section-header-highlight">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
+          <path d="M2 10h20" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        <label class="pix-label-highlight">1. PIX Copia e Cola</label>
+      </div>
+      <div class="pix-copy-paste-container-highlight">
+        <textarea readonly class="pix-copy-paste-input-highlight" [value]="pixPayload()" rows="3"></textarea>
+        <div class="pix-action-buttons">
+          <button type="button" class="btn-copy-highlight" [class.copied]="pixPayloadCopied()" (click)="copyPixPayload()">
+            @if (pixPayloadCopied()) {
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Copiado!
+            } @else {
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
+                <path d="M5 15H4C2.89543 15 2 14.1046 2 13V4C2 2.89543 2.89543 2 4 2H13C14.1046 2 15 2.89543 15 4V5" stroke="currentColor" stroke-width="2"/>
+              </svg>
+              Copiar
+            }
+          </button>
+          <button type="button" class="btn-qrcode-highlight" (click)="generateAndShowQrCode()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <rect x="2" y="2" width="8" height="8" rx="1" stroke="currentColor" stroke-width="2"/>
+              <rect x="14" y="2" width="8" height="8" rx="1" stroke="currentColor" stroke-width="2"/>
+              <rect x="2" y="14" width="8" height="8" rx="1" stroke="currentColor" stroke-width="2"/>
+              <rect x="5" y="5" width="2" height="2" fill="currentColor"/>
+              <rect x="17" y="5" width="2" height="2" fill="currentColor"/>
+              <rect x="5" y="17" width="2" height="2" fill="currentColor"/>
+              <path d="M15 15h2v2h-2zM19 15h2v2h-2zM15 19h2v2h-2zM19 19h2v2h-2zM17 17h2v2h-2z" fill="currentColor"/>
+            </svg>
+            QR Code
+          </button>
+        </div>
+      </div>
+      <p class="pix-help-text">Copie o código ou escaneie o QR Code para pagar via PIX</p>
+    </div>
+
+    <!-- Transaction ID Section - HIGHLIGHTED -->
+    <div class="transaction-id-section-highlight">
+      <div class="section-header-highlight">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        <label class="txid-label-highlight">2. ID da Transação PIX</label>
+      </div>
+
+      <p class="instruction-text-compact">Após realizar o pagamento, informe os <strong>3 últimos caracteres</strong> do ID da transação do comprovante PIX.</p>
+
+      <div class="form-group-compact">
+        <input
+          type="text"
+          id="transactionId"
+          maxlength="3"
+          [value]="transactionId()"
+          (input)="onTransactionIdChange($any($event.target).value)"
+          [disabled]="noTransactionId()"
+          class="transaction-input-highlight"
+          [class.disabled]="noTransactionId()"
+          placeholder="Ex: 9Z7"
+          autocomplete="off"
+        >
+        @if (transactionId().length > 0 && !canConfirm && !noTransactionId()) {
+          <div class="error-message-compact">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              <path d="M15 9L9 15M9 9L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Informe exatamente 3 caracteres
+          </div>
+        }
+      </div>
+
+      <div class="checkbox-group-compact">
+        <label class="checkbox-label-compact">
+          <input
+            type="checkbox"
+            [checked]="noTransactionId()"
+            (change)="onNoTransactionIdChange($any($event.target).checked)"
+          >
+          <span class="checkbox-custom"></span>
+          <span class="checkbox-text-compact">Não encontrei o ID da transação</span>
+        </label>
+        @if (noTransactionId()) {
+          <div class="warning-message-compact">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>Isso pode atrasar a validação</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+      <button type="button" class="btn btn-outline cancel-btn" (click)="cancel.emit()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Cancelar Compra
+      </button>
+      <button
+        type="button"
+        class="btn btn-success btn-lg confirm-btn"
+        [disabled]="!canConfirm"
+        (click)="confirm.emit()"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        Confirmar Pagamento
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- QR Code Modal -->
+@if (showQrCode()) {
+  <div class="qr-modal-overlay" (click)="closeQrCode()">
+    <div class="qr-modal" (click)="$event.stopPropagation()">
+      <div class="qr-modal-header">
+        <h3>QR Code PIX</h3>
+        <button type="button" class="qr-modal-close" (click)="closeQrCode()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+      <div class="qr-modal-body">
+        <div class="qr-code-container" [innerHTML]="qrCodeSvg()"></div>
+        <p class="qr-help-text-modal">Escaneie o QR Code com o app do seu banco para pagar via PIX</p>
+        <div class="qr-amount-info">
+          <span class="qr-amount-label">Valor:</span>
+          <span class="qr-amount-value">R$ {{ fiatAmount }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+}

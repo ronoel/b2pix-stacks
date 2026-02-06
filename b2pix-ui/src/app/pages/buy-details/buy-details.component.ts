@@ -59,6 +59,7 @@ import { PaymentFormComponent } from './payment-form.component';
             <app-payment-form
               [formattedTime]="formattedTime()"
               [fiatAmount]="formatCurrency(getTotalFiatAmount())"
+              [fiatAmountValue]="getTotalFiatAmount()"
               [btcAmount]="formatBTC(getBtcAmount())"
               [pixKey]="buyData()!.pix_key"
               [canConfirm]="canConfirmPayment()"
