@@ -7,11 +7,12 @@ import { AccountValidationService } from '../../shared/api/account-validation.se
 import { PixVerificationStep, PixVerificationStatus } from '../../shared/models/account-validation.model';
 import { PixTimerComponent } from './components/pix-timer.component';
 import { PixKeyInputComponent } from './components/pix-key-input.component';
+import { PixCopiaColaComponent } from '../../components/pix-copia-cola/pix-copia-cola.component';
 
 @Component({
   selector: 'app-pix-validation',
   standalone: true,
-  imports: [CommonModule, FormsModule, PixTimerComponent, PixKeyInputComponent],
+  imports: [CommonModule, FormsModule, PixTimerComponent, PixKeyInputComponent, PixCopiaColaComponent],
   templateUrl: './pix-validation.component.html',
   styleUrl: './pix-validation.component.scss'
 })

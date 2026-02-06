@@ -31,48 +31,14 @@
       </div>
     </div>
 
-    <!-- PIX Copia e Cola Section - HIGHLIGHTED -->
-    <div class="pix-section-highlight">
-      <div class="section-header-highlight">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
-          <path d="M2 10h20" stroke="currentColor" stroke-width="2"/>
-        </svg>
-        <label class="pix-label-highlight">1. PIX Copia e Cola</label>
-      </div>
-      <div class="pix-copy-paste-container-highlight">
-        <textarea readonly class="pix-copy-paste-input-highlight" [value]="pixPayload()" rows="3"></textarea>
-        <div class="pix-action-buttons">
-          <button type="button" class="btn-copy-highlight" [class.copied]="pixPayloadCopied()" (click)="copyPixPayload()">
-            @if (pixPayloadCopied()) {
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              Copiado!
-            } @else {
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
-                <path d="M5 15H4C2.89543 15 2 14.1046 2 13V4C2 2.89543 2.89543 2 4 2H13C14.1046 2 15 2.89543 15 4V5" stroke="currentColor" stroke-width="2"/>
-              </svg>
-              Copiar
-            }
-          </button>
-          <button type="button" class="btn-qrcode-highlight" (click)="generateAndShowQrCode()">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <rect x="2" y="2" width="8" height="8" rx="1" stroke="currentColor" stroke-width="2"/>
-              <rect x="14" y="2" width="8" height="8" rx="1" stroke="currentColor" stroke-width="2"/>
-              <rect x="2" y="14" width="8" height="8" rx="1" stroke="currentColor" stroke-width="2"/>
-              <rect x="5" y="5" width="2" height="2" fill="currentColor"/>
-              <rect x="17" y="5" width="2" height="2" fill="currentColor"/>
-              <rect x="5" y="17" width="2" height="2" fill="currentColor"/>
-              <path d="M15 15h2v2h-2zM19 15h2v2h-2zM15 19h2v2h-2zM19 19h2v2h-2zM17 17h2v2h-2z" fill="currentColor"/>
-            </svg>
-            QR Code
-          </button>
-        </div>
-      </div>
-      <p class="pix-help-text">Copie o código ou escaneie o QR Code para pagar via PIX</p>
-    </div>
+    <!-- PIX Copia e Cola Section -->
+    <app-pix-copia-cola
+      [pixKey]="pixKey"
+      [amount]="fiatAmountValue"
+      [sellerName]="sellerName"
+      [sellerCity]="sellerCity"
+      labelNumber="1"
+    ></app-pix-copia-cola>
 
     <!-- Transaction ID Section - HIGHLIGHTED -->
     <div class="transaction-id-section-highlight">
@@ -155,26 +121,3 @@
   </div>
 </div>
 
-<!-- QR Code Modal -->
-@if (showQrCode()) {
-  <div class="qr-modal-overlay" (click)="closeQrCode()">
-    <div class="qr-modal" (click)="$event.stopPropagation()">
-      <div class="qr-modal-header">
-        <h3>QR Code PIX</h3>
-        <button type="button" class="qr-modal-close" (click)="closeQrCode()">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-      </div>
-      <div class="qr-modal-body">
-        <div class="qr-code-container" [innerHTML]="qrCodeSvg()"></div>
-        <p class="qr-help-text-modal">Escaneie o QR Code com o app do seu banco para pagar via PIX</p>
-        <div class="qr-amount-info">
-          <span class="qr-amount-label">Valor:</span>
-          <span class="qr-amount-value">R$ {{ fiatAmount }}</span>
-        </div>
-      </div>
-    </div>
-  </div>
-}

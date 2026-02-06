@@ -35,7 +35,7 @@ export interface SendEmailCodeResponse {
 }
 
 export interface VerifyEmailCodeResponse {
-  verified: true;
+  verified: boolean;
   email: string;
 }
 

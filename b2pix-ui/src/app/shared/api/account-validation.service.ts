@@ -92,8 +92,16 @@ export class AccountValidationService {
           data
         );
       }),
-      tap(() => {
-        this.clearAccountCache();
+      tap((response) => {
+        if (response.verified) {
+          const address = this.walletManager.getSTXAddress();
+          if (address) {
+            const cached = this.accountCache.get(address);
+            if (cached) {
+              this.accountCache.set(address, { ...cached, email_verified: true });
+            }
+          }
+        }
       }),
       catchError(this.handleError)
     );
