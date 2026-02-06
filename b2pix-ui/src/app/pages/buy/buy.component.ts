@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, OnDestroy, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { LoadingService } from '../../services/loading.service';
@@ -37,6 +37,10 @@ export class BuyComponent implements OnInit, OnDestroy {
   currentQuotePrice = signal<number | null>(null);
   isLoadingQuote = signal(true);
   private quoteSubscription?: Subscription;
+
+  // Amount limit
+  private readonly MAX_BUY_AMOUNT = 1050;
+  exceedsMaxAmount = computed(() => this.customAmount() > this.MAX_BUY_AMOUNT);
 
   ngOnInit() {
     // Start quote polling
