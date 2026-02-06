@@ -118,7 +118,7 @@
               <span class="input-prefix">R$</span>
               }
               <input type="number" id="amount" [value]="getDisplayAmount() || ''" [min]="isBrlMode() ? MIN_SELL_BRL : 1"
-                [max]="isBrlMode() ? MAX_SELL_BRL : undefined" [step]="getStepAmount()" class="form-input"
+                [step]="getStepAmount()" class="form-input"
                 [class.with-prefix]="isBrlMode()" [placeholder]="isBrlMode() ? '0,00' : '00000'"
                 (input)="onAmountChange($event)" required>
               @if (!isBrlMode()) {
@@ -131,8 +131,7 @@
             </button>
           </div>
           <div class="input-info">
-            <span class="limit-info">Mín: R$ {{ formatCurrency(MIN_SELL_BRL) }} · Máx: R$ {{
-              formatCurrency(MAX_SELL_BRL) }}</span>
+            <span class="limit-info">Mín: R$ {{ formatCurrency(MIN_SELL_BRL) }}</span>
           </div>
           <!-- Sats Equivalent Display (when in BRL mode) -->
           @if (isBrlMode() && amountInBrl() > 0 && currentBtcPrice() > 0) {
@@ -351,7 +350,7 @@
               <li>A transação será enviada para a blockchain</li>
               <li>O PIX será enviado após a confirmação na blockchain</li>
               <li>O valor final em BRL será calculado no momento da confirmação</li>
-              <li>Limite por venda: R$ {{ formatCurrency(MIN_SELL_BRL) }} a R$ {{ formatCurrency(MAX_SELL_BRL) }}</li>
+              <li>Valor mínimo por venda: R$ {{ formatCurrency(MIN_SELL_BRL) }}</li>
             </ul>
           </div>
 

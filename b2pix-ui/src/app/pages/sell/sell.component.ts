@@ -33,10 +33,10 @@ export class SellComponent implements OnInit, OnDestroy {
   // Constants
   readonly SATS_PER_BTC = 100000000;
   readonly MIN_SELL_BRL = 50;  // R$ 50,00 displayed minimum
-  readonly MAX_SELL_BRL = 200; // R$ 200,00 displayed limit
+  readonly MAX_SELL_BRL = 1050; // R$ 1.050,00 displayed limit
   readonly MIN_SELL_BRL_VALIDATION = 45;  // R$ 45,00 actual validation minimum (allows price fluctuation)
-  readonly MAX_SELL_BRL_VALIDATION = 210; // R$ 210,00 actual validation limit (allows price fluctuation)
-  readonly QUICK_AMOUNTS_BRL = [50, 100, 150, 200];
+  readonly MAX_SELL_BRL_VALIDATION = 1060; // R$ 1.060,00 actual validation limit (allows price fluctuation)
+  readonly QUICK_AMOUNTS_BRL = [50, 250, 500, 1000];
 
   // Balance and pricing
   sBtcBalance = signal<number>(0);
@@ -249,7 +249,7 @@ export class SellComponent implements OnInit, OnDestroy {
   }
 
   exceedsLimit(): boolean {
-    return this.getEstimatedBrlAmount() > this.MAX_SELL_BRL_VALIDATION;
+    return this.amountInBrl() > this.MAX_SELL_BRL || this.getEstimatedBrlAmount() > this.MAX_SELL_BRL_VALIDATION;
   }
 
   belowMinimum(): boolean {
@@ -265,6 +265,7 @@ export class SellComponent implements OnInit, OnDestroy {
       amount <= this.sBtcBalance() &&
       brlAmount >= this.MIN_SELL_BRL_VALIDATION &&
       brlAmount <= this.MAX_SELL_BRL_VALIDATION &&
+      this.amountInBrl() <= this.MAX_SELL_BRL &&
       this.currentBtcPrice() > 0 &&
       !this.activeSellOrder()
     );

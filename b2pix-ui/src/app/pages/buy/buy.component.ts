@@ -203,6 +203,11 @@ export class BuyComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (amount > this.MAX_BUY_AMOUNT) {
+      alert('O valor máximo permitido por compra é de R$ 1.050,00.');
+      return;
+    }
+
     this.isProcessingPurchase.set(true);
     this.loadingService.show('Criando ordem de compra...');
 
