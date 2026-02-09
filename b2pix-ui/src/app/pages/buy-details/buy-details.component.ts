@@ -1,10 +1,13 @@
-import { Component, inject, OnInit, OnDestroy, signal, ViewEncapsulation } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal, ViewEncapsulation, effect, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { interval, Subject } from 'rxjs';
+import { takeUntil, startWith } from 'rxjs/operators';
 import { LoadingService } from '../../services/loading.service';
-import { BuyService } from '../../shared/api/buy.service';
+import { BuyOrderService } from '../../shared/api/buy-order.service';
 import { PaymentRequestService } from '../../shared/api/payment-request.service';
-import { Buy, BuyStatus } from '../../shared/models/buy.model';
+import { BuyOrder, BuyOrderStatus } from '../../shared/models/buy-order.model';
 import { PaymentRequest, PaymentRequestStatus, PaymentSourceType } from '../../shared/models/payment-request.model';
 import { environment } from '../../../environments/environment';
 import { PaymentFormComponent } from './payment-form.component';
@@ -54,8 +57,9 @@ import { PaymentFormComponent } from './payment-form.component';
           <!-- Payment Form for Pending Status -->
           @if (isPendingPayment()) {
             <app-payment-form
-              [formattedTime]="getFormattedTime()"
+              [formattedTime]="formattedTime()"
               [fiatAmount]="formatCurrency(getTotalFiatAmount())"
+              [fiatAmountValue]="getTotalFiatAmount()"
               [btcAmount]="formatBTC(getBtcAmount())"
               [pixKey]="buyData()!.pix_key"
               [canConfirm]="canConfirmPayment()"
@@ -107,23 +111,20 @@ import { PaymentFormComponent } from './payment-form.component';
 
                   <div class="info-item highlight">
                     <span class="info-label">Valor Pago:</span>
-                    <span class="info-value amount">{{ formatBRLCurrency(buyData()!.pay_value) }}</span>
+                    <span class="info-value amount">{{ formatBRLCurrency(buyData()!.buy_value) }}</span>
                   </div>
 
-                  <div class="info-item highlight">
-                    <span class="info-label">Bitcoin Recebido:</span>
-                    <span class="info-value btc">{{ formatSatoshisToBTC(buyData()!.amount) }} BTC</span>
-                  </div>
+                  @if (buyData()!.amount !== null) {
+                    <div class="info-item highlight">
+                      <span class="info-label">Bitcoin Recebido:</span>
+                      <span class="info-value btc">{{ formatSatoshisToBTC(buyData()!.amount!) }} BTC</span>
+                    </div>
 
-                  <div class="info-item">
-                    <span class="info-label">Satoshis:</span>
-                    <span class="info-value mono">{{ formatSats(buyData()!.amount.toString()) }} sats</span>
-                  </div>
-
-                  <div class="info-item">
-                    <span class="info-label">Preço por BTC:</span>
-                    <span class="info-value">{{ formatBRLCurrency(buyData()!.price) }}</span>
-                  </div>
+                    <div class="info-item">
+                      <span class="info-label">Satoshis:</span>
+                      <span class="info-value mono">{{ formatSats(buyData()!.amount!) }} sats</span>
+                    </div>
+                  }
                 </div>
               </div>
 
@@ -143,7 +144,7 @@ import { PaymentFormComponent } from './payment-form.component';
 
                       <div class="info-item">
                         <span class="info-label">Valor:</span>
-                        <span class="info-value mono">{{ formatSats(paymentRequest()!.amount.toString()) }} sats</span>
+                        <span class="info-value mono">{{ formatSats(paymentRequest()!.amount) }} sats</span>
                       </div>
 
                       @if (paymentRequest()!.blockchain_tx_id) {
@@ -220,7 +221,7 @@ import { PaymentFormComponent } from './payment-form.component';
                   <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
                   <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-                <div class="warning-timer-display">{{ getFormattedTime() }}</div>
+                <div class="warning-timer-display">{{ formattedTime() }}</div>
               </div>
               <p class="warning-message-text">
                 Resta menos de <strong>1 minuto</strong> para concluir o pagamento.
@@ -990,11 +991,11 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   router = inject(Router);
   private route = inject(ActivatedRoute);
   private loadingService = inject(LoadingService);
-  private buyService = inject(BuyService);
+  private buyOrderService = inject(BuyOrderService);
   private paymentRequestService = inject(PaymentRequestService);
 
   // Component state
-  buyData = signal<Buy | null>(null);
+  buyData = signal<BuyOrder | null>(null);
   isLoading = signal(true);
   errorMessage = signal('');
 
@@ -1008,16 +1009,90 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   private hasShownTimeWarning = false;
   private hasShownTimeoutAlert = false;
 
-  // Timer for payment (for pending status)
-  paymentTimeLeft = signal(0);
-  private paymentTimer: any;
+  // Timer for payment using pure signals
+  private expiresAt = signal<Date | null>(null);
+  private timerActive = signal(false);
+  private destroy$ = new Subject<void>();
+  
+  // Create a tick signal from RxJS interval - updates every second when timer is active
+  private tick = toSignal(
+    interval(1000).pipe(startWith(0)),
+    { initialValue: 0 }
+  );
+  
+  // Computed signal for time left - recalculates on every tick
+  paymentTimeLeft = computed(() => {
+    // Read tick to trigger recalculation every second
+    this.tick();
+    
+    const expires = this.expiresAt();
+    if (!expires || !this.timerActive()) return 0;
+    
+    const now = new Date();
+    const timeLeftMs = expires.getTime() - now.getTime();
+    // Return actual remaining seconds (never negative)
+    return Math.max(0, Math.floor(timeLeftMs / 1000));
+  });
+  
+  // Computed signal for formatted time
+  formattedTime = computed(() => {
+    const time = this.paymentTimeLeft();
+    const minutes = Math.floor(time / 60);
+    const seconds = time % 60;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  });
 
   // Payment request state (for completed status)
   paymentRequest = signal<PaymentRequest | null>(null);
   isLoadingPaymentRequest = signal(false);
 
+  // BTC amount in sats cache
+  private btcAmountInSats = signal(0);
+  private btcAmountInBtc = computed(() => {
+    const sats = this.btcAmountInSats();
+    return sats / 100000000;
+  });
+
   // Auto-refresh timer
   private refreshTimeout: any = null;
+
+  constructor() {
+    // Watch for buyData changes and calculate BTC amount
+    effect(() => {
+      const buy = this.buyData();
+      if (buy?.buy_value) {
+        this.buyOrderService.getSatoshisForPrice(buy.buy_value).subscribe({
+          next: (sats) => {
+            this.btcAmountInSats.set(sats);
+          },
+          error: (error) => {
+            console.error('Error getting sats for price:', error);
+            this.btcAmountInSats.set(0);
+          }
+        });
+      } else {
+        this.btcAmountInSats.set(0);
+      }
+    });
+    
+    // Watch for timer changes and handle warnings/timeout
+    effect(() => {
+      const timeLeft = this.paymentTimeLeft();
+      
+      // Show warning modal when less than 1 minute remaining (only once)
+      if (timeLeft > 0 && timeLeft < 60 && !this.hasShownTimeWarning) {
+        this.hasShownTimeWarning = true;
+        this.hasReadWarning.set(false);
+        this.showTimeWarningModal.set(true);
+      }
+      
+      // Handle timeout
+      if (this.timerActive() && timeLeft <= 0) {
+        this.timerActive.set(false);
+        this.handlePaymentTimeout();
+      }
+    });
+  }
 
   ngOnInit() {
     const buyId = this.route.snapshot.paramMap.get('id');
@@ -1033,6 +1108,8 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.clearPaymentTimer();
     this.clearRefreshTimeout();
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   loadBuyData(buyId?: string, showLoading: boolean = true) {
@@ -1049,13 +1126,13 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     }
     this.errorMessage.set('');
 
-    this.buyService.getBuyById(id).subscribe({
+    this.buyOrderService.getBuyOrderById(id).subscribe({
       next: (buy) => {
         this.buyData.set(buy);
 
-        // If pending, start payment timer
+        // If created, start payment timer
         const statusStr = buy.status?.toString().toLowerCase();
-        if (statusStr === 'pending') {
+        if (statusStr === 'created') {
           this.startPaymentTimer(buy);
         }
 
@@ -1098,9 +1175,9 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
 
   /**
    * Check if a buy is actually expired (expires_at has passed)
-   * even if the server status still shows as pending
+   * even if the server status still shows as created
    */
-  isActuallyExpired(buy: Buy | null): boolean {
+  isActuallyExpired(buy: BuyOrder | null): boolean {
     if (!buy || !buy.expires_at) return false;
 
     const now = new Date();
@@ -1113,52 +1190,27 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     const status = buy?.status;
     const statusStr = status?.toString().toLowerCase();
 
-    // If status is pending but it's actually expired, don't show payment form
-    if (statusStr === 'pending' && this.isActuallyExpired(buy)) {
+    // If status is created but it's actually expired, don't show payment form
+    if (statusStr === 'created' && this.isActuallyExpired(buy)) {
       return false;
     }
 
-    return statusStr === 'pending';
+    return statusStr === 'created';
   }
 
-  startPaymentTimer(buy: Buy) {
+  startPaymentTimer(buy: BuyOrder) {
     if (!buy.expires_at) {
       return;
     }
 
-    this.updatePaymentTimeLeft(buy);
-
-    this.paymentTimer = setInterval(() => {
-      this.updatePaymentTimeLeft(buy);
-    }, 1000); // Update every 1 second for smooth countdown
-  }
-
-  private updatePaymentTimeLeft(buy: Buy) {
-    const now = new Date();
-    const expiresAt = new Date(buy.expires_at);
-    const timeLeftMs = expiresAt.getTime() - now.getTime();
-    const timeLeftSeconds = Math.max(0, Math.floor(timeLeftMs / 1000));
-
-    this.paymentTimeLeft.set(timeLeftSeconds);
-
-    // Show warning modal when less than 1 minute remaining (only once)
-    if (timeLeftSeconds > 0 && timeLeftSeconds < 60 && !this.hasShownTimeWarning) {
-      this.hasShownTimeWarning = true;
-      this.hasReadWarning.set(false); // Reset checkbox when opening modal
-      this.showTimeWarningModal.set(true);
-    }
-
-    if (timeLeftSeconds <= 0) {
-      this.clearPaymentTimer();
-      this.handlePaymentTimeout();
-    }
+    // Set expiration time and activate timer
+    this.expiresAt.set(new Date(buy.expires_at));
+    this.timerActive.set(true);
   }
 
   clearPaymentTimer() {
-    if (this.paymentTimer) {
-      clearInterval(this.paymentTimer);
-      this.paymentTimer = null;
-    }
+    this.timerActive.set(false);
+    this.expiresAt.set(null);
   }
 
   handlePaymentTimeout() {
@@ -1173,18 +1225,11 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     // might still be "pending" on server side, but we know it's expired locally.
   }
 
-  getFormattedTime(): string {
-    const time = this.paymentTimeLeft();
-    const minutes = Math.floor(time / 60);
-    const seconds = time % 60;
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-  }
-
   getTotalFiatAmount(): number {
     const buy = this.buyData();
     if (!buy) return 0;
 
-    return Number(buy.pay_value) / 100;
+    return buy.buy_value / 100;
   }
 
   formatCurrency(value: number): string {
@@ -1196,22 +1241,19 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   }
 
   getBtcAmountInSats(): number {
-    const buy = this.buyData();
-    if (!buy) return 0;
-    return Number(buy.amount);
+    return this.btcAmountInSats();
   }
 
   getBtcAmount(): number {
-    const sats = this.getBtcAmountInSats();
-    return sats / 100000000;
+    return this.btcAmountInBtc();
   }
 
   formatBTC(amount: number): string {
     return amount.toFixed(8);
   }
 
-  formatSats(sats: number | string): string {
-    return new Intl.NumberFormat('pt-BR').format(Number(sats));
+  formatSats(sats: number): string {
+    return new Intl.NumberFormat('pt-BR').format(sats);
   }
 
   onTransactionIdChange(transactionId: string) {
@@ -1283,17 +1325,17 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
 
     const pixId = this.noTransactionId() ? undefined : this.transactionId();
 
-    this.buyService.markBuyAsPaid(buy.id, pixId).subscribe({
+    this.buyOrderService.markBuyOrderAsPaid(buy.id, pixId).subscribe({
       next: (updatedBuy) => {
         this.loadingService.hide();
         this.buyData.set(updatedBuy);
         this.clearPaymentTimer();
 
         // Show success message
-        alert('Pagamento confirmado com sucesso! Aguarde a liberação dos bitcoins.');
+        // alert('Pagamento confirmado com sucesso! Aguarde a liberação dos bitcoins.');
 
-        // Reload to show details view
-        this.loadBuyData(buy.id);
+        // Reload to show details view and start auto-refresh
+        this.loadBuyData(buy.id, false);
       },
       error: (error) => {
         console.error('Error confirming payment:', error);
@@ -1324,7 +1366,7 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
 
     this.loadingService.show();
 
-    this.buyService.cancel(buy.id).subscribe({
+    this.buyOrderService.cancelBuyOrder(buy.id).subscribe({
       next: () => {
         this.loadingService.hide();
         this.clearPaymentTimer();
@@ -1351,8 +1393,9 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   shouldShowPaymentDetails(): boolean {
     const status = this.buyData()?.status;
     const statusStr = status?.toString().toLowerCase();
-    return statusStr === 'payment_confirmed' ||
-           statusStr === 'dispute_resolved_buyer';
+    return statusStr === 'confirmed' ||
+           statusStr === 'rejected' ||
+           statusStr === 'analyzing';
   }
 
   loadPaymentRequest(buyId: string) {
@@ -1375,7 +1418,7 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   getPageTitle(): string {
     const status = this.buyData()?.status;
     const statusStr = status?.toString().toLowerCase();
-    if (statusStr === 'pending') {
+    if (statusStr === 'created') {
       return 'Pagamento via PIX';
     }
     return 'Detalhes da Compra';
@@ -1384,17 +1427,17 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   getPageSubtitle(): string {
     const status = this.buyData()?.status;
     const statusStr = status?.toString().toLowerCase();
-    if (statusStr === 'pending') {
+    if (statusStr === 'created') {
       return 'Complete o pagamento para receber seus Bitcoins';
     }
     return 'Acompanhe o status da sua compra de Bitcoin';
   }
 
-  getStatusClass(status: BuyStatus): string {
+  getStatusClass(status: BuyOrderStatus): string {
     const buy = this.buyData();
 
-    // Check if it's actually expired even if status is pending
-    if (status?.toString().toLowerCase() === 'pending' && this.isActuallyExpired(buy)) {
+    // Check if it's actually expired even if status is created
+    if (status?.toString().toLowerCase() === 'created' && this.isActuallyExpired(buy)) {
       return 'warning';
     }
 
@@ -1403,85 +1446,72 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     return 'warning';
   }
 
-  isSuccessStatus(status: BuyStatus): boolean {
+  isSuccessStatus(status: BuyOrderStatus): boolean {
     const statusStr = status?.toString().toLowerCase();
-    return statusStr === 'payment_confirmed' ||
-           statusStr === 'dispute_resolved_buyer';
+    return statusStr === 'confirmed';
   }
 
-  isProcessingStatus(status: BuyStatus): boolean {
+  isProcessingStatus(status: BuyOrderStatus): boolean {
     const statusStr = status?.toString().toLowerCase();
-    return statusStr === 'paid';
+    return statusStr === 'processing' || statusStr === 'analyzing';
   }
 
-  getStatusLabel(status: BuyStatus): string {
+  getStatusLabel(status: BuyOrderStatus): string {
     // Use string comparison for more robust matching
     const statusStr = status?.toString().toLowerCase();
     const buy = this.buyData();
 
-    // Check if it's actually expired even if status is pending
-    if (statusStr === 'pending' && this.isActuallyExpired(buy)) {
+    // Check if it's actually expired even if status is created
+    if (statusStr === 'created' && this.isActuallyExpired(buy)) {
       return 'Expirada';
     }
 
     switch (statusStr) {
-      case 'pending':
-        return 'Pendente';
-      case 'paid':
+      case 'created':
+        return 'Aguardando Pagamento';
+      case 'processing':
         return 'Verificando Pagamento';
-      case 'payment_confirmed':
+      case 'analyzing':
+        return 'Em Análise';
+      case 'confirmed':
         return 'Pagamento Confirmado';
-      case 'cancelled':
+      case 'rejected':
+        return 'Ordem Rejeitada';
+      case 'canceled':
         return 'Cancelada';
       case 'expired':
         return 'Expirada';
-      case 'indispute':
-        return 'Em Disputa';
-      case 'dispute_favor_buyer':
-        return 'Disputa a Favor do Comprador';
-      case 'dispute_favor_seller':
-        return 'Disputa a Favor do Vendedor';
-      case 'dispute_resolved_buyer':
-        return 'Disputa Resolvida a Favor do Comprador';
-      case 'dispute_resolved_seller':
-        return 'Disputa Resolvida a Favor do Vendedor';
       default:
         console.warn('Unknown status:', status, 'Type:', typeof status);
         return 'Em análise';
     }
   }
 
-  getStatusDescription(status: BuyStatus): string {
+  getStatusDescription(status: BuyOrderStatus): string {
     // Use string comparison for more robust matching
     const statusStr = status?.toString().toLowerCase();
     const buy = this.buyData();
 
-    // Check if it's actually expired even if status is pending
-    if (statusStr === 'pending' && this.isActuallyExpired(buy)) {
-      return 'O prazo para pagamento expirou. Você pode fazer uma nova compra.';
+    // Check if it's actually expired even if status is created
+    if (statusStr === 'created' && this.isActuallyExpired(buy)) {
+      return 'O prazo para pagamento expirou.';
     }
 
     switch (statusStr) {
-      case 'pending':
-        return 'Complete o pagamento para prosseguir com sua compra.';
-      case 'paid':
-        return 'Estamos verificando seu pagamento. Aguarde enquanto processamos a transação.';
-      case 'payment_confirmed':
+      case 'created':
+        return 'Complete o pagamento para prosseguir';
+      case 'processing':
+        return 'Estamos verificando seu pagamento...';
+      case 'analyzing':
+        return 'Não conseguimos identificar seu pagamento automaticamente. Sua ordem está sendo analisada.';
+      case 'confirmed':
         return 'Seu pagamento foi confirmado! Os bitcoins foram enviados para sua carteira.';
-      case 'cancelled':
+      case 'rejected':
+        return 'Esta ordem foi rejeitada, o pagamento não foi identificado.';
+      case 'canceled':
         return 'Esta compra foi cancelada.';
       case 'expired':
-        return 'O prazo para pagamento expirou. Você pode fazer uma nova compra.';
-      case 'indispute':
-        return 'Não conseguimos identificar seu pagamento e a transação será apurada. Fique atento ao seu e-mail para acompanhar a resolução.';
-      case 'dispute_favor_buyer':
-        return 'A disputa foi resolvida a seu favor. Aguarde o processamento.';
-      case 'dispute_favor_seller':
-        return 'A disputa foi resolvida a favor do vendedor.';
-      case 'dispute_resolved_buyer':
-        return 'A disputa foi resolvida a seu favor. Os bitcoins foram enviados para sua carteira.';
-      case 'dispute_resolved_seller':
-        return 'A disputa foi resolvida a favor do vendedor.';
+        return 'O prazo para pagamento expirou.';
       default:
         return 'Acompanhe o status da sua compra. Em caso de dúvidas, entre em contato com o suporte.';
     }
@@ -1568,7 +1598,7 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Check if buy needs monitoring (is not in a final state and not pending payment)
+   * Check if buy needs monitoring (is not in a final state and not created payment)
    */
   private needsMonitoring(): boolean {
     const status = this.buyData()?.status;
@@ -1576,17 +1606,13 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
 
     const statusStr = status.toString().toLowerCase();
 
-    // Don't monitor pending (user is on payment form) or final statuses
-    const noMonitoringNeeded = [
-      'pending',              // User is filling payment form
-      'cancelled',
-      'expired',
-      'payment_confirmed',
-      'dispute_resolved_buyer',
-      'dispute_resolved_seller'
+    // Explicitly monitor these statuses that need auto-refresh
+    const statusesNeedingMonitoring = [
+      'processing',  // User marked as paid, payment being verified
+      'analyzing'    // Payment verification failed, manual review needed
     ];
 
-    return !noMonitoringNeeded.includes(statusStr);
+    return statusesNeedingMonitoring.includes(statusStr);
   }
 
   /**

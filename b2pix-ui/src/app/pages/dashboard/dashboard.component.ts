@@ -1,24 +1,50 @@
 import { Component, OnInit, OnDestroy, signal, inject, ViewEncapsulation } from '@angular/core';
-import { BuyStatus } from '../../shared/models/buy.model';
 
 import { Router } from '@angular/router';
 import { UserService } from '../../services/user.service';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import { WalletType } from '../../libs/wallet/wallet.types';
-import { BuyService } from '../../shared/api/buy.service';
 import { environment } from '../../../environments/environment';
-import { TransactionCardComponent } from '../../components/transaction-card/transaction-card.component';
 import { sBTCTokenService } from '../../libs/sbtc-token.service';
 import { QuoteService } from '../../shared/api/quote.service';
+import { AccountValidationService } from '../../shared/api/account-validation.service';
+import { AccountInfo } from '../../shared/models/account-validation.model';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [TransactionCardComponent],
+  imports: [CommonModule],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="dashboard">
       <div class="container">
+        <!-- Validation Banner -->
+        @if (validationStatus() && !isFullyValidated()) {
+          <div class="validation-banner">
+            <div class="banner-content">
+              <div class="banner-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 9V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <circle cx="12" cy="17" r="1" fill="currentColor"/>
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                </svg>
+              </div>
+              <div class="banner-text">
+                <h4>Complete sua validação de conta</h4>
+                <p>{{ getValidationMessage() }}</p>
+              </div>
+            </div>
+            <button class="banner-btn" (click)="goToValidation()">
+              Continuar Validação
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12 5L19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        }
+
         <!-- Header -->
         <div class="dashboard-header">
           <div class="header-left">
@@ -57,11 +83,11 @@ import { QuoteService } from '../../shared/api/quote.service';
                 <span>Comprar Bitcoin</span>
               </button>
 
-              <button class="action-btn secondary" (click)="goToMyAds()">
+              <button class="action-btn secondary" (click)="goToSell()">
                 <div class="btn-icon">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2"/>
+                    <path d="M17 7L7 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M17 17H7V7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </div>
                 <span>Vender Bitcoin</span>
@@ -93,7 +119,7 @@ import { QuoteService } from '../../shared/api/quote.service';
                 <span>Enviar</span>
               </button>
 
-              @if (isEmbeddedWallet()) {
+              
                 <button class="action-btn" (click)="goToWalletManagement()">
                   <div class="btn-icon">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -104,7 +130,7 @@ import { QuoteService } from '../../shared/api/quote.service';
                   </div>
                   <span>Gerenciar</span>
                 </button>
-              }
+              
             </div>
           </div>
 
@@ -150,16 +176,6 @@ import { QuoteService } from '../../shared/api/quote.service';
                   <span>Disputas</span>
                 </button>
 
-                <button class="action-btn admin" (click)="goToSendInvite()">
-                  <div class="btn-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                      <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </div>
-                  <span>Convites</span>
-                </button>
-
                 <button class="action-btn admin" (click)="goToPaymentRequests()">
                   <div class="btn-icon">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -169,70 +185,31 @@ import { QuoteService } from '../../shared/api/quote.service';
                   </div>
                   <span>Pagamentos</span>
                 </button>
-              </div>
-            </div>
-          }
-        </div>
 
-        <!-- Recent Activity -->
-        <div class="activity-section">
-          <div class="section-header">
-            <h2 class="section-title">Compras Recentes</h2>
-            <button class="btn btn-outline btn-sm" (click)="loadRecentOrders()">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M3 12C3 7.02944 7.02944 3 12 3C14.5755 3 16.9 4.15205 18.5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M21 12C21 16.9706 16.9706 21 12 21C9.42446 21 7.09995 19.848 5.5 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M13 2L18 6L14 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M11 22L6 18L10 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              Atualizar
-            </button>
-          </div>
-          @if (recentTransactions().length > 0) {
-            <div class="activity-list">
-              @for (transaction of recentTransactions(); track transaction.id) {
-                <app-transaction-card
-                  [transaction]="transaction"
-                  (cardClick)="onTransactionClick($event)"
-                />
-              }
-            </div>
-
-            @if (hasMoreBuys()) {
-              <div class="load-more-section">
-                <button
-                  class="btn btn-outline load-more-btn"
-                  (click)="loadMoreBuys()"
-                  [disabled]="isLoadingMore()"
-                >
-                  @if (isLoadingMore()) {
-                    <div class="loading-spinner-sm"></div>
-                    Carregando...
-                  } @else {
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 5V19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M5 12L12 19L19 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <button class="action-btn admin" (click)="goToPixModeration()">
+                  <div class="btn-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
                     </svg>
-                    Carregar mais transações
-                  }
+                  </div>
+                  <span>Validacao Pix</span>
+                </button>
+
+                <button class="action-btn admin" (click)="goToSellOrderManagement()">
+                  <div class="btn-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <path d="M17 7L7 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M17 17H7V7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                  <span>Vendas</span>
                 </button>
               </div>
-            }
-          } @else {
-            <div class="empty-transactions">
-              <div class="empty-icon">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                  <path d="M12 8V16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M12 8H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-              <h3>Nenhuma transação encontrada</h3>
-              <p>Você ainda não fez nenhuma compra de Bitcoin. Que tal começar agora?</p>
-              <button class="btn btn-primary" (click)="goToBuy()">Comprar Bitcoin</button>
             </div>
           }
         </div>
+
       </div>
 
       <!-- Receive Bitcoin Modal -->
@@ -506,80 +483,6 @@ import { QuoteService } from '../../shared/api/quote.service';
       color: #1E40AF;
     }
 
-    /* Activity Section */
-    .activity-section {
-      margin-bottom: 32px;
-    }
-
-    .section-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-
-    .section-title {
-      font-size: 18px;
-      font-weight: 600;
-      color: #1F2937;
-      margin: 0;
-    }
-
-    .activity-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    /* Load More Section */
-    .load-more-section {
-      display: flex;
-      justify-content: center;
-      padding: 20px 0;
-      margin-top: 12px;
-    }
-
-    .load-more-btn {
-      min-width: 200px;
-      transition: all 0.2s ease;
-    }
-
-    .load-more-btn:hover:not(:disabled) {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 8px 0 rgb(0 0 0 / 0.1);
-    }
-
-    /* Empty Transactions State */
-    .empty-transactions {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 16px;
-      padding: 40px 24px;
-      text-align: center;
-      background: #FFFFFF;
-      border-radius: 12px;
-      border: 2px dashed #E5E7EB;
-    }
-
-    .empty-transactions .empty-icon {
-      color: #9CA3AF;
-    }
-
-    .empty-transactions h3 {
-      font-size: 18px;
-      color: #1F2937;
-      margin: 0;
-      font-weight: 600;
-    }
-
-    .empty-transactions p {
-      color: #6B7280;
-      margin: 0;
-      max-width: 300px;
-      font-size: 14px;
-    }
-
     /* Responsive Design */
     @media (max-width: 768px) {
       .dashboard {
@@ -638,18 +541,6 @@ import { QuoteService } from '../../shared/api/quote.service';
         width: 36px;
         height: 36px;
       }
-
-      .activity-section {
-        margin-bottom: 24px;
-      }
-
-      .section-title {
-        font-size: 16px;
-      }
-
-      .empty-transactions {
-        padding: 32px 20px;
-      }
     }
 
     @media (max-width: 480px) {
@@ -684,10 +575,6 @@ import { QuoteService } from '../../shared/api/quote.service';
 
       .action-btn span {
         text-align: left;
-      }
-
-      .empty-transactions {
-        padding: 28px 16px;
       }
     }
 
@@ -935,20 +822,124 @@ import { QuoteService } from '../../shared/api/quote.service';
         justify-content: center;
       }
     }
+
+    /* Validation Banner */
+    .validation-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px 20px;
+      background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+      border: 2px solid #F59E0B;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
+    }
+
+    .banner-content {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex: 1;
+    }
+
+    .banner-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      background: rgba(245, 158, 11, 0.2);
+      border-radius: 12px;
+      color: #D97706;
+      flex-shrink: 0;
+    }
+
+    .banner-text {
+      flex: 1;
+    }
+
+    .banner-text h4 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #92400E;
+      margin: 0 0 4px 0;
+    }
+
+    .banner-text p {
+      font-size: 14px;
+      color: #78350F;
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .banner-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      background: #F59E0B;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .banner-btn:hover {
+      background: #D97706;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
+    }
+
+    .banner-btn svg {
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 768px) {
+      .validation-banner {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 16px;
+      }
+
+      .banner-content {
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+      }
+
+      .banner-icon {
+        width: 40px;
+        height: 40px;
+      }
+
+      .banner-text h4 {
+        font-size: 15px;
+      }
+
+      .banner-text p {
+        font-size: 13px;
+      }
+
+      .banner-btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
   `]
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private userService = inject(UserService);
   private walletManagerService = inject(WalletManagerService);
-  private buyService = inject(BuyService);
   private sBTCTokenService = inject(sBTCTokenService);
   private quoteService = inject(QuoteService);
-
-  recentOrders = signal<any[]>([]);
-  currentPage = signal<number>(1);
-  hasMoreBuys = signal<boolean>(false);
-  isLoadingMore = signal<boolean>(false);
+  private accountValidationService = inject(AccountValidationService);
 
   // Receive modal states
   showReceiveModal = signal<boolean>(false);
@@ -956,15 +947,18 @@ export class DashboardComponent implements OnInit, OnDestroy {
   addressCopied = signal<boolean>(false);
 
   // sBTC balance
-  sBtcBalance = signal<bigint>(BigInt(0));
+  sBtcBalance = signal<number>(0);
   isLoadingBalance = signal<boolean>(false);
   btcPriceInCents = signal<number>(0);
 
+  // Account validation status
+  validationStatus = signal<AccountInfo | null>(null);
+
   ngOnInit() {
-    this.loadRecentOrders();
     this.walletAddress.set(this.walletManagerService.getSTXAddress() || '');
     this.loadBalance();
     this.loadBtcPrice();
+    this.loadValidationStatus();
   }
 
   ngOnDestroy() {
@@ -975,11 +969,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const address = this.walletManagerService.getSTXAddress();
     if (address) {
       // Only show loading spinner if there's no balance loaded yet
-      const hasExistingBalance = this.sBtcBalance() !== BigInt(0);
+      const hasExistingBalance = this.sBtcBalance() !== 0;
       if (!hasExistingBalance) {
         this.isLoadingBalance.set(true);
       }
-      
+
       this.sBTCTokenService.getBalance().subscribe({
         next: (balance) => {
           this.sBtcBalance.set(balance);
@@ -1032,10 +1026,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   currentUser = this.userService.currentUser;
   currentBtcPrice = this.userService.currentBtcPrice;
 
-  recentTransactions() {
-    return this.recentOrders();
-  }
-
   logout() {
     this.userService.logout();
     this.router.navigate(['/']);
@@ -1045,20 +1035,24 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.router.navigate(['/buy']);
   }
 
-  goToMyAds() {
-    this.router.navigate(['/my-ads']);
+  goToSell() {
+    this.router.navigate(['/sell']);
   }
 
   goToDisputeManagement() {
-    this.router.navigate(['/dispute-management']);
-  }
-
-  goToSendInvite() {
-    this.router.navigate(['/send-invite']);
+    this.router.navigate(['/order-analysis']);
   }
 
   goToPaymentRequests() {
     this.router.navigate(['/payment-requests']);
+  }
+
+  goToPixModeration() {
+    this.router.navigate(['/pix-moderation']);
+  }
+
+  goToSellOrderManagement() {
+    this.router.navigate(['/sell-order-management']);
   }
 
   goToSendBitcoin() {
@@ -1075,11 +1069,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   goToSbtcToBtc() {
     this.router.navigate(['/sbtc-to-btc']);
-  }
-
-  onTransactionClick(transaction: any) {
-    // Navigate to buy details for all transactions
-    this.router.navigate(['/buy', transaction.id]);
   }
 
   isManager(): boolean {
@@ -1115,197 +1104,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return btc.toFixed(8);
   }
 
-  formatDateTime(dateString: string): string {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    }).format(date);
-  }
-
-  /**
-   * Check if a transaction is actually expired (expires_at has passed)
-   * even if the server status still shows as pending
-   */
-  private isTransactionExpired(transaction: any): boolean {
-    if (!transaction || !transaction.expiresAt) return false;
-
-    const now = new Date();
-    const expiresAt = new Date(transaction.expiresAt);
-    return now.getTime() > expiresAt.getTime();
-  }
-
-  getStatusClass(status: BuyStatus, transaction?: any): string {
-    // Check if it's pending but actually expired
-    if (status === BuyStatus.Pending && transaction && this.isTransactionExpired(transaction)) {
-      return 'warning';
-    }
-
-    switch (status) {
-      // case BuyStatus.Completed:
-      case BuyStatus.PaymentConfirmed:
-      case BuyStatus.DisputeFavorBuyer:
-      case BuyStatus.DisputeResolvedBuyer:
-        return 'completed';
-      case BuyStatus.Pending:
-        return 'pending';
-      case BuyStatus.Paid:
-        return 'processing';
-      case BuyStatus.Cancelled:
-      case BuyStatus.Expired:
-        return 'warning';
-      case BuyStatus.InDispute:
-      case BuyStatus.DisputeFavorSeller:
-      case BuyStatus.DisputeResolvedSeller:
-        return 'warning';
-      default:
-        return 'warning';
-    }
-  }
-
-  getStatusLabel(status: BuyStatus, transaction?: any): string {
-    // Check if it's pending but actually expired
-    if (status === BuyStatus.Pending && transaction && this.isTransactionExpired(transaction)) {
-      return 'Expirada';
-    }
-
-    switch (status) {
-      case BuyStatus.Pending:
-        return 'Pendente';
-      case BuyStatus.Paid:
-        return 'Verificando Pagamento';
-      case BuyStatus.PaymentConfirmed:
-        return 'Pagamento Confirmado';
-      // case BuyStatus.Completed:
-      //   return 'Concluída';
-      case BuyStatus.Cancelled:
-        return 'Cancelada';
-      case BuyStatus.Expired:
-        return 'Expirada';
-      case BuyStatus.InDispute:
-        return 'Em Disputa';
-      case BuyStatus.DisputeFavorBuyer:
-        return 'Disputa a Favor do Comprador';
-      case BuyStatus.DisputeFavorSeller:
-        return 'Disputa a Favor do Vendedor';
-      case BuyStatus.DisputeResolvedBuyer:
-        return 'Disputa Resolvida a Favor do Comprador';
-      case BuyStatus.DisputeResolvedSeller:
-        return 'Disputa Resolvida a Favor do Vendedor';
-      default:
-        return 'Em análise';
-    }
-  }
-
-  formatDate(date: string): string {
-    return new Date(date).toLocaleDateString('pt-BR');
-  }
-
-  getTransactionTitle(transaction: any): string {
-    if (transaction.type === 'buy') return 'Compra de Bitcoin';
-    if (transaction.type === 'sell') return 'Venda de Bitcoin';
-    return 'Transação';
-  }
-
-  getTransactionDetails(transaction: any): string {
-    const amount = transaction.amount || '0';
-    const price = transaction.price || '0';
-    return `${amount} BTC por R$ ${this.formatCurrency(parseFloat(price))}`;
-  }
-
-  getTimeAgo(date: string): string {
-    const now = new Date();
-    const transactionDate = new Date(date);
-    const diffInMs = now.getTime() - transactionDate.getTime();
-    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-    const diffInDays = Math.floor(diffInHours / 24);
-
-    if (diffInDays > 0) {
-      return `${diffInDays}d atrás`;
-    } else if (diffInHours > 0) {
-      return `${diffInHours}h atrás`;
-    } else {
-      return 'Agora mesmo';
-    }
-  }
-
-  loadRecentOrders(append: boolean = false) {
-    const currentAddress = this.walletManagerService.getSTXAddress();
-    if (currentAddress) {
-      const page = append ? this.currentPage() : 1;
-
-      if (append) {
-        this.isLoadingMore.set(true);
-      } else {
-        // When refreshing (not appending), also update balance and BTC price
-        this.loadBalance();
-        this.loadBtcPrice();
-      }
-
-      this.buyService.getBuysByAddress(currentAddress, {
-        page: page,
-        limit: 3,
-        sort_by: 'created_at',
-        sort_order: 'desc'
-      }).subscribe({
-        next: (response) => {
-          const mappedBuys = response.buys.map(buy => ({
-            id: buy.id,
-            type: 'buy',
-            amount: buy.amount,
-            price: buy.pay_value,
-            payValue: buy.pay_value,
-            pricePerBtc: buy.price,
-            status: buy.status,
-            createdAt: buy.created_at,
-            expiresAt: buy.expires_at
-          }));
-
-          if (append) {
-            // Append new buys to existing ones
-            this.recentOrders.set([...this.recentOrders(), ...mappedBuys]);
-            this.isLoadingMore.set(false);
-          } else {
-            // Replace with new buys (initial load)
-            this.recentOrders.set(mappedBuys);
-            this.currentPage.set(1);
-          }
-
-          // Check if there are more pages available
-          this.hasMoreBuys.set(response.has_more);
-        },
-        error: (error) => {
-          console.error('Error loading recent orders:', error);
-          if (!append) {
-            this.recentOrders.set([]);
-          }
-          this.isLoadingMore.set(false);
-        }
-      });
-    }
-  }
-
-  loadMoreBuys() {
-    this.currentPage.set(this.currentPage() + 1);
-    this.loadRecentOrders(true);
-  }
-
-  formatTransactionId(txId: string): string {
-    if (!txId || txId.length <= 12) return txId;
-    return `${txId.substring(0, 8)}...${txId.substring(txId.length - 4)}`;
-  }
-
-  getBlockchainExplorerUrl(txId: string): string {
-    // Add 0x prefix if not present and generate Hiro explorer link
-    const transactionId = txId.startsWith('0x') ? txId : `0x${txId}`;
-    const chain = environment.network === 'mainnet' ? 'mainnet' : 'testnet';
-    return `https://explorer.hiro.so/txid/${transactionId}?chain=${chain}`;
-  }
-
   formatSats(amount: string): string {
     return new Intl.NumberFormat('pt-BR').format(Number(amount));
   }
@@ -1330,6 +1128,47 @@ export class DashboardComponent implements OnInit, OnDestroy {
           this.addressCopied.set(false);
         }, 2000);
       });
+    }
+  }
+
+  // Account validation methods
+  loadValidationStatus() {
+    this.accountValidationService.getAccount().subscribe({
+      next: (account) => {
+        this.validationStatus.set(account);
+      },
+      error: (error) => {
+        console.error('Error loading validation status:', error);
+      }
+    });
+  }
+
+  isFullyValidated(): boolean {
+    const status = this.validationStatus();
+    return status?.email_verified && status?.pix_verified || false;
+  }
+
+  getValidationMessage(): string {
+    const status = this.validationStatus();
+    if (!status) return '';
+
+    if (!status.email_verified) {
+      return 'Valide seu email para começar a usar a plataforma';
+    }
+
+    if (!status.pix_verified) {
+      return 'Valide sua conta bancária com um depósito de confirmação';
+    }
+
+    return '';
+  }
+
+  goToValidation(): void {
+    const status = this.validationStatus();
+    if (!status?.email_verified) {
+      this.router.navigate(['/email-validation']);
+    } else {
+      this.router.navigate(['/pix-validation']);
     }
   }
 

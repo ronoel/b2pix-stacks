@@ -1,0 +1,310 @@
+<div class="pix-validation-page">
+  <div class="container">
+    <div class="validation-card">
+      <!-- Header -->
+      <div class="card-header">
+        <h2>Validação de Conta Bancária</h2>
+        <p class="subtitle">Para validar sua conta, é necessário fazer um pequeno depósito de verificação</p>
+      </div>
+
+      <!-- Enter PIX Key Step -->
+      @if (step() === 'enter-pix') {
+        <div class="card-body">
+          <div>
+            <app-pix-key-input
+              (valueChange)="onPixKeyChange($event)"
+              (validChange)="onPixKeyValidChange($event)"
+              [disabled]="loading"
+            ></app-pix-key-input>
+
+            @if (error()) {
+              <div class="alert alert-danger">
+                {{ error() }}
+              </div>
+            }
+
+            <button
+              type="button"
+              class="btn btn-primary btn-lg w-100"
+              [disabled]="loading() || !pixKeyValid()"
+              (click)="confirmPixKeyAndProceed()"
+            >
+              Continuar
+            </button>
+          </div>
+
+          <div class="info-box mt-4">
+            <i class="bi bi-info-circle"></i>
+            <div class="info-text">
+              <strong>Por que precisamos validar sua chave PIX?</strong>
+              <p>Para garantir sua segurança, todas as transações de venda serão depositadas apenas nesta conta bancária.</p>
+              <p>Apenas depósitos feitos a partir desta conta serão aceitos para suas compras.</p>
+              <p class="mb-0">Apenas chaves PIX do tipo CPF ou CNPJ são aceitas.</p>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Confirm PIX Key Step -->
+      @if (step() === 'confirm-pix-key') {
+        <div class="card-body">
+          <div class="deposit-instructions">
+            <h3>Confirme sua chave PIX</h3>
+
+            <div class="instruction-step">
+              <div class="step-number">1</div>
+              <div class="step-content">
+                <h4>Sua chave PIX cadastrada</h4>
+                <div class="user-pix-display">
+                  {{ userPixKey() }}
+                </div>
+                <p class="mb-0"><strong>Importante:</strong> O depósito deve ser realizado a partir da conta bancária vinculada a esta chave PIX.</p>
+
+                <div class="form-group mt-4">
+                  <div class="form-check">
+                    <input
+                      type="checkbox"
+                      id="pixKeyConfirmed"
+                      class="form-check-input"
+                      [(ngModel)]="pixKeyConfirmed"
+                      [ngModelOptions]="{standalone: true}"
+                    >
+                    <label class="form-check-label" for="pixKeyConfirmed">
+                      Confirmo que farei o depósito desta conta bancária
+                    </label>
+                  </div>
+                </div>
+
+                @if (error()) {
+                  <div class="alert alert-danger mt-3">
+                    {{ error() }}
+                  </div>
+                }
+
+                <button
+                  type="button"
+                  class="btn btn-primary btn-lg w-100 mt-4"
+                  [disabled]="loading() || !pixKeyConfirmed()"
+                  (click)="createPixVerification()"
+                >
+                  @if (loading()) {
+                    <span class="spinner-border spinner-border-sm me-2"></span>
+                  }
+                  Continuar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Deposit Instructions Step -->
+      @if (step() === 'deposit-instructions' && pixVerification()) {
+        <div class="card-body">
+          <app-pix-timer
+            [expiresAt]="pixVerification()!.expires_at!"
+            (expired)="handleTimeout()"
+          ></app-pix-timer>
+
+          <div class="deposit-instructions">
+            <h3>Validação da conta bancária</h3>
+            <p class="validation-explanation">Para confirmar a titularidade da conta, realize um depósito no valor indicado. Este valor é uma taxa não reembolsável.</p>
+
+            <div class="instruction-step">
+              <div class="step-number">1</div>
+              <div class="step-content">
+                <h4>Valor do depósito de validação</h4>
+                <div class="value-display">
+                  R$ {{ pixVerification()!.confirmation_value_brl }}
+                </div>
+                <p class="value-warning">
+                  <i class="bi bi-exclamation-triangle"></i>
+                  <strong>Atenção:</strong> Envie exatamente este valor para validar sua conta.
+                </p>
+              </div>
+            </div>
+
+            <div class="instruction-step">
+              <div class="step-number">2</div>
+              <div class="step-content">
+                <h4>PIX Copia e Cola</h4>
+                <app-pix-copia-cola
+                  [pixKey]="pixVerification()!.destination_pix_key || ''"
+                  [amount]="+(pixVerification()!.confirmation_value_brl || 0)"
+                  [showLabel]="false"
+                ></app-pix-copia-cola>
+              </div>
+            </div>
+
+            <!-- <div class="instruction-step">
+              <div class="step-number">3</div>
+              <div class="step-content">
+                <h4>Use sua chave PIX cadastrada</h4>
+                <div class="user-pix-display">
+                  {{ pixVerification()!.user_pix_key }}
+                </div>
+                <p class="mb-0">O depósito deve ser feito desta conta para ser validado.</p>
+              </div>
+            </div> -->
+
+            <form (ngSubmit)="confirmDeposit()" class="mt-4">
+              <!-- Attempts Warning -->
+              @if (isLastAttempt()) {
+                <div class="alert alert-warning mb-3">
+                  <strong>⚠️ Última tentativa!</strong>
+                  <p class="mb-0">Esta é sua última chance de confirmar o código. Após esta tentativa, você precisará iniciar uma nova validação.</p>
+                </div>
+              } @else if (getRemainingAttempts() > 0) {
+                <div class="info-box mb-3">
+                  <i class="bi bi-info-circle"></i>
+                  <div class="info-text">
+                    <p class="mb-0">Você tem <strong>{{ getRemainingAttempts() }} tentativas restantes</strong> para confirmar o código.</p>
+                  </div>
+                </div>
+              }
+
+              <!-- Transaction Code Section - Highlighted (matching payment-form style) -->
+              <div class="transaction-code-section-highlight">
+                <div class="section-header-highlight">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                  </svg>
+                  <label class="code-label-highlight">Código de Confirmação PIX</label>
+                </div>
+
+                <p class="instruction-text-compact">Após realizar o depósito PIX, informe os <strong>3 últimos caracteres</strong> do ID da transação do comprovante PIX.</p>
+
+                <div class="form-group-compact">
+                  <input
+                    type="text"
+                    id="confirmationCode"
+                    maxlength="3"
+                    [value]="confirmationCode()"
+                    (input)="onConfirmationCodeChange(($any($event.target)).value)"
+                    [disabled]="loading() || noConfirmationCode()"
+                    class="code-input-highlight"
+                    [class.disabled]="loading() || noConfirmationCode()"
+                    placeholder="Ex: 9Z7"
+                    autocomplete="off"
+                  >
+                  @if (confirmationCode().length > 0 && confirmationCode().length < 3 && !noConfirmationCode()) {
+                    <div class="error-message-compact">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                        <path d="M15 9L9 15M9 9L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                      Informe exatamente 3 caracteres
+                    </div>
+                  }
+                </div>
+
+                <div class="checkbox-group-compact">
+                  <label class="checkbox-label-compact">
+                    <input
+                      type="checkbox"
+                      id="noCode"
+                      [(ngModel)]="noConfirmationCode"
+                      [ngModelOptions]="{standalone: true}"
+                      [disabled]="loading()"
+                    >
+                    <span class="checkbox-custom"></span>
+                    <span class="checkbox-text-compact">Não encontrei o código de confirmação</span>
+                  </label>
+                  @if (noConfirmationCode()) {
+                    <div class="warning-message-compact">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                      <span>Isso pode atrasar a validação</span>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              @if (error()) {
+                <div class="alert alert-danger">
+                  {{ error() }}
+                </div>
+              }
+
+              <button
+                type="submit"
+                class="btn btn-success btn-lg w-100"
+                [disabled]="loading()"
+              >
+                @if (loading()) {
+                  <span class="spinner-border spinner-border-sm me-2"></span>
+                }
+                Confirmar Pagamento
+              </button>
+            </form>
+          </div>
+        </div>
+      }
+
+      <!-- Processing Step -->
+      @if (step() === 'processing') {
+        <div class="card-body text-center">
+          <div class="processing-animation">
+            <div class="spinner-border" role="status">
+              <span class="visually-hidden">Verificando...</span>
+            </div>
+          </div>
+          <h3>Verificando conta...</h3>
+          <p class="text-muted">A verificação pode levar vários minutos. Você não precisa aguardar nesta página.</p>
+
+          <div class="info-box mt-4">
+            <i class="bi bi-envelope"></i>
+            <div class="info-text">
+              <p><strong>Você receberá um e-mail</strong> assim que sua conta for verificada com sucesso.</p>
+              <p class="mb-0">Fique tranquilo! Estamos processando seu depósito junto ao sistema bancário e notificaremos você por e-mail quando a validação for concluída.</p>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Success Step -->
+      @if (step() === 'success') {
+        <div class="card-body text-center">
+          <div class="success-animation">
+            <i class="bi bi-check-circle-fill"></i>
+          </div>
+          <h3>Conta Validada!</h3>
+          <p class="text-muted">Sua chave PIX foi verificada com sucesso. Redirecionando...</p>
+        </div>
+      }
+
+      <!-- Failed Step -->
+      @if (step() === 'failed') {
+        <div class="card-body text-center">
+          <div class="failed-animation">
+            <i class="bi bi-x-circle-fill"></i>
+          </div>
+          <h3>Validação Falhou</h3>
+
+          @if (error()) {
+            <div class="alert alert-danger">
+              {{ error() }}
+            </div>
+          }
+
+          <button
+            type="button"
+            class="btn btn-primary btn-lg"
+            (click)="requestNewVerification()"
+          >
+            Solicitar Nova Validação
+          </button>
+
+          <div class="info-box mt-4">
+            <i class="bi bi-info-circle"></i>
+            <div class="info-text">
+              <p class="mb-0">Para solicitar nova validação, você precisará fazer um novo depósito com um valor diferente.</p>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</div>

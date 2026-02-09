@@ -1,6 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 import { Observable, of, delay, map } from 'rxjs';
-import { User, InviteRequest, PixAccount, InviteResponse } from '../interfaces/user.interface';
+import { User, PixAccount } from '../interfaces/user.interface';
 
 @Injectable({
   providedIn: 'root'
@@ -43,7 +43,7 @@ export class UserService {
 
   connectWallet(walletAddress: string): Observable<User | null> {
     this.isLoading.set(true);
-    
+
     return of(null).pipe(
       delay(2000),
       map(() => {
@@ -54,61 +54,6 @@ export class UserService {
           return user;
         }
         return null;
-      })
-    );
-  }
-
-  submitInviteRequest(request: InviteRequest): Observable<boolean> {
-    this.isLoading.set(true);
-    
-    return of(true).pipe(
-      delay(1500),
-      map(() => {
-        this.isLoading.set(false);
-        // Mock: criar usuário pendente
-        const newUser: User = {
-          id: Date.now().toString(),
-          username: request.username,
-          email: request.email,
-          wallet: request.wallet || '',
-          status: 'pending',
-          hasPixAccount: false,
-          createdAt: new Date()
-        };
-        this.mockUsers.push(newUser);
-        this.currentUser.set(newUser);
-        return true;
-      })
-    );
-  }
-
-  requestInvite(request: InviteRequest): Observable<InviteResponse> {
-    this.isLoading.set(true);
-    
-    return of({} as InviteResponse).pipe(
-      delay(2000),
-      map(() => {
-        this.isLoading.set(false);
-        // Generate a random invite code
-        const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-        
-        // Mock: criar usuário pendente
-        const newUser: User = {
-          id: Date.now().toString(),
-          username: request.username,
-          email: request.email,
-          wallet: request.wallet || '',
-          status: 'pending',
-          hasPixAccount: false,
-          createdAt: new Date()
-        };
-        this.mockUsers.push(newUser);
-        this.currentUser.set(newUser);
-        
-        return {
-          inviteCode,
-          success: true
-        };
       })
     );
   }

@@ -79,6 +79,106 @@ import { QuoteService } from '../../shared/api/quote.service';
                 <button class="btn btn-primary" (click)="goToDashboard()">Voltar ao Dashboard</button>
               </div>
             </div>
+          } @else if (showConfirmation()) {
+            <div class="confirmation-view">
+              <div class="confirmation-header">
+                <div class="confirmation-icon">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 22C12 22 20 18 20 12V5L12 2L4 5V12C4 18 12 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <h2>Confirme sua transação</h2>
+                <p>Revise os dados antes de enviar</p>
+              </div>
+
+              @if (sendError()) {
+                <div class="error-banner">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                    <path d="M12 8V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12 16H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <p>{{ sendError() }}</p>
+                </div>
+              }
+
+              <div class="confirmation-details">
+                <div class="detail-row">
+                  <span class="detail-label">Destinatário</span>
+                  <span class="detail-value address-value">{{ recipientAddress }}</span>
+                </div>
+
+                <div class="detail-divider"></div>
+
+                <div class="detail-row">
+                  <span class="detail-label">Quantidade</span>
+                  <div class="detail-value">
+                    <span class="detail-main">{{ formatSats(sendAmount!.toString()) }} sats</span>
+                    <span class="detail-secondary">≈ {{ convertSatsToBRL(sendAmount!) }}</span>
+                  </div>
+                </div>
+
+                <div class="detail-divider"></div>
+
+                <div class="detail-row">
+                  <span class="detail-label">Taxa de rede</span>
+                  <div class="detail-value">
+                    <span class="detail-main">{{ formatSats(fee().toString()) }} sats</span>
+                    <span class="detail-secondary">≈ {{ convertSatsToBRL(fee()) }}</span>
+                  </div>
+                </div>
+
+                @if (sendMemo) {
+                  <div class="detail-divider"></div>
+                  <div class="detail-row">
+                    <span class="detail-label">Memo</span>
+                    <span class="detail-value detail-main">{{ sendMemo }}</span>
+                  </div>
+                }
+
+                <div class="detail-divider-total"></div>
+
+                <div class="detail-row detail-total">
+                  <span class="detail-label">Total</span>
+                  <div class="detail-value">
+                    <span class="detail-main">{{ formatSats(getTotalAmount().toString()) }} sats</span>
+                    <span class="detail-secondary total-brl">≈ {{ getTotalAmountInBRL() }}</span>
+                  </div>
+                </div>
+              </div>
+
+              @if (!isLoadingPrice() && btcPriceInBRL() > 0) {
+                <div class="price-reference">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                    <path d="M12 16V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12 8H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <span>Cotação atual: 1 BTC = {{ formatBtcPriceBRL() }}</span>
+                </div>
+              }
+
+              <div class="confirmation-actions">
+                <button class="btn btn-outline" (click)="cancelConfirmation()" [disabled]="isSending()">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <path d="M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12 19L5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  Voltar e Editar
+                </button>
+                <button class="btn btn-primary" (click)="confirmSend()" [disabled]="isSending()">
+                  @if (isSending()) {
+                    <div class="loading-spinner-sm"></div>
+                    Enviando...
+                  } @else {
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Confirmar Envio
+                  }
+                </button>
+              </div>
+            </div>
           } @else {
             <form (ngSubmit)="sendBitcoin()">
               @if (sendError()) {
@@ -191,16 +291,11 @@ import { QuoteService } from '../../shared/api/quote.service';
                   class="btn btn-primary"
                   [disabled]="isSending() || !recipientAddress || !sendAmount || sendAmount <= 0"
                 >
-                  @if (isSending()) {
-                    <div class="loading-spinner-sm"></div>
-                    Enviando...
-                  } @else {
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 19V5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M5 12L12 5L19 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    Enviar Bitcoin
-                  }
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                  </svg>
+                  Revisar Envio
                 </button>
               </div>
             </form>
@@ -597,6 +692,150 @@ import { QuoteService } from '../../shared/api/quote.service';
       line-height: 1.5;
     }
 
+    /* Confirmation view */
+    .confirmation-view {
+      padding: 8px 0;
+    }
+
+    .confirmation-header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .confirmation-icon {
+      display: inline-flex;
+      padding: 14px;
+      background: #FEF3C7;
+      border-radius: 50%;
+      color: #D97706;
+      margin-bottom: 16px;
+    }
+
+    .confirmation-header h2 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1F2937;
+      margin: 0 0 6px 0;
+    }
+
+    .confirmation-header p {
+      font-size: 14px;
+      color: #6B7280;
+      margin: 0;
+    }
+
+    .confirmation-details {
+      background: #F9FAFB;
+      border: 1px solid #E5E7EB;
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 12px 0;
+    }
+
+    .detail-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: #6B7280;
+      flex-shrink: 0;
+      margin-right: 16px;
+    }
+
+    .detail-value {
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .detail-main {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1F2937;
+    }
+
+    .detail-secondary {
+      font-size: 12px;
+      color: #6B7280;
+      font-weight: 400;
+    }
+
+    .address-value {
+      font-size: 13px;
+      font-weight: 500;
+      color: #1F2937;
+      word-break: break-all;
+      text-align: right;
+      font-family: 'Courier New', monospace;
+      line-height: 1.4;
+    }
+
+    .detail-divider {
+      height: 1px;
+      background: #E5E7EB;
+    }
+
+    .detail-divider-total {
+      height: 2px;
+      background: #D1D5DB;
+      margin-top: 4px;
+    }
+
+    .detail-total {
+      padding-top: 14px;
+    }
+
+    .detail-total .detail-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1F2937;
+    }
+
+    .detail-total .detail-main {
+      font-size: 16px;
+      font-weight: 700;
+      color: #1F2937;
+    }
+
+    .detail-total .detail-secondary.total-brl {
+      font-size: 13px;
+      color: #059669;
+      font-weight: 600;
+    }
+
+    .price-reference {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: #EFF6FF;
+      border: 1px solid #BFDBFE;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #1E40AF;
+      margin-bottom: 24px;
+    }
+
+    .price-reference svg {
+      flex-shrink: 0;
+      color: #3B82F6;
+    }
+
+    .confirmation-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      padding-top: 8px;
+    }
+
     @media (max-width: 768px) {
       .send-sbtc-page {
         padding: 24px 0;
@@ -624,6 +863,27 @@ import { QuoteService } from '../../shared/api/quote.service';
 
       .success-actions button {
         width: 100%;
+      }
+
+      .confirmation-actions {
+        flex-direction: column;
+      }
+
+      .confirmation-actions button {
+        width: 100%;
+      }
+
+      .detail-row {
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .detail-value {
+        align-items: flex-start;
+      }
+
+      .address-value {
+        text-align: left;
       }
 
       .balance-info {
@@ -672,9 +932,10 @@ export class SendSBTCComponent implements OnInit {
   transactionSuccess = signal<boolean>(false);
   transactionId = signal<string>('');
   txIdCopied = signal<boolean>(false);
+  showConfirmation = signal<boolean>(false);
 
   // Balance
-  sBtcBalance = signal<bigint>(BigInt(0));
+  sBtcBalance = signal<number>(0);
   isLoadingBalance = signal<boolean>(false);
 
   // Fee and Price
@@ -736,14 +997,15 @@ export class SendSBTCComponent implements OnInit {
     this.resetForm();
     this.transactionSuccess.set(false);
     this.transactionId.set('');
+    this.showConfirmation.set(false);
   }
 
   setMaxAmount() {
     const balance = this.sBtcBalance();
-    const fee = BigInt(this.fee());
+    const fee = this.fee();
     if (balance > fee) {
       // Subtract fee from balance to get the maximum sendable amount
-      this.sendAmount = Number(balance - fee);
+      this.sendAmount = balance - fee;
     } else {
       this.sendAmount = 0;
     }
@@ -768,10 +1030,22 @@ export class SendSBTCComponent implements OnInit {
       return;
     }
 
+    this.sendError.set('');
+    this.showConfirmation.set(true);
+  }
+
+  cancelConfirmation() {
+    this.showConfirmation.set(false);
+    this.sendError.set('');
+  }
+
+  confirmSend() {
+    if (!this.recipientAddress || !this.sendAmount) {
+      return;
+    }
+
     this.isSending.set(true);
     this.sendError.set('');
-
-    console.log('Enviando', this.sendAmount, 'sats para', this.recipientAddress);
 
     this.boltContractSBTCService.transferStacksToStacks(
       this.sendAmount,
@@ -780,9 +1054,9 @@ export class SendSBTCComponent implements OnInit {
     ).subscribe({
       next: (response) => {
         this.isSending.set(false);
+        this.showConfirmation.set(false);
         this.transactionSuccess.set(true);
 
-        // Extract transaction ID from response
         if (response.txid) {
           this.transactionId.set(response.txid);
         }
@@ -791,7 +1065,6 @@ export class SendSBTCComponent implements OnInit {
         this.isSending.set(false);
         console.error('Error sending Bitcoin:', error);
 
-        // Extract error message
         let errorMessage = 'Erro ao enviar Bitcoin. Por favor, tente novamente.';
         if (error?.error) {
           errorMessage = error.error;
@@ -802,6 +1075,14 @@ export class SendSBTCComponent implements OnInit {
         this.sendError.set(errorMessage);
       }
     });
+  }
+
+  formatBtcPriceBRL(): string {
+    const priceInReais = this.btcPriceInBRL() / 100;
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(priceInReais);
   }
 
   formatTransactionId(txId: string): string {

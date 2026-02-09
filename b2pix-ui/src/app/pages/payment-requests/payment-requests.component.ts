@@ -865,8 +865,6 @@ export class PaymentRequestsComponent implements OnInit {
 
   getSourceTypeText(sourceType: PaymentSourceType): string {
     switch (sourceType) {
-      case PaymentSourceType.Advertisement:
-        return 'Anúncio';
       case PaymentSourceType.Buy:
         return 'Compra';
       default:

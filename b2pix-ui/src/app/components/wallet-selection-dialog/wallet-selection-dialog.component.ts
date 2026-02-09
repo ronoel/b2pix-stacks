@@ -52,7 +52,7 @@ export type WalletChoice = 'external' | 'embedded' | null;
               </svg>
             </div>
             <div class="option-content">
-              <h3 class="option-title">Carteira Fácil</h3>
+              <h3 class="option-title">Carteira</h3>
               <p class="option-description">
                 Crie uma carteira integrada protegida por senha - ideal para iniciantes
               </p>

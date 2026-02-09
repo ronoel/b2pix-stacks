@@ -4,13 +4,13 @@ import { catchError, Observable, switchMap, throwError } from 'rxjs';
 import { environment } from "../../../environments/environment";
 import { PaymentRequest, PaymentRequestsResponse, PaymentRequestStatus, PaymentSourceType } from "../models/payment-request.model";
 import { BoltContractSBTCService } from "../../libs/bolt-contract-sbtc.service";
-import { WalletService } from "../../libs/wallet.service";
+import { WalletManagerService } from "../../libs/wallet/wallet-manager.service";
 
 @Injectable({ providedIn: 'root' })
 export class PaymentRequestService {
   private http = inject(HttpClient);
   private apiUrl = environment.apiUrl;
-  private walletService = inject(WalletService);
+  private walletManager = inject(WalletManagerService);
   private boltContractSBTCService = inject(BoltContractSBTCService);
 
   /**

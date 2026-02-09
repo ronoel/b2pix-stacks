@@ -42,10 +42,10 @@ export class sBTCTokenService extends ContractUtil {
     return this.contractTokenName;
   }
 
-  getBalance(): Observable<bigint> {
+  getBalance(): Observable<number> {
     return from(this.callReadOnlyFunction('get-balance', [Cl.principal(this.walletManager.getSTXAddressOrThrow())])).pipe(
       map(ClarityUtil.extractResponse),
-      map((response) => cvToValue(response)),
+      map((response) => Number(cvToValue(response))),
       catchError(this.handleError)
     );
   }

@@ -1,0 +1,438 @@
+<div class="sell-page">
+  <div class="container">
+    <!-- Header -->
+    <div class="page-header">
+      <button class="btn btn-ghost" (click)="goBack()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M12 19L5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" />
+        </svg>
+        Voltar
+      </button>
+      <div class="header-content">
+        <h1 class="page-title">Vender Bitcoin</h1>
+        <p class="page-subtitle">Venda seus bitcoins e receba PIX instantaneamente</p>
+      </div>
+    </div>
+
+    <!-- Active Order Warning -->
+    @if (activeSellOrder()) {
+    <div class="active-order-banner">
+      <div class="banner-content">
+        <div class="banner-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M12 9V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            <circle cx="12" cy="17" r="1" fill="currentColor" />
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
+          </svg>
+        </div>
+        <div class="banner-text">
+          <h4>Você tem uma venda em andamento</h4>
+          <p>Acompanhe o status da sua venda atual antes de criar uma nova.</p>
+        </div>
+      </div>
+      <button class="btn btn-primary" (click)="goToActiveSellOrder()">
+        Ver Detalhes
+      </button>
+    </div>
+    } @else {
+
+    <!-- Sell Form Section -->
+    <div class="sell-form-section">
+      <h2 class="section-title">Quanto você quer vender?</h2>
+
+      <div class="amount-selector">
+        <!-- Balance Display -->
+        <div class="balance-display">
+          @if (isLoadingBalance()) {
+          <span>Carregando saldo...</span>
+          } @else {
+          <span>Saldo disponível: </span>
+          <strong>{{ formatSats(Number(sBtcBalance())) }} sats</strong>
+          <span class="btc-equivalent">({{ formatSatsToBtc(Number(sBtcBalance())) }} BTC)</span>
+          @if (currentBtcPrice() > 0 && sBtcBalance() > 0) {
+          <div class="balance-brl-estimate">
+            ≈ R$ {{ formatCurrency(getBalanceEstimatedBrl()) }}
+          </div>
+          }
+          }
+        </div>
+
+        <!-- Insufficient Balance Warning -->
+        @if (hasInsufficientBalance()) {
+        <div class="insufficient-balance-warning">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M12 9V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            <circle cx="12" cy="17" r="1" fill="currentColor" />
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <div class="warning-content">
+            <strong>Saldo Insuficiente</strong>
+            <p>Seu saldo de {{ formatSats(Number(sBtcBalance())) }} sats (≈ R$ {{
+              formatCurrency(getBalanceEstimatedBrl()) }}) é menor que o valor mínimo de venda de R$ {{
+              formatCurrency(MIN_SELL_BRL) }}.</p>
+          </div>
+        </div>
+        }
+
+        <!-- Quick Amount Buttons -->
+        <div class="quick-amounts">
+          @for (amount of QUICK_AMOUNTS_BRL; track amount) {
+          <button type="button" class="quick-amount-btn" [class.active]="selectedQuickAmount() === amount"
+            [disabled]="isQuickAmountDisabled(amount)" (click)="selectQuickAmount(amount)">
+            R$ {{ amount }}
+          </button>
+          }
+        </div>
+
+        <div class="custom-amount-label">Ou digite um valor personalizado:</div>
+
+        <!-- Input Mode Selector -->
+        <div class="input-mode-selector">
+          <button type="button" class="mode-btn" [class.active]="isBrlMode()" (click)="setInputMode('brl')">
+            <span class="mode-icon">R$</span>
+            <span class="mode-label">Reais</span>
+          </button>
+          <button type="button" class="mode-btn" [class.active]="!isBrlMode()" (click)="setInputMode('sats')">
+            <span class="mode-icon">₿</span>
+            <span class="mode-label">Satoshis</span>
+          </button>
+        </div>
+
+        <!-- Amount Input -->
+        <div class="amount-input-group">
+          <div class="input-label-row">
+            <label for="amount">
+              @if (isBrlMode()) {
+              Valor em Reais (R$):
+              } @else {
+              Quantidade em Satoshis:
+              }
+            </label>
+          </div>
+          <div class="input-row">
+            <div class="input-with-prefix">
+              @if (isBrlMode()) {
+              <span class="input-prefix">R$</span>
+              }
+              <input type="number" id="amount" [value]="getDisplayAmount() || ''" [min]="isBrlMode() ? MIN_SELL_BRL : 1"
+                [step]="getStepAmount()" class="form-input"
+                [class.with-prefix]="isBrlMode()" [placeholder]="isBrlMode() ? '0,00' : '00000'"
+                (input)="onAmountChange($event)" required>
+              @if (!isBrlMode()) {
+              <span class="input-suffix">sats</span>
+              }
+            </div>
+            <button type="button" class="btn btn-outline btn-sm max-btn"
+              [disabled]="!hasBalance() || isLoadingBalance()" (click)="setMaxAmount()">
+              Máximo
+            </button>
+          </div>
+          <div class="input-info">
+            <span class="limit-info">Mín: R$ {{ formatCurrency(MIN_SELL_BRL) }}</span>
+          </div>
+          <!-- Sats Equivalent Display (when in BRL mode) -->
+          @if (isBrlMode() && amountInBrl() > 0 && currentBtcPrice() > 0) {
+          <div class="sats-equivalent">
+            ≈ {{ formatSats(Number(amountInSats())) }} sats ({{ formatSatsToBtc(Number(amountInSats())) }} BTC)
+          </div>
+          }
+          <!-- BRL Equivalent Display (when in Sats mode) -->
+          @if (!isBrlMode() && Number(amountInSats()) > 0 && currentBtcPrice() > 0) {
+          <div class="sats-equivalent">
+            ≈ R$ {{ formatCurrency(amountInBrl()) }}
+          </div>
+          }
+        </div>
+      </div>
+
+      <!-- Estimate Section -->
+      @if (amountInSats() > 0 && currentBtcPrice() > 0) {
+      <div class="estimate-card">
+        <h3>Estimativa de Venda</h3>
+        <div class="estimate-row">
+          <span class="estimate-label">Quantidade:</span>
+          <span class="estimate-value">{{ formatSats(Number(amountInSats())) }} sats</span>
+        </div>
+        <div class="estimate-row">
+          <span class="estimate-label">Em BTC:</span>
+          <span class="estimate-value">{{ formatSatsToBtc(Number(amountInSats())) }} BTC</span>
+        </div>
+        <div class="estimate-row">
+          <span class="estimate-label">Taxa de rede:</span>
+          <span class="estimate-value">{{ formatSats(fee()) }} sats</span>
+        </div>
+        <div class="estimate-row highlight">
+          <span class="estimate-label">Você receberá (estimativa):</span>
+          <span class="estimate-value brl">R$ {{ formatCurrency(getEstimatedBrlAmount()) }}</span>
+        </div>
+        <div class="estimate-note">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
+            <path d="M12 16V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M12 8H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
+          </svg>
+          <span>O valor final em BRL será calculado no momento da confirmação na blockchain</span>
+        </div>
+      </div>
+      }
+
+      <!-- Sell Limit Warning -->
+      @if (belowMinimum()) {
+      <div class="limit-warning minimum">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M12 9V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          <circle cx="12" cy="17" r="1" fill="currentColor" />
+          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <span>O valor mínimo por venda é R$ {{ formatCurrency(MIN_SELL_BRL) }}. Por favor, aumente a quantidade.</span>
+      </div>
+      }
+      @if (exceedsLimit()) {
+      <div class="limit-warning">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M12 9V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          <circle cx="12" cy="17" r="1" fill="currentColor" />
+          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <span>O valor máximo por venda é R$ {{ formatCurrency(MAX_SELL_BRL) }}. Por favor, reduza a quantidade.</span>
+      </div>
+      }
+
+      <!-- Sell Button -->
+      <div class="sell-action">
+        <button class="btn btn-success btn-lg sell-btn" (click)="startSellProcess()"
+          [disabled]="!canSell() || isProcessing()">
+          @if (isProcessing()) {
+          <div class="loading-spinner-sm"></div>
+          Processando...
+          } @else {
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
+          </svg>
+          Vender Bitcoin
+          }
+        </button>
+      </div>
+    </div>
+    }
+
+    <!-- Sell Order History -->
+    <div class="history-section">
+      <div class="section-header">
+        <h2 class="section-title">Histórico de Vendas</h2>
+        <button class="btn btn-outline btn-sm" (click)="loadSellOrders()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M3 12C3 7.02944 7.02944 3 12 3C14.5755 3 16.9 4.15205 18.5 6" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M21 12C21 16.9706 16.9706 21 12 21C9.42446 21 7.09995 19.848 5.5 18" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M13 2L18 6L14 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
+            <path d="M11 22L6 18L10 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
+          </svg>
+          Atualizar
+        </button>
+      </div>
+
+      @if (isLoadingHistory()) {
+      <div class="loading-state">
+        <div class="loading-spinner"></div>
+        <p>Carregando histórico...</p>
+      </div>
+      } @else if (sellOrders().length > 0) {
+      <div class="history-list">
+        @for (order of sellOrders(); track order.id) {
+        <div class="order-card" (click)="viewOrderDetails(order)">
+          <div class="order-main">
+            <div class="order-info">
+              <div class="order-amount">{{ formatSats(order.amount) }} sats</div>
+              <div class="order-date">{{ formatDateTime(order.created_at) }}</div>
+            </div>
+            <div class="order-status">
+              <span class="status-badge" [class]="getStatusClass(order.status)">
+                {{ getStatusLabel(order.status) }}
+              </span>
+              @if (order.sell_value) {
+              <div class="order-value">R$ {{ formatBrlCents(order.sell_value) }}</div>
+              }
+            </div>
+          </div>
+          @if (order.tx_hash) {
+          <div class="order-tx">
+            <span class="tx-label">TX:</span>
+            <a [href]="getExplorerUrl(order.tx_hash)" target="_blank" class="tx-link"
+              (click)="$event.stopPropagation()">
+              {{ formatTxHash(order.tx_hash) }}
+            </a>
+          </div>
+          }
+        </div>
+        }
+      </div>
+
+      @if (hasMoreOrders()) {
+      <div class="load-more">
+        <button class="btn btn-outline" (click)="loadMoreOrders()" [disabled]="isLoadingMore()">
+          @if (isLoadingMore()) {
+          <div class="loading-spinner-sm"></div>
+          Carregando...
+          } @else {
+          Carregar mais
+          }
+        </button>
+      </div>
+      }
+      } @else {
+      <div class="empty-history">
+        <div class="empty-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
+            <path d="M12 8V16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M12 8H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
+          </svg>
+        </div>
+        <h3>Nenhuma venda encontrada</h3>
+        <p>Você ainda não realizou nenhuma venda de Bitcoin.</p>
+      </div>
+      }
+    </div>
+
+    <!-- Confirmation Modal -->
+    @if (showConfirmationModal()) {
+    <div class="modal-overlay">
+      <div class="confirmation-modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>Confirmar Venda</h3>
+          <button class="close-btn" (click)="closeConfirmationModal()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" />
+              <path d="M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-content">
+          <div class="confirm-summary">
+            <div class="summary-item">
+              <span class="label">Quantidade:</span>
+              <span class="value">{{ formatSats(Number(amountInSats())) }} sats</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">Taxa de rede:</span>
+              <span class="value">{{ formatSats(fee()) }} sats</span>
+            </div>
+            <div class="summary-item highlight">
+              <span class="label">Valor estimado:</span>
+              <span class="value">R$ {{ formatCurrency(getEstimatedBrlAmount()) }}</span>
+            </div>
+          </div>
+
+          <div class="confirm-warning">
+            <div class="warning-header">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <strong>Informações importantes:</strong>
+            </div>
+            <ul class="warning-list">
+              <li>A transação será enviada para a blockchain</li>
+              <li>O PIX será enviado após a confirmação na blockchain</li>
+              <li>O valor final em BRL será calculado no momento da confirmação</li>
+              <li>Valor mínimo por venda: R$ {{ formatCurrency(MIN_SELL_BRL) }}</li>
+            </ul>
+          </div>
+
+          <!-- PIX Key Confirmation Checkbox -->
+          <div class="pix-key-confirmation">
+            <label class="checkbox-container">
+              <input type="checkbox" [checked]="pixKeyConfirmed()" (change)="onPixKeyConfirmChange($event)">
+              <span class="checkmark"></span>
+              <span class="checkbox-text">
+                Confirmo que o PIX será enviado para a chave PIX (CPF/CNPJ) vinculada à minha conta:
+                @if (userPixKey()) {
+                <strong class="pix-key-value">{{ formatPixKey(userPixKey()!) }}</strong>
+                } @else {
+                <span class="pix-key-loading">carregando...</span>
+                }
+              </span>
+            </label>
+          </div>
+
+          <div class="modal-actions">
+            <button class="btn btn-outline" (click)="closeConfirmationModal()">
+              Cancelar
+            </button>
+            <button class="btn btn-success btn-lg" (click)="confirmSell()" [disabled]="isProcessing() || !pixKeyConfirmed()">
+              @if (isProcessing()) {
+              <div class="loading-spinner-sm"></div>
+              Processando...
+              } @else {
+              Confirmar Venda
+              }
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    }
+
+    <!-- Success Modal -->
+    @if (showSuccessModal()) {
+    <div class="modal-overlay">
+      <div class="success-modal" (click)="$event.stopPropagation()">
+        <div class="success-icon">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none">
+            <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
+          </svg>
+        </div>
+        <h3>Venda Criada com Sucesso!</h3>
+        <p>Sua transação foi enviada para a blockchain. Acompanhe o status da sua venda.</p>
+        <div class="success-actions">
+          <button class="btn btn-primary btn-lg" (click)="viewCreatedOrder()">
+            Ver Detalhes
+          </button>
+          <button class="btn btn-outline" (click)="closeSuccessModal()">
+            Fechar
+          </button>
+        </div>
+      </div>
+    </div>
+    }
+
+    <!-- Error Modal -->
+    @if (showErrorModal()) {
+    <div class="modal-overlay">
+      <div class="error-modal" (click)="$event.stopPropagation()">
+        <div class="error-icon">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
+            <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2" />
+            <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2" />
+          </svg>
+        </div>
+        <h3>Erro ao Criar Venda</h3>
+        <p>{{ errorMessage() }}</p>
+        <div class="error-actions">
+          <button class="btn btn-primary" (click)="closeErrorModal()">
+            Tentar Novamente
+          </button>
+        </div>
+      </div>
+    </div>
+    }
+  </div>
+</div>

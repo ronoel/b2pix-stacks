@@ -12,8 +12,7 @@ export enum PaymentRequestStatus {
 }
 
 export enum PaymentSourceType {
-  Advertisement = 'advertisement',
-  Buy = 'buy'
+  Buy = 'buy_order'
 }
 
 export interface PaymentRequest {

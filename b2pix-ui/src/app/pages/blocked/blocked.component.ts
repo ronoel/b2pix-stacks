@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core';
 
 import { Router } from '@angular/router';
-import { WalletService } from '../../libs/wallet.service';
+import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 
 @Component({
   selector: 'app-blocked',
@@ -103,11 +103,11 @@ import { WalletService } from '../../libs/wallet.service';
 })
 export class BlockedComponent {
   private router = inject(Router);
-  private walletService = inject(WalletService);
+  private walletManager = inject(WalletManagerService);
 
   goHome() {
     // Sign out user and redirect to home
-    this.walletService.signOut();
+    this.walletManager.signOut();
     this.router.navigate(['/']);
   }
 

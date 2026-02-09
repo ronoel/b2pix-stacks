@@ -1,11 +1,11 @@
 import { Component, inject, OnInit, ViewEncapsulation, signal } from '@angular/core';
 
 import { Router } from '@angular/router';
-import { BuyService } from '../../shared/api/buy.service';
-import { Buy, BuyStatus } from '../../shared/models/buy.model';
+import { BuyOrderService } from '../../shared/api/buy-order.service';
+import { BuyOrder, BuyOrderStatus } from '../../shared/models/buy-order.model';
 
 @Component({
-  selector: 'app-dispute-management',
+  selector: 'app-order-analysis',
   standalone: true,
   imports: [],
   encapsulation: ViewEncapsulation.None,
@@ -22,8 +22,8 @@ import { Buy, BuyStatus } from '../../shared/models/buy.model';
             Voltar
           </button>
           <div class="header-content">
-            <h1 class="page-title">Gerenciamento de Disputas</h1>
-            <p class="page-subtitle">Resolva disputas entre compradores e vendedores</p>
+            <h1 class="page-title">Análise de Ordens</h1>
+            <p class="page-subtitle">Analise e resolva ordens pendentes de verificação</p>
           </div>
         </div>
 
@@ -31,7 +31,7 @@ import { Buy, BuyStatus } from '../../shared/models/buy.model';
           <!-- Loading State -->
           <div class="loading-section">
             <div class="loading-spinner"></div>
-            <p>Carregando disputas...</p>
+            <p>Carregando ordens...</p>
           </div>
         } @else if (error()) {
           <!-- Error State -->
@@ -43,11 +43,11 @@ import { Buy, BuyStatus } from '../../shared/models/buy.model';
                 <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
               </svg>
             </div>
-            <h2>Erro ao carregar disputas</h2>
+            <h2>Erro ao carregar ordens</h2>
             <p>{{ error() }}</p>
-            <button class="retry-button" (click)="loadDisputedBuys()">Tentar Novamente</button>
+            <button class="retry-button" (click)="loadAnalyzingOrders()">Tentar Novamente</button>
           </div>
-        } @else if (disputedBuys().length === 0) {
+        } @else if (analyzingOrders().length === 0) {
           <!-- Empty State -->
           <div class="empty-state">
             <div class="empty-icon">
@@ -56,19 +56,19 @@ import { Buy, BuyStatus } from '../../shared/models/buy.model';
                 <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2"/>
               </svg>
             </div>
-            <h2>Nenhuma disputa ativa</h2>
-            <p>Não há disputas pendentes para resolução no momento.</p>
+            <h2>Nenhuma ordem em análise</h2>
+            <p>Não há ordens pendentes de análise no momento.</p>
           </div>
         } @else {
           <!-- Disputes List -->
           <div class="disputes-list">
             <div class="disputes-header">
-              <h2>Disputas Pendentes ({{ disputedBuys().length }})</h2>
+              <h2>Ordens em Análise ({{ analyzingOrders().length }})</h2>
             </div>
 
             <div class="dispute-cards">
-              @for (buy of disputedBuys(); track buy.id) {
-                <div class="dispute-card" (click)="viewDisputeDetails(buy.id)">
+              @for (buy of analyzingOrders(); track buy.id) {
+                <div class="dispute-card" (click)="viewOrderDetails(buy.id)">
                   <div class="dispute-header">
                     <div class="dispute-id">
                       <strong>ID:</strong> {{ buy.id }}
@@ -81,7 +81,7 @@ import { Buy, BuyStatus } from '../../shared/models/buy.model';
                   <div class="dispute-details">
                     <div class="detail-row">
                       <span class="label">Valor:</span>
-                      <span class="value">R$ {{ formatCurrency(buy.pay_value) }}</span>
+                      <span class="value">R$ {{ formatCurrency(buy.buy_value) }}</span>
                     </div>
                     <div class="detail-row">
                       <span class="label">Bitcoin:</span>
@@ -470,56 +470,51 @@ import { Buy, BuyStatus } from '../../shared/models/buy.model';
     }
   `]
 })
-export class DisputeManagementComponent implements OnInit {
+export class OrderAnalysisComponent implements OnInit {
   private router = inject(Router);
-  private buyService = inject(BuyService);
+  private buyOrderService = inject(BuyOrderService);
 
   // Signals
-  disputedBuys = signal<Buy[]>([]);
+  analyzingOrders = signal<BuyOrder[]>([]);
   loading = signal(true);
   error = signal<string | null>(null);
 
   ngOnInit() {
-    this.loadDisputedBuys();
+    this.loadAnalyzingOrders();
   }
 
   goBack() {
     this.router.navigate(['/dashboard']);
   }
 
-  loadDisputedBuys() {
+  loadAnalyzingOrders() {
     this.loading.set(true);
     this.error.set(null);
 
-    this.buyService.getDisputedBuys().subscribe({
-      next: (buys) => {
-        this.disputedBuys.set(buys);
+    this.buyOrderService.getAnalyzingOrders().subscribe({
+      next: (orders) => {
+        this.analyzingOrders.set(orders);
         this.loading.set(false);
       },
       error: (error) => {
-        console.error('Error loading disputed buys:', error);
-        this.error.set('Erro ao carregar disputas. Tente novamente.');
+        console.error('Error loading analyzing orders:', error);
+        this.error.set('Erro ao carregar ordens em análise. Tente novamente.');
         this.loading.set(false);
       }
     });
   }
 
-  viewDisputeDetails(buyId: string) {
-    this.router.navigate(['/dispute-details', buyId]);
+  viewOrderDetails(orderId: string) {
+    this.router.navigate(['/analyzing-order', orderId]);
   }
 
-  getStatusText(status: BuyStatus): string {
-    switch (status) {
-      case BuyStatus.InDispute:
-        return 'Em Disputa';
-      default:
-        return status;
-    }
+  getStatusText(status: BuyOrderStatus): string {
+    return status === BuyOrderStatus.Analyzing ? 'Em Análise' : status;
   }
 
   formatCurrency(value: string | number): string {
     const numValue = typeof value === 'string' ? parseFloat(value) : value;
-    // Convert from cents to BRL by dividing by 100
+    // Value is already in cents, convert to BRL by dividing by 100
     const valueInBRL = numValue / 100;
     return new Intl.NumberFormat('pt-BR', {
       minimumFractionDigits: 2,
@@ -527,7 +522,10 @@ export class DisputeManagementComponent implements OnInit {
     }).format(valueInBRL);
   }
 
-  formatBitcoin(value: string | number): string {
+  formatBitcoin(value: string | number | null | undefined): string {
+    if (value === null || value === undefined) {
+      return '0.00000000';
+    }
     const numValue = typeof value === 'string' ? parseFloat(value) : value;
     return (numValue / 100000000).toFixed(8);
   }
