@@ -92,6 +92,16 @@ import { CommonModule } from '@angular/common';
                 </div>
                 <span>Vender Bitcoin</span>
               </button>
+
+              <button class="action-btn pix-pay" (click)="goToPixPayment()">
+                <div class="btn-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="12" cy="13" r="4" stroke="currentColor" stroke-width="2"/>
+                  </svg>
+                </div>
+                <span>Pagar PIX</span>
+              </button>
             </div>
           </div>
 
@@ -204,6 +214,41 @@ import { CommonModule } from '@angular/common';
                     </svg>
                   </div>
                   <span>Vendas</span>
+                </button>
+              </div>
+            </div>
+          }
+
+          <!-- LP Section -->
+          @if (isLp()) {
+            <div class="action-group">
+              <h3 class="group-title">Liquidity Provider</h3>
+              <div class="actions-grid compact">
+                <button class="action-btn lp" (click)="goToLpDashboard()">
+                  <div class="btn-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 2V22" stroke="currentColor" stroke-width="2"/>
+                      <path d="M17 5H9.5C8.11929 5 7 6.11929 7 7.5V7.5C7 8.88071 8.11929 10 9.5 10H14.5C15.8807 10 17 11.1193 17 12.5V12.5C17 13.8807 15.8807 15 14.5 15H7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                  <span>Painel LP</span>
+                </button>
+              </div>
+            </div>
+          } @else if (isFullyValidated()) {
+            <div class="action-group">
+              <h3 class="group-title">Liquidity Provider</h3>
+              <div class="actions-grid compact">
+                <button class="action-btn lp" (click)="goToLpRegister()">
+                  <div class="btn-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <path d="M16 21V19C16 17.9391 15.5786 16.9217 14.8284 16.1716C14.0783 15.4214 13.0609 15 12 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <circle cx="8.5" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                      <line x1="20" y1="8" x2="20" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                      <line x1="23" y1="11" x2="17" y2="11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                  </div>
+                  <span>Cadastrar como LP</span>
                 </button>
               </div>
             </div>
@@ -426,6 +471,21 @@ import { CommonModule } from '@angular/common';
       border-color: #D97706;
     }
 
+    .action-btn.pix-pay {
+      background: linear-gradient(135deg, #16A34A 0%, #15803D 100%);
+      color: white;
+      border-color: #16A34A;
+    }
+
+    .action-btn.pix-pay:hover {
+      background: linear-gradient(135deg, #15803D 0%, #166534 100%);
+      border-color: #15803D;
+    }
+
+    .action-btn.pix-pay .btn-icon {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
     .action-btn.admin {
       background: #F9FAFB;
       color: #6B7280;
@@ -436,6 +496,21 @@ import { CommonModule } from '@angular/common';
       background: #F3F4F6;
       border-color: #9CA3AF;
       color: #374151;
+    }
+
+    .action-btn.lp {
+      background: linear-gradient(135deg, #1E40AF 0%, #1D4ED8 100%);
+      color: white;
+      border-color: #1E40AF;
+    }
+
+    .action-btn.lp:hover {
+      background: linear-gradient(135deg, #1D4ED8 0%, #1E3A8A 100%);
+      border-color: #1D4ED8;
+    }
+
+    .action-btn.lp .btn-icon {
+      background: rgba(255, 255, 255, 0.2);
     }
 
     .action-btn.pegging {
@@ -1039,6 +1114,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.router.navigate(['/sell']);
   }
 
+  goToPixPayment() {
+    this.router.navigate(['/pix-payment']);
+  }
+
   goToDisputeManagement() {
     this.router.navigate(['/order-analysis']);
   }
@@ -1074,6 +1153,18 @@ export class DashboardComponent implements OnInit, OnDestroy {
   isManager(): boolean {
     const currentAddress = this.walletManagerService.getSTXAddress();
     return currentAddress === environment.b2pixAddress;
+  }
+
+  isLp(): boolean {
+    return this.validationStatus()?.is_lp === true;
+  }
+
+  goToLpDashboard() {
+    this.router.navigate(['/lp-dashboard']);
+  }
+
+  goToLpRegister() {
+    this.router.navigate(['/lp-register']);
   }
 
   isEmbeddedWallet(): boolean {

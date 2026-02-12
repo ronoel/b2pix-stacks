@@ -74,6 +74,7 @@ export interface AccountInfo {
   address: string;
   email_verified: boolean;
   pix_verified: boolean;
+  is_lp?: boolean;
   created_at?: string;
 }
 
