@@ -507,14 +507,14 @@ export class PaymentStatusComponent implements OnInit, OnDestroy {
 
   getStatusDescription(status: PixPaymentStatus): string {
     switch (status) {
-      case PixPaymentStatus.Created:
-        return 'Sua ordem foi criada e esta aguardando transmissao.';
       case PixPaymentStatus.Broadcasted:
         return 'A transacao foi transmitida e esta aguardando confirmacao na blockchain.';
       case PixPaymentStatus.AwaitingConfirmation:
         return 'Aguardando confirmacao na blockchain. Isso pode levar alguns minutos.';
       case PixPaymentStatus.Confirmed:
-        return 'Transacao confirmada! Aguardando um Liquidity Provider aceitar o pagamento.';
+        return 'Transacao confirmada! Preparando liquidacao.';
+      case PixPaymentStatus.SettlementCreated:
+        return 'Liquidacao criada. Aguardando um Liquidity Provider aceitar o pagamento.';
       case PixPaymentStatus.LpAssigned:
         return 'Um Liquidity Provider esta processando o pagamento PIX.';
       case PixPaymentStatus.Paid:
@@ -550,10 +550,10 @@ export class PaymentStatusComponent implements OnInit, OnDestroy {
     const o = this.order();
     if (!o) return false;
     const statusOrder: { [key in PixPaymentStatus]: number } = {
-      [PixPaymentStatus.Created]: 0,
       [PixPaymentStatus.Broadcasted]: 1,
       [PixPaymentStatus.AwaitingConfirmation]: 1,
       [PixPaymentStatus.Confirmed]: 2,
+      [PixPaymentStatus.SettlementCreated]: 2,
       [PixPaymentStatus.LpAssigned]: 3,
       [PixPaymentStatus.Paid]: 4,
       [PixPaymentStatus.Failed]: 0,
@@ -568,10 +568,10 @@ export class PaymentStatusComponent implements OnInit, OnDestroy {
     const o = this.order();
     if (!o) return false;
     const statusOrder: { [key in PixPaymentStatus]: number } = {
-      [PixPaymentStatus.Created]: 0,
       [PixPaymentStatus.Broadcasted]: 1,
       [PixPaymentStatus.AwaitingConfirmation]: 1,
       [PixPaymentStatus.Confirmed]: 2,
+      [PixPaymentStatus.SettlementCreated]: 2,
       [PixPaymentStatus.LpAssigned]: 3,
       [PixPaymentStatus.Paid]: 4,
       [PixPaymentStatus.Failed]: 4,

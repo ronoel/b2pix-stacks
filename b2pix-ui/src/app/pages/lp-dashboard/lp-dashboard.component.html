@@ -177,7 +177,7 @@
                   <div class="history-header">
                     <div class="history-values">
                       <span class="history-brl">{{ formatBrlCents(item.pix_value) }}</span>
-                      <span class="history-sats">{{ formatSats(item.amount) }} sats</span>
+                      <span class="source-badge" [class]="item.source_type">{{ getSourceLabel(item.source_type) }}</span>
                     </div>
                     <span class="status-badge" [class]="getStatusClass(item.status)">
                       {{ getStatusLabel(item.status) }}

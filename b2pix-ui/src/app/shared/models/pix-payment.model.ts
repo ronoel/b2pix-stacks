@@ -1,8 +1,8 @@
 export enum PixPaymentStatus {
-  Created = 'created',
   Broadcasted = 'broadcasted',
   AwaitingConfirmation = 'awaiting_confirmation',
   Confirmed = 'confirmed',
+  SettlementCreated = 'settlement_created',
   LpAssigned = 'lp_assigned',
   Paid = 'paid',
   Failed = 'failed',
@@ -22,10 +22,8 @@ export interface PixPaymentOrder {
   tx_hash: string | null;
   pix_end_to_end_id: string | null;
   error_message: string | null;
-  lp_address: string | null;
-  lp_accepted_at: string | null;
-  lp_paid_at: string | null;
-  lp_cancel_count: number;
+  payout_request_id: string | null;
+  paid_at: string | null;
   expires_at: string;
   created_at: string;
   updated_at: string;
@@ -54,14 +52,14 @@ export function isPixPaymentFinalStatus(status: PixPaymentStatus): boolean {
 
 export function getPixPaymentStatusLabel(status: PixPaymentStatus): string {
   switch (status) {
-    case PixPaymentStatus.Created:
-      return 'Criada';
     case PixPaymentStatus.Broadcasted:
       return 'Transmitida';
     case PixPaymentStatus.AwaitingConfirmation:
       return 'Aguardando Confirmação';
     case PixPaymentStatus.Confirmed:
       return 'Confirmada';
+    case PixPaymentStatus.SettlementCreated:
+      return 'Liquidação Criada';
     case PixPaymentStatus.LpAssigned:
       return 'LP Processando';
     case PixPaymentStatus.Paid:
@@ -83,11 +81,11 @@ export function getPixPaymentStatusClass(status: PixPaymentStatus): string {
   switch (status) {
     case PixPaymentStatus.Paid:
       return 'completed';
-    case PixPaymentStatus.Created:
     case PixPaymentStatus.Broadcasted:
     case PixPaymentStatus.AwaitingConfirmation:
       return 'pending';
     case PixPaymentStatus.Confirmed:
+    case PixPaymentStatus.SettlementCreated:
     case PixPaymentStatus.LpAssigned:
       return 'processing';
     case PixPaymentStatus.Failed:
@@ -100,60 +98,4 @@ export function getPixPaymentStatusClass(status: PixPaymentStatus): string {
     default:
       return 'pending';
   }
-}
-
-// ============================================================================
-// LP Queue Types
-// ============================================================================
-
-export interface PixPaymentQueueItem {
-  id: string;
-  pix_value: number;
-  amount: number;
-  status: PixPaymentStatus;
-  lp_cancel_count: number;
-  expires_at: string;
-  created_at: string;
-}
-
-export interface PaginatedQueueResponse {
-  items: PixPaymentQueueItem[];
-  page: number;
-  limit: number;
-  has_more: boolean;
-}
-
-// ============================================================================
-// LP Stats Types
-// ============================================================================
-
-export interface LpStats {
-  total_paid_count: number;
-  total_paid_value_cents: number;
-  active_order_count: number;
-  cancelled_count: number;
-  balance_cents: number;
-}
-
-// ============================================================================
-// LP History Types
-// ============================================================================
-
-export interface LpHistoryItem {
-  id: string;
-  pix_value: number;
-  amount: number;
-  status: PixPaymentStatus;
-  is_final: boolean;
-  pix_end_to_end_id: string | null;
-  lp_accepted_at: string | null;
-  lp_paid_at: string | null;
-  created_at: string;
-}
-
-export interface PaginatedLpHistoryResponse {
-  items: LpHistoryItem[];
-  page: number;
-  limit: number;
-  has_more: boolean;
 }

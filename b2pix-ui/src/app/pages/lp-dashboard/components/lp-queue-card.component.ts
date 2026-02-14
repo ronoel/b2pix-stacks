@@ -1,6 +1,6 @@
 import { Component, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { PixPaymentQueueItem } from '../../../shared/models/pix-payment.model';
+import { PixPayoutRequest, getSourceTypeLabel } from '../../../shared/models/pix-payout-request.model';
 
 @Component({
   selector: 'app-lp-queue-card',
@@ -15,16 +15,19 @@ import { PixPaymentQueueItem } from '../../../shared/models/pix-payment.model';
             <span class="value brl">R$ {{ formatBrlCents(item().pix_value) }}</span>
           </div>
         </div>
-        @if (item().lp_cancel_count > 0) {
-          <div class="cancel-badge" title="Cancelamentos anteriores">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path d="M12 9V13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <circle cx="12" cy="17" r="1" fill="currentColor"/>
-              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-            </svg>
-            {{ item().lp_cancel_count }}x cancelada
-          </div>
-        }
+        <div class="card-badges">
+          <span class="source-badge" [class]="item().source_type">{{ getSourceLabel(item().source_type) }}</span>
+          @if (item().lp_cancel_count > 0) {
+            <div class="cancel-badge" title="Cancelamentos anteriores">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M12 9V13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <circle cx="12" cy="17" r="1" fill="currentColor"/>
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              </svg>
+              {{ item().lp_cancel_count }}x cancelada
+            </div>
+          }
+        </div>
       </div>
 
       <div class="card-meta">
@@ -107,6 +110,33 @@ import { PixPaymentQueueItem } from '../../../shared/models/pix-payment.model';
       &.brl { color: #16A34A; font-size: 20px; font-weight: 700; }
     }
 
+    .card-badges {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .source-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+
+      &.pix_order {
+        background: #DBEAFE;
+        color: #1E40AF;
+      }
+
+      &.sell_order {
+        background: #FEF3C7;
+        color: #92400E;
+      }
+    }
+
     .cancel-badge {
       display: flex;
       align-items: center;
@@ -179,11 +209,12 @@ import { PixPaymentQueueItem } from '../../../shared/models/pix-payment.model';
     @media (max-width: 480px) {
       .card-values { flex-direction: column; gap: 12px; }
       .card-meta { flex-direction: column; gap: 8px; }
+      .card-badges { flex-direction: column; align-items: flex-end; }
     }
   `]
 })
 export class LpQueueCardComponent {
-  item = input.required<PixPaymentQueueItem>();
+  item = input.required<PixPayoutRequest>();
   isAccepting = input<boolean>(false);
   accept = output<string>();
 
@@ -192,6 +223,10 @@ export class LpQueueCardComponent {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     }).format(cents / 100);
+  }
+
+  getSourceLabel(sourceType: string): string {
+    return getSourceTypeLabel(sourceType as any);
   }
 
   getTimeAgo(dateString: string): string {

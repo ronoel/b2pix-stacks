@@ -1,7 +1,7 @@
 import { Component, input, output, signal, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { PixPaymentOrder } from '../../../shared/models/pix-payment.model';
+import { PixPayoutRequest, getSourceTypeLabel } from '../../../shared/models/pix-payout-request.model';
 
 @Component({
   selector: 'app-lp-active-order',
@@ -32,30 +32,60 @@ import { PixPaymentOrder } from '../../../shared/models/pix-payment.model';
           <span class="label">Valor PIX</span>
           <span class="value brl">R$ {{ formatBrlCents(order().pix_value) }}</span>
         </div>
-      </div>
-
-      <!-- PIX Copia e Cola -->
-      <div class="pix-payload-section">
-        <h3>PIX Copia e Cola</h3>
-        <p class="instruction">Copie o codigo abaixo e cole no aplicativo do seu banco para pagar o PIX.</p>
-        <div class="payload-display">
-          <code>{{ order().qr_code_payload }}</code>
-          <button class="btn-copy" (click)="copyPayload()" [disabled]="payloadCopied()">
-            @if (payloadCopied()) {
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              Copiado!
-            } @else {
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>
-                <path d="M5 15H4C3.46957 15 2.96086 14.7893 2.58579 14.4142C2.21071 14.0391 2 13.5304 2 13V4C2 3.46957 2.21071 2.96086 2.58579 2.58579C2.96086 2.21071 3.46957 2 4 2H13C13.5304 2 14.0391 2.21071 14.4142 2.58579C14.7893 2.96086 15 3.46957 15 4V5" stroke="currentColor" stroke-width="2"/>
-              </svg>
-              Copiar
-            }
-          </button>
+        <div class="value-card">
+          <span class="label">Tipo</span>
+          <span class="value">{{ getSourceLabel(order().source_type) }}</span>
         </div>
       </div>
+
+      <!-- PIX Payment Info (conditional on source_type) -->
+      @if (order().qr_code_payload) {
+        <!-- PIX Copia e Cola (for pix_order) -->
+        <div class="pix-payload-section">
+          <h3>PIX Copia e Cola</h3>
+          <p class="instruction">Copie o codigo abaixo e cole no aplicativo do seu banco para pagar o PIX.</p>
+          <div class="payload-display">
+            <code>{{ order().qr_code_payload }}</code>
+            <button class="btn-copy" (click)="copyPayload()" [disabled]="payloadCopied()">
+              @if (payloadCopied()) {
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Copiado!
+              } @else {
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>
+                  <path d="M5 15H4C3.46957 15 2.96086 14.7893 2.58579 14.4142C2.21071 14.0391 2 13.5304 2 13V4C2 3.46957 2.21071 2.96086 2.58579 2.58579C2.96086 2.21071 3.46957 2 4 2H13C13.5304 2 14.0391 2.21071 14.4142 2.58579C14.7893 2.96086 15 3.46957 15 4V5" stroke="currentColor" stroke-width="2"/>
+                </svg>
+                Copiar
+              }
+            </button>
+          </div>
+        </div>
+      } @else if (order().pix_key) {
+        <!-- PIX Key (for sell_order) -->
+        <div class="pix-payload-section">
+          <h3>Chave PIX do Vendedor</h3>
+          <p class="instruction">Realize o pagamento PIX para a chave abaixo.</p>
+          <div class="payload-display">
+            <code>{{ order().pix_key }}</code>
+            <button class="btn-copy" (click)="copyPixKey()" [disabled]="payloadCopied()">
+              @if (payloadCopied()) {
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Copiado!
+              } @else {
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>
+                  <path d="M5 15H4C3.46957 15 2.96086 14.7893 2.58579 14.4142C2.21071 14.0391 2 13.5304 2 13V4C2 3.46957 2.21071 2.96086 2.58579 2.58579C2.96086 2.21071 3.46957 2 4 2H13C13.5304 2 14.0391 2.21071 14.4142 2.58579C14.7893 2.96086 15 3.46957 15 4V5" stroke="currentColor" stroke-width="2"/>
+                </svg>
+                Copiar
+              }
+            </button>
+          </div>
+        </div>
+      }
 
       <!-- PIX ID Input -->
       <div class="pix-id-section">
@@ -505,7 +535,7 @@ import { PixPaymentOrder } from '../../../shared/models/pix-payment.model';
   `]
 })
 export class LpActiveOrderComponent implements OnInit, OnDestroy {
-  order = input.required<PixPaymentOrder>();
+  order = input.required<PixPayoutRequest>();
   isProcessing = input<boolean>(false);
   processingAction = input<string>('');
 
@@ -569,10 +599,24 @@ export class LpActiveOrderComponent implements OnInit, OnDestroy {
     }).format(cents / 100);
   }
 
+  getSourceLabel(sourceType: string): string {
+    return getSourceTypeLabel(sourceType as any);
+  }
+
   copyPayload() {
     const payload = this.order().qr_code_payload;
     if (payload) {
       navigator.clipboard.writeText(payload).then(() => {
+        this.payloadCopied.set(true);
+        setTimeout(() => this.payloadCopied.set(false), 2000);
+      });
+    }
+  }
+
+  copyPixKey() {
+    const pixKey = this.order().pix_key;
+    if (pixKey) {
+      navigator.clipboard.writeText(pixKey).then(() => {
         this.payloadCopied.set(true);
         setTimeout(() => this.payloadCopied.set(false), 2000);
       });

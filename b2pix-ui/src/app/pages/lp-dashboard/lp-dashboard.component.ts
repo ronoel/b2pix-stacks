@@ -2,15 +2,15 @@ import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { interval, Subscription } from 'rxjs';
-import { PixPaymentService } from '../../shared/api/pix-payment.service';
+import { PixPayoutRequestService } from '../../shared/api/pix-payout-request.service';
 import {
-  PixPaymentOrder,
-  PixPaymentQueueItem,
+  PixPayoutRequest,
   LpStats,
-  LpHistoryItem,
-  getPixPaymentStatusLabel,
-  getPixPaymentStatusClass
-} from '../../shared/models/pix-payment.model';
+  PayoutRequestStatus,
+  getPayoutRequestStatusLabel,
+  getPayoutRequestStatusClass,
+  getSourceTypeLabel
+} from '../../shared/models/pix-payout-request.model';
 import { LpQueueCardComponent } from './components/lp-queue-card.component';
 import { LpActiveOrderComponent } from './components/lp-active-order.component';
 
@@ -23,7 +23,7 @@ import { LpActiveOrderComponent } from './components/lp-active-order.component';
 })
 export class LpDashboardComponent implements OnInit, OnDestroy {
   private router = inject(Router);
-  private pixPaymentService = inject(PixPaymentService);
+  private payoutRequestService = inject(PixPayoutRequestService);
 
   // Tabs
   currentTab = signal<'queue' | 'history' | 'stats'>('queue');
@@ -33,19 +33,19 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
   isLoadingStats = signal(false);
 
   // Queue
-  queueItems = signal<PixPaymentQueueItem[]>([]);
+  queueItems = signal<PixPayoutRequest[]>([]);
   isLoadingQueue = signal(false);
   queuePage = signal(1);
   queueHasMore = signal(false);
 
   // Active Order
-  activeOrder = signal<PixPaymentOrder | null>(null);
+  activeOrder = signal<PixPayoutRequest | null>(null);
   isAcceptingOrderId = signal<string | null>(null);
   isProcessingAction = signal(false);
   processingActionType = signal('');
 
   // History
-  historyItems = signal<LpHistoryItem[]>([]);
+  historyItems = signal<PixPayoutRequest[]>([]);
   isLoadingHistory = signal(false);
   historyPage = signal(1);
   historyHasMore = signal(false);
@@ -97,13 +97,13 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
 
   loadStats() {
     this.isLoadingStats.set(true);
-    this.pixPaymentService.getLpStats().subscribe({
+    this.payoutRequestService.getLpStats().subscribe({
       next: (stats) => {
         this.stats.set(stats);
         this.isLoadingStats.set(false);
 
         // If LP has an active order, fetch it from history
-        if (stats.active_order_count === 1) {
+        if (stats.active_order_count > 0) {
           this.loadActiveOrderFromHistory();
         } else {
           this.loadQueue();
@@ -126,7 +126,7 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
     this.isLoadingQueue.set(true);
     this.queuePage.set(1);
 
-    this.pixPaymentService.getQueue({ page: 1, limit: 10 }).subscribe({
+    this.payoutRequestService.getQueue({ page: 1, limit: 10 }).subscribe({
       next: (response) => {
         this.queueItems.set(response.items);
         this.queueHasMore.set(response.has_more);
@@ -144,7 +144,7 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
     const nextPage = this.queuePage() + 1;
     this.isLoadingQueue.set(true);
 
-    this.pixPaymentService.getQueue({ page: nextPage, limit: 10 }).subscribe({
+    this.payoutRequestService.getQueue({ page: nextPage, limit: 10 }).subscribe({
       next: (response) => {
         this.queueItems.update(items => [...items, ...response.items]);
         this.queuePage.set(nextPage);
@@ -166,9 +166,9 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
     this.isAcceptingOrderId.set(orderId);
     this.clearMessages();
 
-    this.pixPaymentService.acceptOrder(orderId).subscribe({
-      next: (order) => {
-        this.activeOrder.set(order);
+    this.payoutRequestService.acceptRequest(orderId).subscribe({
+      next: (request) => {
+        this.activeOrder.set(request);
         this.isAcceptingOrderId.set(null);
         this.queueItems.update(items => items.filter(i => i.id !== orderId));
         this.startPolling();
@@ -187,16 +187,16 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
   // ============================================
 
   private loadActiveOrderFromHistory() {
-    // Fetch history and find the order with status 'lp_assigned'
-    this.pixPaymentService.getLpHistory({ page: 1, limit: 20 }).subscribe({
+    // Fetch history and find the payout request with status 'assigned'
+    this.payoutRequestService.getLpHistory({ page: 1, limit: 20 }).subscribe({
       next: (response) => {
-        const activeOrderItem = response.items.find(item => item.status === 'lp_assigned');
+        const activeItem = response.items.find(item => item.status === PayoutRequestStatus.LpAssigned);
 
-        if (activeOrderItem) {
-          // Fetch full order details
-          this.pixPaymentService.getPixPaymentById(activeOrderItem.id).subscribe({
-            next: (order) => {
-              this.activeOrder.set(order);
+        if (activeItem) {
+          // Fetch full payout request details
+          this.payoutRequestService.getById(activeItem.id).subscribe({
+            next: (request) => {
+              this.activeOrder.set(request);
               this.startPolling();
             },
             error: (error) => {
@@ -224,7 +224,7 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
     this.processingActionType.set('pay');
     this.clearMessages();
 
-    this.pixPaymentService.payOrder(order.id, pixEndToEndId).subscribe({
+    this.payoutRequestService.payRequest(order.id, pixEndToEndId).subscribe({
       next: () => {
         this.isProcessingAction.set(false);
         this.processingActionType.set('');
@@ -250,7 +250,7 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
     this.processingActionType.set('cancel');
     this.clearMessages();
 
-    this.pixPaymentService.cancelOrder(order.id).subscribe({
+    this.payoutRequestService.cancelRequest(order.id).subscribe({
       next: () => {
         this.isProcessingAction.set(false);
         this.processingActionType.set('');
@@ -276,7 +276,7 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
     this.processingActionType.set('report');
     this.clearMessages();
 
-    this.pixPaymentService.reportOrder(order.id, reason).subscribe({
+    this.payoutRequestService.reportRequest(order.id, reason).subscribe({
       next: () => {
         this.isProcessingAction.set(false);
         this.processingActionType.set('');
@@ -302,7 +302,7 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
     this.isLoadingHistory.set(true);
     this.historyPage.set(1);
 
-    this.pixPaymentService.getLpHistory({ page: 1, limit: 10 }).subscribe({
+    this.payoutRequestService.getLpHistory({ page: 1, limit: 10 }).subscribe({
       next: (response) => {
         this.historyItems.set(response.items);
         this.historyHasMore.set(response.has_more);
@@ -320,7 +320,7 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
     const nextPage = this.historyPage() + 1;
     this.isLoadingHistory.set(true);
 
-    this.pixPaymentService.getLpHistory({ page: nextPage, limit: 10 }).subscribe({
+    this.payoutRequestService.getLpHistory({ page: nextPage, limit: 10 }).subscribe({
       next: (response) => {
         this.historyItems.update(items => [...items, ...response.items]);
         this.historyPage.set(nextPage);
@@ -347,10 +347,10 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
         return;
       }
 
-      this.pixPaymentService.getPixPaymentById(order.id).subscribe({
+      this.payoutRequestService.getById(order.id).subscribe({
         next: (updated) => {
           // If order was reassigned (timeout), go back to queue
-          if (updated.status !== 'lp_assigned') {
+          if (updated.status !== PayoutRequestStatus.LpAssigned) {
             this.activeOrder.set(null);
             this.stopPolling();
             this.showError('O tempo para pagamento expirou. A ordem voltou para a fila.');
@@ -398,11 +398,15 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
   }
 
   getStatusLabel(status: string): string {
-    return getPixPaymentStatusLabel(status as any);
+    return getPayoutRequestStatusLabel(status as any);
   }
 
   getStatusClass(status: string): string {
-    return getPixPaymentStatusClass(status as any);
+    return getPayoutRequestStatusClass(status as any);
+  }
+
+  getSourceLabel(sourceType: string): string {
+    return getSourceTypeLabel(sourceType as any);
   }
 
   private getErrorMessage(error: any): string {

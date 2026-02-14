@@ -96,11 +96,6 @@ export const routes: Routes = [
     canActivate: [authGuard, managerGuard]
   },
   {
-    path: 'sell-order-management',
-    loadComponent: () => import('./pages/sell-order-management/sell-order-management.component').then(m => m.SellOrderManagementComponent),
-    canActivate: [authGuard, managerGuard]
-  },
-  {
     path: 'lp-register',
     loadComponent: () => import('./pages/lp-register/lp-register.component').then(m => m.LpRegisterComponent),
     canActivate: [authGuard]
