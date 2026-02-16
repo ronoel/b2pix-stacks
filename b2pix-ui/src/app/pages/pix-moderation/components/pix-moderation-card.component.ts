@@ -40,7 +40,7 @@ import { AccountPixVerify } from '../../../shared/models/account-validation.mode
           </div>
           <div class="detail-item">
             <span class="label">Valor de Confirmacao</span>
-            <span class="value highlight">R$ {{ verification.confirmation_value_brl }}</span>
+            <span class="value highlight">R$ {{ (verification.pix_confirmation_value / 100).toFixed(2) }}</span>
           </div>
           <div class="detail-item">
             <span class="label">Codigo de Confirmacao</span>

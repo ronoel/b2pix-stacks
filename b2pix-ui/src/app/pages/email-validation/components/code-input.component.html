@@ -1,0 +1,17 @@
+<div class="code-input-container">
+  <div class="code-inputs">
+    @for (digit of digits(); track $index) {
+      <input
+        #codeInput
+        type="text"
+        inputmode="numeric"
+        maxlength="1"
+        class="code-digit"
+        [value]="digit"
+        (input)="onInput($index, $event)"
+        (keydown)="onKeyDown($index, $event)"
+        (paste)="onPaste($event)"
+      />
+    }
+  </div>
+</div>

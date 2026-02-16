@@ -1,0 +1,262 @@
+<div class="dashboard">
+  <div class="container">
+    <!-- Validation Banner -->
+    @if (validationStatus() && !isFullyValidated()) {
+      <div class="validation-banner">
+        <div class="banner-content">
+          <div class="banner-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M12 9V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="17" r="1" fill="currentColor"/>
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </div>
+          <div class="banner-text">
+            <h4>Complete sua validação de conta</h4>
+            <p>{{ getValidationMessage() }}</p>
+          </div>
+        </div>
+        <button class="banner-btn" (click)="goToValidation()">
+          Continuar Validação
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 5L19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+    }
+
+    <!-- Header -->
+    <div class="dashboard-header">
+      <div class="header-left">
+        <h1 class="dashboard-title">Dashboard</h1>
+        <p class="dashboard-subtitle">Plataforma P2P - Compre e venda Bitcoin com PIX</p>
+      </div>
+      <div class="wallet-balance">
+        <div class="balance-label">Saldo sBTC</div>
+        @if (isLoadingBalance()) {
+          <div class="balance-loading">
+            <div class="loading-spinner-sm"></div>
+          </div>
+        } @else {
+          <div class="balance-amount">{{ formatSatoshisToBTC(sBtcBalance().toString()) }} BTC</div>
+          <div class="balance-sats">{{ formatSats(sBtcBalance().toString()) }} sats</div>
+          @if (btcPriceInCents() > 0) {
+            <div class="balance-brl">≈ {{ formatBalanceInBRL() }}</div>
+          }
+        }
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="actions-section">
+      <!-- Trade Section -->
+      <div class="action-group">
+        <h3 class="group-title">Negociar</h3>
+        <div class="actions-grid compact">
+          <button class="action-btn primary" (click)="goToBuy()">
+            <div class="btn-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M7 17L17 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M7 7H17V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <span>Comprar Bitcoin</span>
+          </button>
+
+          <button class="action-btn secondary" (click)="goToSell()">
+            <div class="btn-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M17 7L7 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M17 17H7V7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <span>Vender Bitcoin</span>
+          </button>
+
+          <button class="action-btn pix-pay" (click)="goToPixPayment()">
+            <div class="btn-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="12" cy="13" r="4" stroke="currentColor" stroke-width="2"/>
+              </svg>
+            </div>
+            <span>Pagar PIX</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Wallet Section -->
+      <div class="action-group">
+        <h3 class="group-title">Carteira</h3>
+        <div class="actions-grid compact">
+          <button class="action-btn" (click)="openReceiveBitcoinModal()">
+            <div class="btn-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M12 5V19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M19 12L12 19L5 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <span>Receber</span>
+          </button>
+
+          <button class="action-btn" (click)="goToSendBitcoin()">
+            <div class="btn-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M12 19V5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M5 12L12 5L19 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <span>Enviar</span>
+          </button>
+
+
+            <button class="action-btn" (click)="goToWalletManagement()">
+              <div class="btn-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" stroke-width="2"/>
+                  <path d="M12 15v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  <path d="M8 11V7a4 4 0 0 1 8 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <span>Gerenciar</span>
+            </button>
+
+        </div>
+      </div>
+
+      <!-- BTC Pegging Section -->
+       <!-- REMOVED THIS FUNCTION FROM THE USER TO TEST MORE -->
+      <!-- <div class="action-group">
+        <h3 class="group-title">Peg BTC/sBTC</h3>
+        <div class="actions-grid compact">
+          <button class="action-btn pegging" (click)="goToBtcToSbtc()">
+            <div class="btn-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M7 16V4M7 4L3 8M7 4L11 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M17 8V20M17 20L21 16M17 20L13 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <span>BTC → sBTC</span>
+          </button>
+
+          <button class="action-btn pegging" (click)="goToSbtcToBtc()">
+            <div class="btn-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M7 8V20M7 20L3 16M7 20L11 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M17 16V4M17 4L21 8M17 4L13 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <span>sBTC → BTC</span>
+          </button>
+        </div>
+      </div> -->
+
+      <!-- Admin Section -->
+      @if (isManager()) {
+        <div class="action-group">
+          <h3 class="group-title">Administração</h3>
+          <div class="actions-grid compact">
+            <button class="action-btn admin" (click)="goToDisputeManagement()">
+              <div class="btn-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 9V13L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                </svg>
+              </div>
+              <span>Disputas</span>
+            </button>
+
+            <button class="action-btn admin" (click)="goToPaymentRequests()">
+              <div class="btn-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 2V22" stroke="currentColor" stroke-width="2"/>
+                  <path d="M17 5H9.5C8.11929 5 7 6.11929 7 7.5V7.5C7 8.88071 8.11929 10 9.5 10H14.5C15.8807 10 17 11.1193 17 12.5V12.5C17 13.8807 15.8807 15 14.5 15H7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <span>Pagamentos</span>
+            </button>
+
+            <button class="action-btn admin" (click)="goToPixModeration()">
+              <div class="btn-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
+                </svg>
+              </div>
+              <span>Validacao Pix</span>
+            </button>
+
+          </div>
+        </div>
+      }
+
+      <!-- LP Section -->
+      @if (isLp()) {
+        <div class="action-group">
+          <h3 class="group-title">Liquidity Provider</h3>
+          <div class="actions-grid compact">
+            <button class="action-btn lp" (click)="goToLpDashboard()">
+              <div class="btn-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 2V22" stroke="currentColor" stroke-width="2"/>
+                  <path d="M17 5H9.5C8.11929 5 7 6.11929 7 7.5V7.5C7 8.88071 8.11929 10 9.5 10H14.5C15.8807 10 17 11.1193 17 12.5V12.5C17 13.8807 15.8807 15 14.5 15H7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <span>Painel LP</span>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+
+  </div>
+
+  <!-- Receive Bitcoin Modal -->
+  @if (showReceiveModal()) {
+    <div class="modal-overlay" (click)="closeReceiveBitcoinModal()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>Receber Bitcoin</h2>
+          <button class="modal-close" (click)="closeReceiveBitcoinModal()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="info-banner">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              <path d="M12 16V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 8H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <p>Este é seu endereço para receber sBTC na Stacks Blockchain</p>
+          </div>
+          <div class="wallet-address-container">
+            <label class="form-label">Endereço da Carteira</label>
+            <div class="address-display">
+              <code>{{ walletAddress() }}</code>
+              <button class="btn-copy" (click)="copyAddress()" [disabled]="addressCopied()">
+                @if (addressCopied()) {
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  Copiado!
+                } @else {
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M5 15H4C3.46957 15 2.96086 14.7893 2.58579 14.4142C2.21071 14.0391 2 13.5304 2 13V4C2 3.46957 2.21071 2.96086 2.58579 2.58579C2.96086 2.21071 3.46957 2 4 2H13C13.5304 2 14.0391 2.21071 14.4142 2.58579C14.7893 2.96086 15 3.46957 15 4V5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  Copiar
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+</div>

@@ -1,0 +1,9 @@
+<div class="pix-timer" [class.warning]="isWarning()" [class.danger]="isDanger()">
+  <div class="timer-icon">
+    <i class="bi bi-clock"></i>
+  </div>
+  <div class="timer-content">
+    <div class="timer-label">Tempo restante</div>
+    <div class="timer-display">{{ formatTime(timeLeft()) }}</div>
+  </div>
+</div>
