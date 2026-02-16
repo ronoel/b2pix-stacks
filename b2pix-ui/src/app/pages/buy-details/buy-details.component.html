@@ -1,0 +1,242 @@
+<div class="buy-details-page">
+  <div class="container">
+    <!-- Header -->
+    <div class="page-header">
+      <button class="btn btn-ghost" (click)="goBack()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12 19L5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Voltar
+      </button>
+      <div class="header-content">
+        <h1 class="page-title">{{ getPageTitle() }}</h1>
+        <p class="page-subtitle">{{ getPageSubtitle() }}</p>
+      </div>
+    </div>
+
+    @if (isLoading()) {
+      <div class="loading-state">
+        <div class="loading-spinner"></div>
+        <p>Carregando dados da compra...</p>
+      </div>
+    } @else if (errorMessage()) {
+      <div class="error-state">
+        <div class="error-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+            <path d="M15 9L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M9 9L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h3>Erro ao carregar compra</h3>
+        <p>{{ errorMessage() }}</p>
+        <button class="btn btn-primary" (click)="loadBuyData()">Tentar novamente</button>
+      </div>
+    } @else if (buyData()) {
+      <!-- Payment Form for Pending Status -->
+      @if (isPendingPayment()) {
+        <app-payment-form
+          [formattedTime]="formattedTime()"
+          [fiatAmount]="formatCurrency(getTotalFiatAmount())"
+          [fiatAmountValue]="getTotalFiatAmount()"
+          [btcAmount]="formatBTC(getBtcAmount())"
+          [pixKey]="buyData()!.pix_key"
+          [canConfirm]="canConfirmPayment()"
+          (copyPix)="copyPixKey()"
+          (confirm)="confirmPayment()"
+          (cancel)="cancelPurchase()"
+          (transactionIdChanged)="onTransactionIdChange($event)"
+          (noTransactionIdChanged)="onNoTransactionIdChange($event)"
+        />
+      } @else {
+        <!-- Buy Details for Non-Pending Status -->
+        <div class="details-container">
+          <!-- Status Banner -->
+          <div class="status-banner" [ngClass]="getStatusClass(buyData()!.status)">
+            <div class="status-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                @if (isSuccessStatus(buyData()!.status)) {
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                  <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                } @else if (isProcessingStatus(buyData()!.status)) {
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                  <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                } @else {
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                  <path d="M12 8V12M12 16H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                }
+              </svg>
+            </div>
+            <div class="status-content">
+              <h3 class="status-title">{{ getStatusLabel(buyData()!.status) }}</h3>
+              <p class="status-description">{{ getStatusDescription(buyData()!.status) }}</p>
+            </div>
+          </div>
+
+          <!-- Buy Information Card -->
+          <div class="info-card">
+            <h3 class="card-title">Informações da Compra</h3>
+
+            <div class="info-grid">
+              <div class="info-item full-width">
+                <span class="info-label">ID da Compra:</span>
+                <span class="info-value mono">{{ buyData()!.id }}</span>
+              </div>
+
+              <div class="info-item">
+                <span class="info-label">Data e Hora:</span>
+                <span class="info-value">{{ formatDateTime(buyData()!.created_at) }}</span>
+              </div>
+
+              <div class="info-item highlight">
+                <span class="info-label">Valor Pago:</span>
+                <span class="info-value amount">{{ formatBRLCurrency(buyData()!.buy_value) }}</span>
+              </div>
+
+              @if (buyData()!.amount !== null) {
+                <div class="info-item highlight">
+                  <span class="info-label">Bitcoin Recebido:</span>
+                  <span class="info-value btc">{{ formatSatoshisToBTC(buyData()!.amount!) }} BTC</span>
+                </div>
+
+                <div class="info-item">
+                  <span class="info-label">Satoshis:</span>
+                  <span class="info-value mono">{{ formatSats(buyData()!.amount!) }} sats</span>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Payment Request Details (if available) -->
+          @if (shouldShowPaymentDetails()) {
+            @if (paymentRequest()) {
+              <div class="info-card">
+                <h3 class="card-title">Detalhes do Pagamento Blockchain</h3>
+
+                <div class="info-grid">
+                  <div class="info-item">
+                    <span class="info-label">Status:</span>
+                    <span class="status-badge small" [ngClass]="getPaymentRequestStatusClass(paymentRequest()!.status)">
+                      {{ getPaymentRequestStatusLabel(paymentRequest()!.status) }}
+                    </span>
+                  </div>
+
+                  <div class="info-item">
+                    <span class="info-label">Valor:</span>
+                    <span class="info-value mono">{{ formatSats(paymentRequest()!.amount) }} sats</span>
+                  </div>
+
+                  @if (paymentRequest()!.blockchain_tx_id) {
+                    <div class="info-item full-width">
+                      <span class="info-label">Transação Blockchain:</span>
+                      <a
+                        [href]="getBlockchainExplorerUrl(paymentRequest()!.blockchain_tx_id!)"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="blockchain-link"
+                      >
+                        {{ formatTransactionId(paymentRequest()!.blockchain_tx_id!) }}
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          <polyline points="15,3 21,3 21,9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          <line x1="10" y1="14" x2="21" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                      </a>
+                    </div>
+                  }
+                </div>
+              </div>
+            } @else if (isLoadingPaymentRequest()) {
+              <div class="info-card">
+                <div class="loading-inline">
+                  <div class="loading-spinner-sm"></div>
+                  <span>Carregando detalhes do pagamento...</span>
+                </div>
+              </div>
+            }
+          }
+
+          <!-- Action Buttons for Details View -->
+          <div class="details-actions">
+            <button class="btn btn-outline" (click)="refreshBuyData()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M3 12C3 7.02944 7.02944 3 12 3C14.5755 3 16.9 4.15205 18.5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M21 12C21 16.9706 16.9706 21 12 21C9.42446 21 7.09995 19.848 5.5 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M13 2L18 6L14 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M11 22L6 18L10 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Atualizar
+            </button>
+            <button class="btn btn-primary" (click)="goToDashboard()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M9 22V12h6v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Ir para Dashboard
+            </button>
+          </div>
+        </div>
+      }
+    }
+  </div>
+
+  <!-- Time Warning Modal -->
+  @if (showTimeWarningModal()) {
+    <div class="warning-modal-overlay">
+      <div class="warning-modal-content">
+        <div class="warning-modal-header">
+          <div class="warning-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              <path d="M12 8V12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M12 16H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h3 class="warning-modal-title">Atenção: Tempo Restante</h3>
+        </div>
+        <div class="warning-modal-body">
+          <div class="warning-timer">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div class="warning-timer-display">{{ formattedTime() }}</div>
+          </div>
+          <p class="warning-message-text">
+            Resta menos de <strong>1 minuto</strong> para concluir o pagamento.
+          </p>
+          <p class="warning-suggestion">
+            Se você ainda não está pronto para realizar o pagamento, recomendamos cancelar esta compra e iniciar uma nova quando estiver preparado.
+          </p>
+          <div class="warning-confirmation">
+            <label class="checkbox-label">
+              <input
+                type="checkbox"
+                [checked]="hasReadWarning()"
+                (change)="onWarningReadChange($event)"
+                class="warning-checkbox"
+              />
+              <span class="checkbox-text">Li e compreendi o aviso acima</span>
+            </label>
+          </div>
+        </div>
+        <div class="warning-modal-footer">
+          <button class="btn btn-outline btn-cancel-warning" (click)="cancelFromWarningModal()" [disabled]="!hasReadWarning()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Cancelar Compra
+          </button>
+          <button class="btn btn-primary btn-continue" (click)="closeTimeWarningModal()" [disabled]="!hasReadWarning()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            Continuar
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

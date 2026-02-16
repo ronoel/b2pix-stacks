@@ -42,7 +42,6 @@ export interface VerifyEmailCodeResponse {
 export interface PixVerifyResponse {
   destination_pix_key: string;
   confirmation_value_cents: number;
-  confirmation_value_brl: string;
   expires_at: string;
   message: string;
   attempts: number;
@@ -62,7 +61,6 @@ export interface PixVerificationStatus {
   status: 'awaiting' | 'processing' | 'verified' | 'expired' | 'failed' | null;
   user_pix_key?: string;
   confirmation_value_cents?: number;
-  confirmation_value_brl?: string;
   destination_pix_key?: string;
   expires_at?: string;
   attempts?: number;
@@ -74,6 +72,7 @@ export interface AccountInfo {
   address: string;
   email_verified: boolean;
   pix_verified: boolean;
+  is_lp?: boolean;
   created_at?: string;
 }
 
@@ -109,8 +108,7 @@ export interface AccountPixVerify {
   address: string;
   user_pix_key: string;
   destination_pix_key: string;
-  pix_confirmation_value: string;
-  confirmation_value_brl: string;
+  pix_confirmation_value: number;
   pix_confirmation_code: string;
   pix_end_to_end_id: string | null;
   status: 'processing' | 'verified' | 'failed';

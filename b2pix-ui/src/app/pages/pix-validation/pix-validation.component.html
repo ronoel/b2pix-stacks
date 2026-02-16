@@ -115,7 +115,7 @@
               <div class="step-content">
                 <h4>Valor do depósito de validação</h4>
                 <div class="value-display">
-                  R$ {{ pixVerification()!.confirmation_value_brl }}
+                  R$ {{ (pixVerification()!.confirmation_value_cents! / 100).toFixed(2) }}
                 </div>
                 <p class="value-warning">
                   <i class="bi bi-exclamation-triangle"></i>
@@ -130,7 +130,7 @@
                 <h4>PIX Copia e Cola</h4>
                 <app-pix-copia-cola
                   [pixKey]="pixVerification()!.destination_pix_key || ''"
-                  [amount]="+(pixVerification()!.confirmation_value_brl || 0)"
+                  [amount]="(pixVerification()!.confirmation_value_cents || 0) / 100"
                   [showLabel]="false"
                 ></app-pix-copia-cola>
               </div>

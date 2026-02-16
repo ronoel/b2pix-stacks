@@ -166,7 +166,6 @@ export class PixValidationComponent implements OnInit, OnDestroy {
           user_pix_key: this.userPixKey(),
           destination_pix_key: verify.destination_pix_key,
           confirmation_value_cents: verify.confirmation_value_cents,
-          confirmation_value_brl: verify.confirmation_value_brl,
           expires_at: verify.expires_at,
           attempts: verify.attempts,
           max_attempts: verify.max_attempts

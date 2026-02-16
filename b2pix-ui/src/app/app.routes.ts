@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { managerGuard } from './core/guards/manager.guard';
+import { lpGuard } from './core/guards/lp.guard';
 import { requireWalletOnlyGuard } from './core/guards/require-wallet-only.guard';
 import { accountValidationGuard } from './core/guards/account-validation.guard';
 
@@ -38,6 +39,11 @@ export const routes: Routes = [
     path: 'pix-validation',
     loadComponent: () => import('./pages/pix-validation/pix-validation.component').then(m => m.PixValidationComponent),
     canActivate: [requireWalletOnlyGuard]
+  },
+  {
+    path: 'pix-payment',
+    loadComponent: () => import('./pages/pix-payment/pix-payment.component').then(m => m.PixPaymentComponent),
+    canActivate: [authGuard]
   },
   {
     path: 'sell',
@@ -90,9 +96,14 @@ export const routes: Routes = [
     canActivate: [authGuard, managerGuard]
   },
   {
-    path: 'sell-order-management',
-    loadComponent: () => import('./pages/sell-order-management/sell-order-management.component').then(m => m.SellOrderManagementComponent),
-    canActivate: [authGuard, managerGuard]
+    path: 'lp-register',
+    loadComponent: () => import('./pages/lp-register/lp-register.component').then(m => m.LpRegisterComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'lp-dashboard',
+    loadComponent: () => import('./pages/lp-dashboard/lp-dashboard.component').then(m => m.LpDashboardComponent),
+    canActivate: [authGuard, lpGuard]
   },
   {
     path: 'send/sBTC',

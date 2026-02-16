@@ -1,0 +1,276 @@
+<div class="lp-dashboard">
+  <div class="container">
+    <!-- Header -->
+    <div class="page-header">
+      <div class="header-left">
+        <button class="btn-back" (click)="goToDashboard()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 19L5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div>
+          <h1>Painel LP</h1>
+          <p class="subtitle">Liquidity Provider - Pagamentos PIX</p>
+        </div>
+      </div>
+      @if (stats()) {
+        <div class="header-stats">
+          <div class="stat-chip success">
+            <span class="stat-value">{{ stats()!.total_paid_count }}</span>
+            <span class="stat-label">Pagos</span>
+          </div>
+          <div class="stat-chip">
+            <span class="stat-value">{{ formatBrlCents(stats()!.balance_cents) }}</span>
+            <span class="stat-label">Saldo</span>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Feedback Messages -->
+    @if (successMessage()) {
+      <div class="alert alert-success">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        {{ successMessage() }}
+      </div>
+    }
+    @if (errorMessage()) {
+      <div class="alert alert-error">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+          <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/>
+          <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        {{ errorMessage() }}
+      </div>
+    }
+
+    <!-- Active Order (takes priority over tabs) -->
+    @if (activeOrder()) {
+      <div class="active-order-section">
+        <div class="section-header">
+          <h2>Ordem Ativa</h2>
+          <span class="badge badge-processing">Em andamento</span>
+        </div>
+        <app-lp-active-order
+          [order]="activeOrder()!"
+          [isProcessing]="isProcessingAction()"
+          [processingAction]="processingActionType()"
+          (paid)="onPayOrder($event)"
+          (cancelled)="onCancelOrder()"
+          (reported)="onReportOrder($event)"
+        />
+      </div>
+    } @else {
+      <!-- Tabs -->
+      <div class="tabs">
+        <button
+          class="tab"
+          [class.active]="currentTab() === 'queue'"
+          (click)="switchTab('queue')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/>
+            <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/>
+            <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/>
+            <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/>
+          </svg>
+          Fila
+          @if (queueItems().length > 0) {
+            <span class="tab-count">{{ queueItems().length }}</span>
+          }
+        </button>
+        <button
+          class="tab"
+          [class.active]="currentTab() === 'history'"
+          (click)="switchTab('history')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M3 12C3 7.02944 7.02944 3 12 3C14.5755 3 16.9 4.15205 18.5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M21 12C21 16.9706 16.9706 21 12 21C9.42446 21 7.09995 19.848 5.5 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M13 2L18 6L14 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M11 22L6 18L10 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Historico
+        </button>
+        <button
+          class="tab"
+          [class.active]="currentTab() === 'stats'"
+          (click)="switchTab('stats')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M18 20V10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M12 20V4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M6 20V14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          Estatisticas
+        </button>
+      </div>
+
+      <!-- Tab Content -->
+      <div class="tab-content">
+        <!-- Queue Tab -->
+        @if (currentTab() === 'queue') {
+          @if (isLoadingQueue() && queueItems().length === 0) {
+            <div class="loading-state">
+              <div class="loading-spinner"></div>
+              <p>Carregando fila...</p>
+            </div>
+          } @else if (queueItems().length === 0) {
+            <div class="empty-state">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
+                <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <h3>Nenhuma ordem na fila</h3>
+              <p>Novas ordens aparecerao aqui quando forem confirmadas na blockchain.</p>
+              <button class="btn btn-outline" (click)="loadQueue()">Atualizar</button>
+            </div>
+          } @else {
+            <div class="queue-list">
+              @for (item of queueItems(); track item.id) {
+                <app-lp-queue-card
+                  [item]="item"
+                  [isAccepting]="isAcceptingOrderId() === item.id"
+                  (accept)="onAcceptOrder($event)"
+                />
+              }
+            </div>
+            @if (queueHasMore()) {
+              <div class="load-more">
+                <button class="btn btn-outline" (click)="loadMoreQueue()" [disabled]="isLoadingQueue()">
+                  @if (isLoadingQueue()) {
+                    <div class="loading-spinner-sm"></div>
+                    Carregando...
+                  } @else {
+                    Carregar mais
+                  }
+                </button>
+              </div>
+            }
+          }
+        }
+
+        <!-- History Tab -->
+        @if (currentTab() === 'history') {
+          @if (isLoadingHistory() && historyItems().length === 0) {
+            <div class="loading-state">
+              <div class="loading-spinner"></div>
+              <p>Carregando historico...</p>
+            </div>
+          } @else if (historyItems().length === 0) {
+            <div class="empty-state">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                <path d="M3 12C3 7.02944 7.02944 3 12 3C14.5755 3 16.9 4.15205 18.5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path d="M21 12C21 16.9706 16.9706 21 12 21C9.42446 21 7.09995 19.848 5.5 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path d="M13 2L18 6L14 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M11 22L6 18L10 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <h3>Nenhum historico</h3>
+              <p>Suas ordens processadas aparecerao aqui.</p>
+            </div>
+          } @else {
+            <div class="history-list">
+              @for (item of historyItems(); track item.id) {
+                <div class="history-card">
+                  <div class="history-header">
+                    <div class="history-values">
+                      <span class="history-brl">{{ formatBrlCents(item.pix_value) }}</span>
+                      <span class="source-badge" [class]="item.source_type">{{ getSourceLabel(item.source_type) }}</span>
+                    </div>
+                    <span class="status-badge" [class]="getStatusClass(item.status)">
+                      {{ getStatusLabel(item.status) }}
+                    </span>
+                  </div>
+                  <div class="history-meta">
+                    @if (item.pix_end_to_end_id) {
+                      <span class="meta-item mono">PIX: {{ item.pix_end_to_end_id }}</span>
+                    }
+                    <span class="meta-item">{{ formatDateTime(item.created_at) }}</span>
+                  </div>
+                </div>
+              }
+            </div>
+            @if (historyHasMore()) {
+              <div class="load-more">
+                <button class="btn btn-outline" (click)="loadMoreHistory()" [disabled]="isLoadingHistory()">
+                  @if (isLoadingHistory()) {
+                    <div class="loading-spinner-sm"></div>
+                    Carregando...
+                  } @else {
+                    Carregar mais
+                  }
+                </button>
+              </div>
+            }
+          }
+        }
+
+        <!-- Stats Tab -->
+        @if (currentTab() === 'stats') {
+          @if (isLoadingStats()) {
+            <div class="loading-state">
+              <div class="loading-spinner"></div>
+              <p>Carregando estatisticas...</p>
+            </div>
+          } @else if (stats()) {
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-icon success">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                  </svg>
+                </div>
+                <div class="stat-info">
+                  <span class="stat-number">{{ stats()!.total_paid_count }}</span>
+                  <span class="stat-description">Ordens pagas</span>
+                </div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-icon warning">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                <div class="stat-info">
+                  <span class="stat-number">{{ stats()!.cancelled_count }}</span>
+                  <span class="stat-description">Cancelamentos</span>
+                </div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-icon primary">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2V22" stroke="currentColor" stroke-width="2"/>
+                    <path d="M17 5H9.5C8.11929 5 7 6.11929 7 7.5V7.5C7 8.88071 8.11929 10 9.5 10H14.5C15.8807 10 17 11.1193 17 12.5V12.5C17 13.8807 15.8807 15 14.5 15H7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div class="stat-info">
+                  <span class="stat-number">{{ formatBrlCents(stats()!.total_paid_value_cents) }}</span>
+                  <span class="stat-description">Volume total</span>
+                </div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-icon primary">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2V22" stroke="currentColor" stroke-width="2"/>
+                    <path d="M17 5H9.5C8.11929 5 7 6.11929 7 7.5V7.5C7 8.88071 8.11929 10 9.5 10H14.5C15.8807 10 17 11.1193 17 12.5V12.5C17 13.8807 15.8807 15 14.5 15H7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div class="stat-info">
+                  <span class="stat-number">{{ formatBrlCents(stats()!.balance_cents) }}</span>
+                  <span class="stat-description">Saldo disponivel</span>
+                </div>
+              </div>
+            </div>
+          }
+        }
+      </div>
+    }
+  </div>
+</div>

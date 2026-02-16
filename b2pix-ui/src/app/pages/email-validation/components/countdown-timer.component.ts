@@ -5,23 +5,8 @@ import { CommonModule } from '@angular/common';
   selector: 'app-countdown-timer',
   standalone: true,
   imports: [CommonModule],
-  template: `
-    <div class="countdown-timer">
-      <span class="countdown-text">{{ formatTime(timeLeft()) }}</span>
-    </div>
-  `,
-  styles: [`
-    .countdown-timer {
-      display: inline-flex;
-      align-items: center;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .countdown-text {
-      font-weight: 500;
-      color: #6c757d;
-    }
-  `]
+  templateUrl: './countdown-timer.component.html',
+  styleUrl: './countdown-timer.component.scss'
 })
 export class CountdownTimerComponent implements OnDestroy {
   @Input() set seconds(value: number) {

@@ -1,0 +1,8 @@
+<div class="features">
+  @for (feature of features; track feature.label) {
+    <div class="feature" [attr.data-tooltip]="feature.tooltip">
+      <div class="feature-icon" [innerHTML]="feature.icon"></div>
+      <span>{{ feature.label }}</span>
+    </div>
+  }
+</div>

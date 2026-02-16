@@ -1,0 +1,28 @@
+# Build output
+dist/
+.angular/
+
+# Dependencies
+node_modules/
+
+# Large/binary files
+public/images/
+*.png
+*.jpg
+*.jpeg
+*.ico
+*.svg
+*.woff
+*.woff2
+*.ttf
+*.eot
+
+# IDE
+.vscode/
+.idea/
+
+# Deploy artifacts (not relevant for coding)
+deploy/
+
+# Package lock (too large, low value)
+package-lock.json
