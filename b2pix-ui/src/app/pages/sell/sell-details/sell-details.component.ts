@@ -147,15 +147,15 @@ import { environment } from '../../../../environments/environment';
                 <span class="label">Em BTC</span>
                 <span class="value mono">{{ formatSatsToBtc(order()!.amount) }} BTC</span>
               </div>
-              @if (order()!.sell_value) {
+              @if (order()!.pix_value) {
                 <div class="detail-item highlight">
                   <span class="label">Valor PIX</span>
-                  <span class="value brl">R$ {{ formatBrlCents(order()!.sell_value!) }}</span>
+                  <span class="value brl">R$ {{ formatBrlCents(order()!.pix_value!) }}</span>
                 </div>
               }
               <div class="detail-item">
                 <span class="label">Chave PIX</span>
-                <span class="value">{{ order()!.pix_key }}</span>
+                <span class="value">{{ order()!.pix_target }}</span>
               </div>
               <div class="detail-item">
                 <span class="label">Criada em</span>

@@ -261,8 +261,8 @@
               <span class="status-badge" [class]="getStatusClass(order.status)">
                 {{ getStatusLabel(order.status) }}
               </span>
-              @if (order.sell_value) {
-              <div class="order-value">R$ {{ formatBrlCents(order.sell_value) }}</div>
+              @if (order.pix_value) {
+              <div class="order-value">R$ {{ formatBrlCents(order.pix_value) }}</div>
               }
             </div>
           </div>

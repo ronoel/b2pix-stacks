@@ -17,13 +17,14 @@ export const FINAL_ORDER_STATUSES: OrderStatus[] = [
 
 export interface PixPaymentOrder {
   id: string;
-  address_payer: string;
-  qr_code_payload: string;
+  address_customer: string;
+  pix_target: string;
   pix_value: number;                // BRL in cents
   amount: number;                   // Satoshis
   status: OrderStatus;
   is_final: boolean;
   tx_hash: string | null;
+  confirmed_at: string | null;
   error_message: string | null;
   payout_request_id: string | null;
   expires_at: string;

@@ -9,12 +9,12 @@ export type { OrderStatus };
 
 export interface SellOrder {
   id: string;
-  address_seller: string;
+  address_customer: string;
   amount: number; // Amount in satoshis
-  pix_key: string;
+  pix_target: string;
   status: OrderStatus;
   is_final: boolean;
-  sell_value: number | null; // Value in BRL cents (calculated on confirmation)
+  pix_value: number | null; // Value in BRL cents (calculated on confirmation)
   tx_hash: string | null;
   confirmed_at: string | null;
   error_message: string | null;
