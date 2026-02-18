@@ -1,0 +1,154 @@
+<div class="payment-status">
+  @if (isLoading() && !order()) {
+    <div class="loading-state">
+      <div class="loading-spinner"></div>
+      <p>Carregando...</p>
+    </div>
+  } @else if (error()) {
+    <div class="error-state">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+        <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/>
+        <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
+      </svg>
+      <h3>Erro</h3>
+      <p>{{ error() }}</p>
+      <button class="btn btn-primary" (click)="loadOrder()">Tentar novamente</button>
+    </div>
+  } @else if (order()) {
+    <!-- Status Card -->
+    <div class="status-card" [class]="'status-' + getStatusClass(order()!.status)">
+      <div class="status-icon">
+        @switch (order()!.status) {
+          @case ('completed') {
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+              <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          }
+          @case ('failed') {
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/>
+              <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          }
+          @case ('error') {
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              <path d="M12 8V12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="12" cy="16" r="1" fill="currentColor"/>
+            </svg>
+          }
+          @case ('expired') {
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          }
+          @case ('refunded') {
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+              <path d="M3 12C3 7.02944 7.02944 3 12 3C14.5755 3 16.9 4.15205 18.5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M21 12C21 16.9706 16.9706 21 12 21C9.42446 21 7.09995 19.848 5.5 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M13 2L18 6L14 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M11 22L6 18L10 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          }
+          @default {
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          }
+        }
+      </div>
+      <div class="status-content">
+        <h2>{{ getStatusLabel(order()!.status) }}</h2>
+        <p>{{ getStatusDescription(order()!.status) }}</p>
+      </div>
+    </div>
+
+    <!-- Progress Steps (4 steps) -->
+    <div class="progress-steps">
+      <div class="step" [class.completed]="isStepCompleted(1)" [class.active]="isStepActive(1)">
+        <div class="step-icon">1</div>
+        <div class="step-label">Enviada</div>
+      </div>
+      <div class="step-line" [class.completed]="isStepCompleted(2)"></div>
+      <div class="step" [class.completed]="isStepCompleted(2)" [class.active]="isStepActive(2)">
+        <div class="step-icon">2</div>
+        <div class="step-label">Transmitida</div>
+      </div>
+      <div class="step-line" [class.completed]="isStepCompleted(3)"></div>
+      <div class="step" [class.completed]="isStepCompleted(3)" [class.active]="isStepActive(3)">
+        <div class="step-icon">3</div>
+        <div class="step-label">Pagando</div>
+      </div>
+      <div class="step-line" [class.completed]="isStepCompleted(4)"></div>
+      <div class="step"
+        [class.completed]="isStepCompleted(4)"
+        [class.active]="isStepActive(4)"
+        [class.failed]="isErrorStatus(order()!.status)">
+        <div class="step-icon">4</div>
+        <div class="step-label">{{ getLastStepLabel(order()!.status) }}</div>
+      </div>
+    </div>
+
+    <!-- Order Details -->
+    <div class="details-card">
+      <h3>Detalhes do Pagamento</h3>
+      <div class="details-grid">
+        <div class="detail-item highlight">
+          <span class="label">Valor PIX</span>
+          <span class="value brl">R$ {{ formatBrlCents(order()!.pix_value) }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">Quantidade</span>
+          <span class="value mono">{{ formatSats(order()!.amount) }} sats</span>
+        </div>
+        @if (order()!.tx_hash) {
+          <div class="detail-item full-width">
+            <span class="label">Transação Blockchain</span>
+            <a [href]="getExplorerUrl(order()!.tx_hash!)" target="_blank" class="value tx-link">
+              {{ formatTxHash(order()!.tx_hash!) }}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M15 3h6v6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M10 14L21 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </div>
+        }
+        @if (order()!.payout_request_id) {
+          <div class="detail-item full-width">
+            <span class="label">Solicitação de Pagamento</span>
+            <span class="value mono">{{ order()!.payout_request_id }}</span>
+          </div>
+        }
+        <div class="detail-item">
+          <span class="label">Criado em</span>
+          <span class="value">{{ formatDateTime(order()!.created_at) }}</span>
+        </div>
+        @if (order()!.error_message) {
+          <div class="detail-item full-width error">
+            <span class="label">Erro</span>
+            <span class="value">{{ order()!.error_message }}</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Auto-refresh notice -->
+    @if (!isOrderFinal()) {
+      <div class="refresh-notice">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M3 12C3 7.02944 7.02944 3 12 3C14.5755 3 16.9 4.15205 18.5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M21 12C21 16.9706 16.9706 21 12 21C9.42446 21 7.09995 19.848 5.5 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M13 2L18 6L14 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M11 22L6 18L10 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Atualizando automaticamente...</span>
+      </div>
+    }
+  }
+</div>

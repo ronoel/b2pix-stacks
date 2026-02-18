@@ -9,7 +9,7 @@ import { sBTCTokenService } from '../../libs/sbtc-token.service';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import {
   SellOrder,
-  SellOrderStatus,
+  OrderStatus,
   getStatusLabel as getSellOrderStatusLabel,
   getStatusClass as getSellOrderStatusClass
 } from '../../shared/models/sell-order.model';
@@ -504,11 +504,11 @@ export class SellComponent implements OnInit, OnDestroy {
     return `https://explorer.hiro.so/txid/${tx}?chain=${chain}`;
   }
 
-  getStatusLabel(status: SellOrderStatus): string {
+  getStatusLabel(status: OrderStatus): string {
     return getSellOrderStatusLabel(status);
   }
 
-  getStatusClass(status: SellOrderStatus): string {
+  getStatusClass(status: OrderStatus): string {
     return getSellOrderStatusClass(status);
   }
 }

@@ -5,7 +5,7 @@ import { interval, Subscription } from 'rxjs';
 import { SellOrderService } from '../../../shared/api/sell-order.service';
 import {
   SellOrder,
-  SellOrderStatus,
+  OrderStatus,
   isFinalStatus,
   getStatusLabel,
   getStatusClass
@@ -57,41 +57,44 @@ import { environment } from '../../../../environments/environment';
           <div class="status-card" [class]="'status-' + getStatusClass(order()!.status)">
             <div class="status-icon">
               @switch (order()!.status) {
-                @case (SellOrderStatus.Pending) {
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                    <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                }
-                @case (SellOrderStatus.Broadcasted) {
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-                    <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                }
-                @case (SellOrderStatus.AwaitingConfirmation) {
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                    <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                }
-                @case (SellOrderStatus.Confirmed) {
+                @case ('completed') {
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
                     <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
                   </svg>
                 }
-                @case (SellOrderStatus.Paid) {
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-                    <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                  </svg>
-                }
-                @case (SellOrderStatus.Failed) {
+                @case ('failed') {
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
                     <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
                     <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/>
                     <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
+                  </svg>
+                }
+                @case ('error') {
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                    <path d="M12 8V12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    <circle cx="12" cy="16" r="1" fill="currentColor"/>
+                  </svg>
+                }
+                @case ('expired') {
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                    <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                }
+                @case ('refunded') {
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                    <path d="M3 12C3 7.02944 7.02944 3 12 3C14.5755 3 16.9 4.15205 18.5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M21 12C21 16.9706 16.9706 21 12 21C9.42446 21 7.09995 19.848 5.5 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M13 2L18 6L14 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M11 22L6 18L10 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                }
+                @default {
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                    <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 }
               }
@@ -102,11 +105,11 @@ import { environment } from '../../../../environments/environment';
             </div>
           </div>
 
-          <!-- Progress Steps -->
+          <!-- Progress Steps (4 steps) -->
           <div class="progress-steps">
             <div class="step" [class.completed]="isStepCompleted(1)" [class.active]="isStepActive(1)">
               <div class="step-icon">1</div>
-              <div class="step-label">Criada</div>
+              <div class="step-label">Enviada</div>
             </div>
             <div class="step-line" [class.completed]="isStepCompleted(2)"></div>
             <div class="step" [class.completed]="isStepCompleted(2)" [class.active]="isStepActive(2)">
@@ -116,12 +119,15 @@ import { environment } from '../../../../environments/environment';
             <div class="step-line" [class.completed]="isStepCompleted(3)"></div>
             <div class="step" [class.completed]="isStepCompleted(3)" [class.active]="isStepActive(3)">
               <div class="step-icon">3</div>
-              <div class="step-label">Confirmada</div>
+              <div class="step-label">Pagando</div>
             </div>
             <div class="step-line" [class.completed]="isStepCompleted(4)"></div>
-            <div class="step" [class.completed]="isStepCompleted(4)" [class.active]="isStepActive(4)" [class.failed]="order()!.status === SellOrderStatus.Failed">
+            <div class="step"
+              [class.completed]="isStepCompleted(4)"
+              [class.active]="isStepActive(4)"
+              [class.failed]="isErrorStatus(order()!.status)">
               <div class="step-icon">4</div>
-              <div class="step-label">{{ order()!.status === SellOrderStatus.Failed ? 'Falhou' : 'Pago' }}</div>
+              <div class="step-label">{{ getLastStepLabel(order()!.status) }}</div>
             </div>
           </div>
 
@@ -161,12 +167,6 @@ import { environment } from '../../../../environments/environment';
                   <span class="value">{{ formatDateTime(order()!.confirmed_at!) }}</span>
                 </div>
               }
-              @if (order()!.paid_at) {
-                <div class="detail-item">
-                  <span class="label">PIX enviado em</span>
-                  <span class="value">{{ formatDateTime(order()!.paid_at!) }}</span>
-                </div>
-              }
               @if (order()!.tx_hash) {
                 <div class="detail-item full-width">
                   <span class="label">Transação Blockchain</span>
@@ -180,10 +180,10 @@ import { environment } from '../../../../environments/environment';
                   </a>
                 </div>
               }
-              @if (order()!.pix_id) {
-                <div class="detail-item">
-                  <span class="label">ID do PIX</span>
-                  <span class="value mono">{{ order()!.pix_id }}</span>
+              @if (order()!.payout_request_id) {
+                <div class="detail-item full-width">
+                  <span class="label">Solicitação de Pagamento</span>
+                  <span class="value mono">{{ order()!.payout_request_id }}</span>
                 </div>
               }
               @if (order()!.error_message) {
@@ -196,7 +196,7 @@ import { environment } from '../../../../environments/environment';
           </div>
 
           <!-- Auto-refresh notice -->
-          @if (!isFinalStatus(order()!.status)) {
+          @if (!order()!.is_final) {
             <div class="refresh-notice">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                 <path d="M3 12C3 7.02944 7.02944 3 12 3C14.5755 3 16.9 4.15205 18.5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -327,6 +327,12 @@ import { environment } from '../../../../environments/environment';
         background: linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%);
         border: 2px solid #DC2626;
         color: #991B1B;
+      }
+
+      &.status-warning {
+        background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+        border: 2px solid #F59E0B;
+        color: #92400E;
       }
     }
 
@@ -625,9 +631,6 @@ export class SellDetailsComponent implements OnInit, OnDestroy {
   private refreshSubscription?: Subscription;
   private readonly REFRESH_INTERVAL = 10000; // 10 seconds
 
-  // Expose enum to template
-  SellOrderStatus = SellOrderStatus;
-
   ngOnInit() {
     this.loadOrder();
   }
@@ -652,8 +655,7 @@ export class SellDetailsComponent implements OnInit, OnDestroy {
         this.order.set(order);
         this.isLoading.set(false);
 
-        // Start auto-refresh if order is not final
-        if (!isFinalStatus(order.status)) {
+        if (!order.is_final) {
           this.startAutoRefresh(id);
         } else {
           this.stopAutoRefresh();
@@ -673,7 +675,7 @@ export class SellDetailsComponent implements OnInit, OnDestroy {
       this.sellOrderService.getSellOrderById(orderId).subscribe({
         next: (order) => {
           this.order.set(order);
-          if (isFinalStatus(order.status)) {
+          if (order.is_final) {
             this.stopAutoRefresh();
           }
         },
@@ -692,67 +694,89 @@ export class SellDetailsComponent implements OnInit, OnDestroy {
   }
 
   // Status helpers
-  getStatusLabel(status: SellOrderStatus): string {
+  getStatusLabel(status: OrderStatus): string {
     return getStatusLabel(status);
   }
 
-  getStatusClass(status: SellOrderStatus): string {
+  getStatusClass(status: OrderStatus): string {
     return getStatusClass(status);
   }
 
-  getStatusDescription(status: SellOrderStatus): string {
+  getStatusDescription(status: OrderStatus): string {
     switch (status) {
-      case SellOrderStatus.Pending:
+      case 'pending':
         return 'Sua ordem foi criada e está aguardando transmissão para a blockchain.';
-      case SellOrderStatus.Broadcasted:
+      case 'broadcasted':
+      case 'awaiting_confirmation':
         return 'A transação foi transmitida e está aguardando confirmação na blockchain.';
-      case SellOrderStatus.AwaitingConfirmation:
-        return 'Aguardando confirmação na blockchain. Isso pode levar alguns minutos.';
-      case SellOrderStatus.Confirmed:
-        return 'Transação confirmada! O PIX será enviado em breve.';
-      case SellOrderStatus.Paid:
+      case 'confirmed':
+        return 'Transação confirmada na blockchain! Aguardando processamento do pagamento.';
+      case 'settlement_created':
+        return 'Pagamento sendo processado. O PIX será enviado em breve.';
+      case 'completed':
         return 'PIX enviado com sucesso! Verifique sua conta.';
-      case SellOrderStatus.Failed:
+      case 'expired':
+        return 'A ordem expirou sem ser processada.';
+      case 'error':
+      case 'failed':
         return 'Ocorreu um erro durante o processamento da ordem.';
+      case 'refunded':
+        return 'A ordem foi reembolsada. Os fundos foram devolvidos.';
       default:
         return '';
     }
   }
 
-  isFinalStatus(status: SellOrderStatus): boolean {
-    return isFinalStatus(status);
+  isErrorStatus(status: OrderStatus): boolean {
+    return status === 'failed' || status === 'error' || status === 'expired';
+  }
+
+  getLastStepLabel(status: OrderStatus): string {
+    switch (status) {
+      case 'failed':
+      case 'error':
+        return 'Falhou';
+      case 'expired':
+        return 'Expirado';
+      case 'refunded':
+        return 'Reembolsado';
+      default:
+        return 'Pago';
+    }
+  }
+
+  private getStepNumber(status: OrderStatus): number {
+    switch (status) {
+      case 'broadcasted':
+      case 'awaiting_confirmation':
+        return 1;
+      case 'confirmed':
+        return 2;
+      case 'settlement_created':
+        return 3;
+      case 'completed':
+        return 4;
+      default:
+        return 0;
+    }
   }
 
   isStepCompleted(step: number): boolean {
     const currentOrder = this.order();
     if (!currentOrder) return false;
-
-    const statusOrder: { [key in SellOrderStatus]: number } = {
-      [SellOrderStatus.Pending]: 1,
-      [SellOrderStatus.Broadcasted]: 2,
-      [SellOrderStatus.AwaitingConfirmation]: 2,
-      [SellOrderStatus.Confirmed]: 3,
-      [SellOrderStatus.Paid]: 4,
-      [SellOrderStatus.Failed]: 0
-    };
-
-    return statusOrder[currentOrder.status] >= step;
+    return this.getStepNumber(currentOrder.status) >= step;
   }
 
   isStepActive(step: number): boolean {
     const currentOrder = this.order();
     if (!currentOrder) return false;
 
-    const statusOrder: { [key in SellOrderStatus]: number } = {
-      [SellOrderStatus.Pending]: 1,
-      [SellOrderStatus.Broadcasted]: 2,
-      [SellOrderStatus.AwaitingConfirmation]: 2,
-      [SellOrderStatus.Confirmed]: 3,
-      [SellOrderStatus.Paid]: 4,
-      [SellOrderStatus.Failed]: 4
-    };
+    const currentStep = this.getStepNumber(currentOrder.status);
 
-    return statusOrder[currentOrder.status] === step;
+    // For error statuses, mark step 4 as active
+    if (this.isErrorStatus(currentOrder.status) && step === 4) return true;
+
+    return currentStep === step;
   }
 
   // Formatting

@@ -1,15 +1,19 @@
-export enum PixPaymentStatus {
-  Broadcasted = 'broadcasted',
-  AwaitingConfirmation = 'awaiting_confirmation',
-  Confirmed = 'confirmed',
-  SettlementCreated = 'settlement_created',
-  LpAssigned = 'lp_assigned',
-  Paid = 'paid',
-  Failed = 'failed',
-  Error = 'error',
-  Expired = 'expired',
-  Refunded = 'refunded'
-}
+// Shared OrderStatus for both PixOrder and SellOrder
+export type OrderStatus =
+  | 'pending'
+  | 'broadcasted'
+  | 'awaiting_confirmation'
+  | 'confirmed'
+  | 'settlement_created'
+  | 'completed'
+  | 'expired'
+  | 'error'
+  | 'failed'
+  | 'refunded';
+
+export const FINAL_ORDER_STATUSES: OrderStatus[] = [
+  'completed', 'expired', 'failed', 'refunded'
+];
 
 export interface PixPaymentOrder {
   id: string;
@@ -17,13 +21,11 @@ export interface PixPaymentOrder {
   qr_code_payload: string;
   pix_value: number;                // BRL in cents
   amount: number;                   // Satoshis
-  status: PixPaymentStatus;
+  status: OrderStatus;
   is_final: boolean;
   tx_hash: string | null;
-  pix_end_to_end_id: string | null;
   error_message: string | null;
   payout_request_id: string | null;
-  paid_at: string | null;
   expires_at: string;
   created_at: string;
   updated_at: string;
@@ -43,57 +45,53 @@ export interface PaginatedPixPaymentsResponse {
   has_more: boolean;
 }
 
-export function isPixPaymentFinalStatus(status: PixPaymentStatus): boolean {
-  return status === PixPaymentStatus.Paid
-    || status === PixPaymentStatus.Failed
-    || status === PixPaymentStatus.Expired
-    || status === PixPaymentStatus.Refunded;
+export function isOrderFinalStatus(status: OrderStatus): boolean {
+  return FINAL_ORDER_STATUSES.includes(status);
 }
 
-export function getPixPaymentStatusLabel(status: PixPaymentStatus): string {
+export function getOrderStatusLabel(status: OrderStatus): string {
   switch (status) {
-    case PixPaymentStatus.Broadcasted:
+    case 'broadcasted':
       return 'Transmitida';
-    case PixPaymentStatus.AwaitingConfirmation:
+    case 'awaiting_confirmation':
       return 'Aguardando Confirmação';
-    case PixPaymentStatus.Confirmed:
+    case 'confirmed':
       return 'Confirmada';
-    case PixPaymentStatus.SettlementCreated:
-      return 'Liquidação Criada';
-    case PixPaymentStatus.LpAssigned:
-      return 'LP Processando';
-    case PixPaymentStatus.Paid:
-      return 'PIX Pago';
-    case PixPaymentStatus.Failed:
+    case 'settlement_created':
+      return 'Pagando';
+    case 'completed':
+      return 'Pago';
+    case 'pending':
+      return 'Pendente';
+    case 'failed':
       return 'Falhou';
-    case PixPaymentStatus.Error:
+    case 'error':
       return 'Erro';
-    case PixPaymentStatus.Expired:
+    case 'expired':
       return 'Expirada';
-    case PixPaymentStatus.Refunded:
+    case 'refunded':
       return 'Reembolsado';
     default:
       return 'Desconhecido';
   }
 }
 
-export function getPixPaymentStatusClass(status: PixPaymentStatus): string {
+export function getOrderStatusClass(status: OrderStatus): string {
   switch (status) {
-    case PixPaymentStatus.Paid:
+    case 'completed':
       return 'completed';
-    case PixPaymentStatus.Broadcasted:
-    case PixPaymentStatus.AwaitingConfirmation:
+    case 'broadcasted':
+    case 'awaiting_confirmation':
+    case 'pending':
       return 'pending';
-    case PixPaymentStatus.Confirmed:
-    case PixPaymentStatus.SettlementCreated:
-    case PixPaymentStatus.LpAssigned:
+    case 'confirmed':
+    case 'settlement_created':
       return 'processing';
-    case PixPaymentStatus.Failed:
+    case 'failed':
+    case 'error':
       return 'failed';
-    case PixPaymentStatus.Error:
-      return 'failed';
-    case PixPaymentStatus.Expired:
-    case PixPaymentStatus.Refunded:
+    case 'expired':
+    case 'refunded':
       return 'warning';
     default:
       return 'pending';

@@ -4,9 +4,9 @@ import { WalletManagerService } from '../../../libs/wallet/wallet-manager.servic
 import { PixPaymentService } from '../../../shared/api/pix-payment.service';
 import {
   PixPaymentOrder,
-  PixPaymentStatus,
-  getPixPaymentStatusLabel,
-  getPixPaymentStatusClass
+  OrderStatus,
+  getOrderStatusLabel,
+  getOrderStatusClass
 } from '../../../shared/models/pix-payment.model';
 
 @Component({
@@ -80,12 +80,12 @@ export class PixPaymentHistoryComponent implements OnInit {
     this.viewOrder.emit(payment.id);
   }
 
-  getStatusLabel(status: PixPaymentStatus): string {
-    return getPixPaymentStatusLabel(status);
+  getStatusLabel(status: OrderStatus): string {
+    return getOrderStatusLabel(status);
   }
 
-  getStatusClass(status: PixPaymentStatus): string {
-    return getPixPaymentStatusClass(status);
+  getStatusClass(status: OrderStatus): string {
+    return getOrderStatusClass(status);
   }
 
   formatBrlCents(cents: number): string {
