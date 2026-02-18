@@ -26,6 +26,7 @@ export class MessageChatComponent implements OnInit, OnDestroy {
   messages = signal<MessageResponse[]>([]);
   isLoadingMessages = signal(false);
   isSendingMessage = signal(false);
+  isMarkingAsRead = signal(false);
   messageText = signal('');
   messageError = signal<string | null>(null);
   hasMore = signal(false);
@@ -40,6 +41,21 @@ export class MessageChatComponent implements OnInit, OnDestroy {
   });
 
   charCount = computed(() => this.messageText().length);
+
+  unreadMessageIds = computed(() => {
+    const role = this.currentUserRole();
+    if (!role) return [];
+    return this.messages()
+      .filter(msg => {
+        if (role === 'customer') return !msg.read_by_customer;
+        if (role === 'payer') return !msg.read_by_payer;
+        if (role === 'moderator') return !msg.read_by_moderator;
+        return false;
+      })
+      .map(msg => msg.id);
+  });
+
+  unreadCount = computed(() => this.unreadMessageIds().length);
 
   ngOnInit() {
     this.loadMessages();
@@ -86,12 +102,18 @@ export class MessageChatComponent implements OnInit, OnDestroy {
     this.isSendingMessage.set(true);
     this.messageError.set(null);
 
-    this.messageService.sendMessage(this.sourceType(), this.sourceId(), content).subscribe({
+    const unreadIds = this.unreadMessageIds();
+
+    this.messageService.sendMessage(this.sourceType(), this.sourceId(), content, unreadIds).subscribe({
       next: (message) => {
         this.messages.update(msgs => [...msgs, message]);
         this.messageText.set('');
         this.isSendingMessage.set(false);
         this.scrollToBottom();
+        // Update local read status for messages marked via send
+        if (unreadIds.length > 0) {
+          this.updateLocalReadStatus(unreadIds);
+        }
       },
       error: (error) => {
         this.isSendingMessage.set(false);
@@ -129,10 +151,19 @@ export class MessageChatComponent implements OnInit, OnDestroy {
     return message.sender_role === this.currentUserRole();
   }
 
+  isMessageUnread(message: MessageResponse): boolean {
+    const role = this.currentUserRole();
+    if (!role) return false;
+    if (role === 'customer') return !message.read_by_customer;
+    if (role === 'payer') return !message.read_by_payer;
+    if (role === 'moderator') return !message.read_by_moderator;
+    return false;
+  }
+
   getRoleLabel(role: MessageSenderRole): string {
     switch (role) {
-      case 'buyer': return 'Comprador';
-      case 'seller': return 'Vendedor';
+      case 'customer': return 'Comprador';
+      case 'payer': return 'Pagador';
       case 'moderator': return 'Moderador';
       default: return role;
     }
@@ -147,12 +178,46 @@ export class MessageChatComponent implements OnInit, OnDestroy {
     }).format(new Date(dateString));
   }
 
+  markAllAsRead(): void {
+    const ids = this.unreadMessageIds();
+    if (ids.length === 0 || this.readOnly() || !this.currentUserRole() || this.isMarkingAsRead()) return;
+
+    this.isMarkingAsRead.set(true);
+    this.messageService.markMessagesAsRead(this.sourceType(), this.sourceId(), ids).subscribe({
+      next: () => {
+        this.updateLocalReadStatus(ids);
+        this.isMarkingAsRead.set(false);
+      },
+      error: (err) => {
+        console.error('Error marking messages as read:', err);
+        this.isMarkingAsRead.set(false);
+      }
+    });
+  }
+
+  private updateLocalReadStatus(ids: string[]): void {
+    const role = this.currentUserRole();
+    if (!role) return;
+
+    const readKey = `read_by_${role}` as keyof MessageResponse;
+    this.messages.update(msgs => msgs.map(msg => {
+      if (ids.includes(msg.id)) {
+        return { ...msg, [readKey]: true };
+      }
+      return msg;
+    }));
+  }
+
   private startPolling(): void {
     this.pollingSubscription = interval(this.POLL_INTERVAL).subscribe(() => {
       this.messageService.listMessages(this.sourceType(), this.sourceId(), 1, 50).subscribe({
         next: (response) => {
+          const previousCount = this.messages().length;
           this.messages.set(response.items);
           this.hasMore.set(response.has_more);
+          if (response.items.length > previousCount) {
+            this.scrollToBottom();
+          }
         }
       });
     });

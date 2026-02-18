@@ -1,7 +1,7 @@
 <div class="modal-overlay" (click)="onOverlayClick($event)">
   <div class="modal-base">
     <div class="modal-header">
-      <h3>Disputar Ordem</h3>
+      <h3>Não recebi o PIX</h3>
       <button class="close-btn" (click)="onCancel()" [disabled]="isProcessing()">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
           <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -17,25 +17,10 @@
           <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         </svg>
-        <span>Ao disputar, um moderador será notificado para analisar o caso.</span>
+        <span>Ao abrir uma disputa, um moderador será notificado para analisar o caso. Você poderá enviar mensagens ao moderador após a abertura.</span>
       </div>
 
-      <div class="form-group">
-        <label for="dispute-reason">Motivo da disputa</label>
-        <textarea
-          id="dispute-reason"
-          class="form-input"
-          placeholder="Descreva o motivo da disputa..."
-          [ngModel]="reason()"
-          (ngModelChange)="reason.set($event)"
-          [disabled]="isProcessing()"
-          rows="4"
-          maxlength="1000"
-        ></textarea>
-        <div class="char-counter" [class.limit]="charCount > 900">
-          {{ charCount }} / 1000
-        </div>
-      </div>
+      <p class="confirmation-text">Tem certeza que deseja reportar que não recebeu o PIX?</p>
     </div>
 
     <div class="modal-actions">
@@ -45,13 +30,13 @@
       <button
         class="btn btn-danger"
         (click)="onSubmit()"
-        [disabled]="!isValid || isProcessing()"
+        [disabled]="isProcessing()"
       >
         @if (isProcessing()) {
           <span class="loading-spinner-sm"></span>
-          Enviando...
+          Abrindo disputa...
         } @else {
-          Enviar Disputa
+          Abrir Disputa
         }
       </button>
     </div>

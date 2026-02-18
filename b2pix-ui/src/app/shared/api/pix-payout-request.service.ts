@@ -8,6 +8,7 @@ import {
   PaginatedPayoutRequestResponse,
   LpStats
 } from '../models/pix-payout-request.model';
+import { buildDisputePayload } from '../models/pix-order-payloads';
 
 export interface GetPayoutRequestsParams {
   page?: number;
@@ -132,6 +133,27 @@ export class PixPayoutRequestService {
       }),
       catchError((error: any) => {
         console.error('Error cancelling payout request:', error);
+        throw error;
+      })
+    );
+  }
+
+  /**
+   * Dispute a payout request (customer reports non-receipt of PIX).
+   */
+  disputeRequest(id: string): Observable<PixPayoutRequest> {
+    const payload = buildDisputePayload(id);
+
+    return from(this.walletManager.signMessage(payload)).pipe(
+      switchMap((signedMessage) => {
+        return this.http.post<PixPayoutRequest>(`${this.apiUrl}/v1/pix-payout-requests/${id}/dispute`, {
+          payload,
+          signature: signedMessage.signature,
+          publicKey: signedMessage.publicKey
+        });
+      }),
+      catchError((error: any) => {
+        console.error('Error disputing payout request:', error);
         throw error;
       })
     );

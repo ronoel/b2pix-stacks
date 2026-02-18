@@ -31,6 +31,48 @@
   }
 }
 
+.mark-read-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: none;
+  border: 1px solid #BFDBFE;
+  border-radius: 16px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #1E40AF;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) { background: #EFF6FF; border-color: #93C5FD; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+.unread-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: #3B82F6;
+  color: #FFFFFF;
+  border-radius: 9px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.loading-spinner-xs {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #BFDBFE;
+  border-top-color: #1E40AF;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
 .messages-area {
   max-height: 400px;
   overflow-y: auto;
@@ -109,13 +151,21 @@
   font-size: 11px;
 }
 
+.unread-dot {
+  width: 8px;
+  height: 8px;
+  background: #3B82F6;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 .role-badge {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 
-  &.role-buyer { color: #1E40AF; }
-  &.role-seller { color: #16A34A; }
+  &.role-customer { color: #1E40AF; }
+  &.role-payer { color: #16A34A; }
   &.role-moderator { color: #92400E; }
 }
 

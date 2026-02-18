@@ -1,18 +1,24 @@
-import { Component, inject, input, OnInit, OnDestroy, signal } from '@angular/core';
+import { Component, inject, input, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { interval, Subscription } from 'rxjs';
 import { PixPaymentService } from '../../../shared/api/pix-payment.service';
+import { PixPayoutRequestService } from '../../../shared/api/pix-payout-request.service';
+import { WalletManagerService } from '../../../libs/wallet/wallet-manager.service';
 import {
   PixPaymentOrder,
   OrderStatus,
   getOrderStatusLabel,
   getOrderStatusClass
 } from '../../../shared/models/pix-payment.model';
+import { PixPayoutRequest, PayoutRequestStatus } from '../../../shared/models/pix-payout-request.model';
+import { MessageSenderRole } from '../../../shared/models/message.model';
 import { environment } from '../../../../environments/environment';
+import { DisputeModalComponent } from './dispute-modal/dispute-modal.component';
+import { MessageChatComponent } from './message-chat/message-chat.component';
 
 @Component({
   selector: 'app-payment-status',
   standalone: true,
-  imports: [],
+  imports: [DisputeModalComponent, MessageChatComponent],
   templateUrl: './payment-status.component.html',
   styleUrl: './payment-status.component.scss'
 })
@@ -20,12 +26,34 @@ export class PaymentStatusComponent implements OnInit, OnDestroy {
   orderId = input.required<string>();
 
   private pixPaymentService = inject(PixPaymentService);
+  private payoutRequestService = inject(PixPayoutRequestService);
+  private walletManager = inject(WalletManagerService);
   private refreshSubscription?: Subscription;
   private readonly REFRESH_INTERVAL = 5000;
 
   order = signal<PixPaymentOrder | null>(null);
   isLoading = signal(true);
   error = signal<string | null>(null);
+
+  // Payout request state
+  payoutRequest = signal<PixPayoutRequest | null>(null);
+  showDisputeModal = signal(false);
+  isDisputing = signal(false);
+  disputeError = signal<string | null>(null);
+
+  // Computed: current user role for messaging
+  currentUserRole = computed((): MessageSenderRole | null => {
+    const pr = this.payoutRequest();
+    const address = this.walletManager.getSTXAddress();
+    if (!pr || !address) return null;
+    if (pr.payer_address === address) return 'customer';
+    if (pr.lp_address === address) return 'payer';
+    return null;
+  });
+
+  // Computed: payout request status checks
+  isPayoutPaid = computed(() => this.payoutRequest()?.status === PayoutRequestStatus.Paid);
+  isPayoutDisputed = computed(() => this.payoutRequest()?.status === PayoutRequestStatus.Disputed);
 
   ngOnInit() {
     this.loadOrder();
@@ -47,6 +75,10 @@ export class PaymentStatusComponent implements OnInit, OnDestroy {
         this.order.set(order);
         this.isLoading.set(false);
 
+        if (order.payout_request_id) {
+          this.loadPayoutRequest(order.payout_request_id);
+        }
+
         if (!order.is_final) {
           this.startAutoRefresh(id);
         } else {
@@ -61,12 +93,28 @@ export class PaymentStatusComponent implements OnInit, OnDestroy {
     });
   }
 
+  private loadPayoutRequest(payoutRequestId: string): void {
+    this.payoutRequestService.getById(payoutRequestId).subscribe({
+      next: (pr) => {
+        this.payoutRequest.set(pr);
+      },
+      error: (err) => {
+        console.error('Error loading payout request:', err);
+      }
+    });
+  }
+
   private startAutoRefresh(orderId: string) {
     this.stopAutoRefresh();
     this.refreshSubscription = interval(this.REFRESH_INTERVAL).subscribe(() => {
       this.pixPaymentService.getPixPaymentById(orderId).subscribe({
         next: (order) => {
           this.order.set(order);
+
+          if (order.payout_request_id) {
+            this.loadPayoutRequest(order.payout_request_id);
+          }
+
           if (order.is_final) {
             this.stopAutoRefresh();
           }
@@ -85,6 +133,40 @@ export class PaymentStatusComponent implements OnInit, OnDestroy {
     }
   }
 
+  // Dispute handlers
+  onOpenDisputeModal(): void {
+    this.showDisputeModal.set(true);
+    this.disputeError.set(null);
+  }
+
+  onCloseDisputeModal(): void {
+    this.showDisputeModal.set(false);
+  }
+
+  onDisputeSubmitted(): void {
+    const pr = this.payoutRequest();
+    if (!pr) return;
+
+    this.isDisputing.set(true);
+    this.disputeError.set(null);
+
+    this.payoutRequestService.disputeRequest(pr.id).subscribe({
+      next: (updatedPr) => {
+        this.payoutRequest.set(updatedPr);
+        this.isDisputing.set(false);
+        this.showDisputeModal.set(false);
+      },
+      error: (error) => {
+        this.isDisputing.set(false);
+        if (error?.message?.includes('cancelada') || error?.message?.includes('canceled')) {
+          this.disputeError.set('Assinatura cancelada');
+        } else {
+          this.disputeError.set(error?.error?.error || 'Erro ao abrir disputa');
+        }
+      }
+    });
+  }
+
   isOrderFinal(): boolean {
     const o = this.order();
     return o ? o.is_final : false;
@@ -99,6 +181,17 @@ export class PaymentStatusComponent implements OnInit, OnDestroy {
   }
 
   getStatusDescription(status: OrderStatus): string {
+    // Override description based on payout request sub-status
+    if (status === 'settlement_created') {
+      const pr = this.payoutRequest();
+      if (pr?.status === PayoutRequestStatus.Disputed) {
+        return 'Disputa aberta. Um moderador está analisando o caso.';
+      }
+      if (pr?.status === PayoutRequestStatus.Paid) {
+        return 'O LP informou que pagou o PIX. Confirme o recebimento ou abra uma disputa.';
+      }
+    }
+
     switch (status) {
       case 'broadcasted':
         return 'A transação foi transmitida e está aguardando confirmação na blockchain.';

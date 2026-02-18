@@ -7,6 +7,24 @@
     @if (readOnly()) {
       <span class="readonly-badge">Somente leitura</span>
     }
+    @if (!readOnly() && unreadCount() > 0) {
+      <button
+        class="mark-read-btn"
+        (click)="markAllAsRead()"
+        [disabled]="isMarkingAsRead()"
+      >
+        @if (isMarkingAsRead()) {
+          <div class="loading-spinner-xs"></div>
+        } @else {
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M1 12l5 5L17 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        }
+        Marcar como lidas
+        <span class="unread-badge">{{ unreadCount() }}</span>
+      </button>
+    }
   </div>
 
   <div class="messages-area" #messagesContainer>
@@ -17,7 +35,7 @@
       </div>
     } @else if (messages().length === 0) {
       <div class="empty-state">
-        <span>Nenhuma mensagem ainda.</span>
+        <span>Nenhuma mensagem ainda. Descreva o problema para o moderador.</span>
       </div>
     } @else {
       @if (hasMore()) {
@@ -26,8 +44,11 @@
         </button>
       }
       @for (msg of messages(); track msg.id) {
-        <div class="message" [class.own]="isOwnMessage(msg)" [class.moderator]="msg.sender_role === 'moderator'">
+        <div class="message" [class.own]="isOwnMessage(msg)" [class.moderator]="msg.sender_role === 'moderator'" [class.unread]="isMessageUnread(msg)">
           <div class="message-header">
+            @if (isMessageUnread(msg)) {
+              <span class="unread-dot"></span>
+            }
             <span class="role-badge" [class]="'role-' + msg.sender_role">
               {{ getRoleLabel(msg.sender_role) }}
             </span>

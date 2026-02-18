@@ -1,32 +1,21 @@
-import { Component, input, output, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { Component, input, output } from '@angular/core';
 
 @Component({
   selector: 'app-dispute-modal',
   standalone: true,
-  imports: [FormsModule],
+  imports: [],
   templateUrl: './dispute-modal.component.html',
   styleUrl: './dispute-modal.component.scss'
 })
 export class DisputeModalComponent {
   isProcessing = input(false);
 
-  submitted = output<string>();
+  submitted = output<void>();
   cancelled = output<void>();
 
-  reason = signal('');
-
-  get charCount(): number {
-    return this.reason().length;
-  }
-
-  get isValid(): boolean {
-    return this.reason().trim().length > 0 && this.reason().length <= 1000;
-  }
-
   onSubmit(): void {
-    if (this.isValid && !this.isProcessing()) {
-      this.submitted.emit(this.reason().trim());
+    if (!this.isProcessing()) {
+      this.submitted.emit();
     }
   }
 

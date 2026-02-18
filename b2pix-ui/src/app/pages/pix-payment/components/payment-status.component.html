@@ -138,6 +138,40 @@
       </div>
     </div>
 
+    <!-- Dispute Section: only when payout request status is 'paid' -->
+    @if (isPayoutPaid()) {
+      <div class="dispute-section">
+        <div class="dispute-notice">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="2"/>
+            <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <div>
+            <p>O LP informou que efetuou o pagamento PIX. Se você não recebeu, abra uma disputa.</p>
+            <p class="auto-confirm-notice">Se nenhuma ação for tomada, o pagamento será confirmado automaticamente em 24 horas.</p>
+          </div>
+        </div>
+        <button class="btn btn-warning" (click)="onOpenDisputeModal()">
+          Não recebi o PIX
+        </button>
+        @if (disputeError()) {
+          <div class="error-msg">{{ disputeError() }}</div>
+        }
+      </div>
+    }
+
+    <!-- Message Chat: only when payout request status is 'disputed' -->
+    @if (isPayoutDisputed()) {
+      <div class="chat-section">
+        <app-message-chat
+          [sourceType]="'pix_order'"
+          [sourceId]="order()!.id"
+          [currentUserRole]="currentUserRole()"
+        />
+      </div>
+    }
+
     <!-- Auto-refresh notice -->
     @if (!isOrderFinal()) {
       <div class="refresh-notice">
@@ -149,6 +183,15 @@
         </svg>
         <span>Atualizando automaticamente...</span>
       </div>
+    }
+
+    <!-- Dispute Modal -->
+    @if (showDisputeModal()) {
+      <app-dispute-modal
+        [isProcessing]="isDisputing()"
+        (submitted)="onDisputeSubmitted()"
+        (cancelled)="onCloseDisputeModal()"
+      />
     }
   }
 </div>
