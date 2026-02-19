@@ -8,7 +8,7 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import { LoadingService } from '../../services/loading.service';
 import { QrScannerComponent } from './components/qr-scanner.component';
 import { PaymentConfirmationComponent, PixQrData } from './components/payment-confirmation.component';
-import { PaymentStatusComponent } from './components/payment-status.component';
+import { OrderStatusComponent } from '../../components/order-status/order-status.component';
 import { PixPaymentHistoryComponent } from './components/pix-payment-history.component';
 
 @Component({
@@ -18,7 +18,7 @@ import { PixPaymentHistoryComponent } from './components/pix-payment-history.com
     CommonModule,
     QrScannerComponent,
     PaymentConfirmationComponent,
-    PaymentStatusComponent,
+    OrderStatusComponent,
     PixPaymentHistoryComponent
   ],
   templateUrl: './pix-payment.component.html',

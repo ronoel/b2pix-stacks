@@ -1,4 +1,4 @@
-<div class="payment-status">
+<div class="order-status">
   @if (isLoading() && !order()) {
     <div class="loading-state">
       <div class="loading-spinner"></div>
@@ -96,15 +96,21 @@
 
     <!-- Order Details -->
     <div class="details-card">
-      <h3>Detalhes do Pagamento</h3>
+      <h3>{{ detailsTitle() }}</h3>
       <div class="details-grid">
-        <div class="detail-item highlight">
-          <span class="label">Valor PIX</span>
-          <span class="value brl">R$ {{ formatBrlCents(order()!.pix_value) }}</span>
-        </div>
+        @if (order()!.pix_value) {
+          <div class="detail-item highlight">
+            <span class="label">Valor PIX</span>
+            <span class="value brl">R$ {{ formatBrlCents(order()!.pix_value!) }}</span>
+          </div>
+        }
         <div class="detail-item">
           <span class="label">Quantidade</span>
           <span class="value mono">{{ formatSats(order()!.amount) }} sats</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">Em BTC</span>
+          <span class="value mono">{{ formatSatsToBtc(order()!.amount) }} BTC</span>
         </div>
         @if (order()!.tx_hash) {
           <div class="detail-item full-width">
@@ -129,6 +135,12 @@
           <span class="label">Criado em</span>
           <span class="value">{{ formatDateTime(order()!.created_at) }}</span>
         </div>
+        @if (order()!.confirmed_at) {
+          <div class="detail-item">
+            <span class="label">Confirmada em</span>
+            <span class="value">{{ formatDateTime(order()!.confirmed_at!) }}</span>
+          </div>
+        }
         @if (order()!.error_message) {
           <div class="detail-item full-width error">
             <span class="label">Erro</span>
@@ -165,7 +177,7 @@
     @if (isPayoutDisputed()) {
       <div class="chat-section">
         <app-message-chat
-          [sourceType]="'pix_order'"
+          [sourceType]="sourceType()"
           [sourceId]="order()!.id"
           [currentUserRole]="currentUserRole()"
         />

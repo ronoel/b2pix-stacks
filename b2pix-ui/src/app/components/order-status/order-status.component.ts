@@ -1,37 +1,46 @@
 import { Component, inject, input, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { interval, Subscription } from 'rxjs';
-import { PixPaymentService } from '../../../shared/api/pix-payment.service';
-import { PixPayoutRequestService } from '../../../shared/api/pix-payout-request.service';
-import { WalletManagerService } from '../../../libs/wallet/wallet-manager.service';
+import { PixPaymentService } from '../../shared/api/pix-payment.service';
+import { SellOrderService } from '../../shared/api/sell-order.service';
+import { PixPayoutRequestService } from '../../shared/api/pix-payout-request.service';
+import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import {
-  PixPaymentOrder,
+  CommonOrder,
   OrderStatus,
   getOrderStatusLabel,
   getOrderStatusClass
-} from '../../../shared/models/pix-payment.model';
-import { PixPayoutRequest, PayoutRequestStatus } from '../../../shared/models/pix-payout-request.model';
-import { MessageSenderRole } from '../../../shared/models/message.model';
-import { environment } from '../../../../environments/environment';
-import { DisputeModalComponent } from './dispute-modal/dispute-modal.component';
-import { MessageChatComponent } from './message-chat/message-chat.component';
+} from '../../shared/models/pix-payment.model';
+import { PixPayoutRequest, PayoutRequestStatus, PayoutSourceType } from '../../shared/models/pix-payout-request.model';
+import { MessageSenderRole } from '../../shared/models/message.model';
+import { environment } from '../../../environments/environment';
+import { DisputeModalComponent } from './components/dispute-modal/dispute-modal.component';
+import { MessageChatComponent } from './components/message-chat/message-chat.component';
 
 @Component({
-  selector: 'app-payment-status',
+  selector: 'app-order-status',
   standalone: true,
   imports: [DisputeModalComponent, MessageChatComponent],
-  templateUrl: './payment-status.component.html',
-  styleUrl: './payment-status.component.scss'
+  templateUrl: './order-status.component.html',
+  styleUrl: './order-status.component.scss'
 })
-export class PaymentStatusComponent implements OnInit, OnDestroy {
+export class OrderStatusComponent implements OnInit, OnDestroy {
+  // Required inputs
   orderId = input.required<string>();
+  sourceType = input.required<PayoutSourceType>();
 
+  // Optional inputs
+  detailsTitle = input<string>('Detalhes da Ordem');
+  refreshInterval = input<number>(5000);
+
+  // Services
   private pixPaymentService = inject(PixPaymentService);
+  private sellOrderService = inject(SellOrderService);
   private payoutRequestService = inject(PixPayoutRequestService);
   private walletManager = inject(WalletManagerService);
   private refreshSubscription?: Subscription;
-  private readonly REFRESH_INTERVAL = 5000;
 
-  order = signal<PixPaymentOrder | null>(null);
+  // Order state
+  order = signal<CommonOrder | null>(null);
   isLoading = signal(true);
   error = signal<string | null>(null);
 
@@ -70,7 +79,7 @@ export class PaymentStatusComponent implements OnInit, OnDestroy {
     this.isLoading.set(true);
     this.error.set(null);
 
-    this.pixPaymentService.getPixPaymentById(id).subscribe({
+    this.fetchOrder(id).subscribe({
       next: (order) => {
         this.order.set(order);
         this.isLoading.set(false);
@@ -86,11 +95,17 @@ export class PaymentStatusComponent implements OnInit, OnDestroy {
         }
       },
       error: (err) => {
-        console.error('Error loading PIX payment:', err);
-        this.error.set('Erro ao carregar detalhes do pagamento');
+        console.error('Error loading order:', err);
+        this.error.set('Erro ao carregar detalhes da ordem');
         this.isLoading.set(false);
       }
     });
+  }
+
+  private fetchOrder(id: string) {
+    return this.sourceType() === 'pix_order'
+      ? this.pixPaymentService.getPixPaymentById(id)
+      : this.sellOrderService.getSellOrderById(id);
   }
 
   private loadPayoutRequest(payoutRequestId: string): void {
@@ -106,8 +121,8 @@ export class PaymentStatusComponent implements OnInit, OnDestroy {
 
   private startAutoRefresh(orderId: string) {
     this.stopAutoRefresh();
-    this.refreshSubscription = interval(this.REFRESH_INTERVAL).subscribe(() => {
-      this.pixPaymentService.getPixPaymentById(orderId).subscribe({
+    this.refreshSubscription = interval(this.refreshInterval()).subscribe(() => {
+      this.fetchOrder(orderId).subscribe({
         next: (order) => {
           this.order.set(order);
 
@@ -120,7 +135,7 @@ export class PaymentStatusComponent implements OnInit, OnDestroy {
           }
         },
         error: (err) => {
-          console.error('Error refreshing PIX payment:', err);
+          console.error('Error refreshing order:', err);
         }
       });
     });
@@ -268,8 +283,13 @@ export class PaymentStatusComponent implements OnInit, OnDestroy {
     }
   }
 
+  // Formatting
   formatSats(amount: number): string {
     return new Intl.NumberFormat('pt-BR').format(amount);
+  }
+
+  formatSatsToBtc(sats: number): string {
+    return (sats / 100000000).toFixed(8);
   }
 
   formatBrlCents(cents: number): string {

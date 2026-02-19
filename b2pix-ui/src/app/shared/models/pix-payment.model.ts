@@ -15,11 +15,11 @@ export const FINAL_ORDER_STATUSES: OrderStatus[] = [
   'completed', 'expired', 'failed', 'refunded'
 ];
 
-export interface PixPaymentOrder {
+export interface CommonOrder {
   id: string;
   address_customer: string;
   pix_target: string;
-  pix_value: number;                // BRL in cents
+  pix_value: number | null;        // BRL in cents; null for sell orders before confirmation
   amount: number;                   // Satoshis
   status: OrderStatus;
   is_final: boolean;
@@ -27,9 +27,14 @@ export interface PixPaymentOrder {
   confirmed_at: string | null;
   error_message: string | null;
   payout_request_id: string | null;
-  expires_at: string;
+  expires_at?: string;              // Only present on PixPaymentOrder
   created_at: string;
   updated_at: string;
+}
+
+export interface PixPaymentOrder extends CommonOrder {
+  pix_value: number;                // Always set for pix payments
+  expires_at: string;               // Always set for pix payments
 }
 
 export interface CreatePixPaymentRequest {

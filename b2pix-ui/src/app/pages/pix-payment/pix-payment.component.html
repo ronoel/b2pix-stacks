@@ -62,7 +62,11 @@
     <!-- Status View -->
     @if (currentView() === 'status' && createdOrderId()) {
       <div class="view-container">
-        <app-payment-status [orderId]="createdOrderId()!" />
+        <app-order-status
+          [orderId]="createdOrderId()!"
+          sourceType="pix_order"
+          detailsTitle="Detalhes do Pagamento"
+        />
 
         <div class="status-actions">
           <button class="btn btn-outline" (click)="goToDashboard()">

@@ -351,6 +351,7 @@
               <li>O PIX será enviado após a confirmação na blockchain</li>
               <li>O valor final em BRL será calculado no momento da confirmação</li>
               <li>Valor mínimo por venda: R$ {{ formatCurrency(MIN_SELL_BRL) }}</li>
+              <li>O PIX deverá ser feito a partir da conta com a chave PIX vinculada {{ formatPixKey(userPixKey()!) }}</li>
             </ul>
           </div>
 
@@ -360,7 +361,7 @@
               <input type="checkbox" [checked]="pixKeyConfirmed()" (change)="onPixKeyConfirmChange($event)">
               <span class="checkmark"></span>
               <span class="checkbox-text">
-                Confirmo que o PIX será enviado para a chave PIX (CPF/CNPJ) vinculada à minha conta:
+                Confirmo que o PIX será enviado da conta com esta chave PIX (CPF/CNPJ) vinculada:
                 @if (userPixKey()) {
                 <strong class="pix-key-value">{{ formatPixKey(userPixKey()!) }}</strong>
                 } @else {

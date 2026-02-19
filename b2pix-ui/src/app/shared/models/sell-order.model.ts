@@ -1,11 +1,12 @@
 import {
   OrderStatus,
+  CommonOrder,
   isOrderFinalStatus,
   getOrderStatusLabel,
   getOrderStatusClass
 } from './pix-payment.model';
 
-export type { OrderStatus };
+export type { OrderStatus, CommonOrder };
 
 export interface SellOrder {
   id: string;
