@@ -252,7 +252,7 @@ export class QrScannerComponent implements AfterViewInit, OnDestroy {
 
   qrCodeScanned = output<string>();
 
-  mode = signal<'camera' | 'manual'>('camera');
+  mode = signal<'camera' | 'manual'>('manual');
   manualCode = signal('');
   cameraError = signal<string | null>(null);
   isStartingCamera = signal(false);
