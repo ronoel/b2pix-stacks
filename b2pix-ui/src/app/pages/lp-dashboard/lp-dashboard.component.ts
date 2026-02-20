@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { interval, Subscription } from 'rxjs';
 import { PixPayoutRequestService } from '../../shared/api/pix-payout-request.service';
+import { AccountValidationService } from '../../shared/api/account-validation.service';
+import { BankSetupComponent } from '../../components/bank-setup/bank-setup.component';
 import {
   PixPayoutRequest,
   LpStats,
@@ -17,13 +19,14 @@ import { LpActiveOrderComponent } from './components/lp-active-order.component';
 @Component({
   selector: 'app-lp-dashboard',
   standalone: true,
-  imports: [CommonModule, LpQueueCardComponent, LpActiveOrderComponent],
+  imports: [CommonModule, LpQueueCardComponent, LpActiveOrderComponent, BankSetupComponent],
   templateUrl: './lp-dashboard.component.html',
   styleUrls: ['./lp-dashboard.component.scss']
 })
 export class LpDashboardComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private payoutRequestService = inject(PixPayoutRequestService);
+  private accountValidationService = inject(AccountValidationService);
 
   // Tabs
   currentTab = signal<'queue' | 'history' | 'stats'>('queue');
@@ -49,6 +52,10 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
   isLoadingHistory = signal(false);
   historyPage = signal(1);
   historyHasMore = signal(false);
+
+  // Bank Setup
+  showUpdateConfirm = signal(false);
+  showBankSetup = signal(false);
 
   // Feedback
   successMessage = signal('');
@@ -433,6 +440,37 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
   private clearMessages() {
     this.successMessage.set('');
     this.errorMessage.set('');
+  }
+
+  // ============================================
+  // Bank Setup Update
+  // ============================================
+
+  openUpdateConfirm() {
+    this.showUpdateConfirm.set(true);
+  }
+
+  cancelUpdateConfirm() {
+    this.showUpdateConfirm.set(false);
+  }
+
+  confirmUpdate() {
+    this.showUpdateConfirm.set(false);
+    this.showBankSetup.set(true);
+  }
+
+  onBankSetupSuccess() {
+    this.showBankSetup.set(false);
+    this.accountValidationService.clearAccountCache();
+    this.showSuccess('Credenciais bancarias atualizadas com sucesso!');
+  }
+
+  onBankSetupComplete() {
+    this.showBankSetup.set(false);
+  }
+
+  onBankSetupCancelled() {
+    this.showBankSetup.set(false);
   }
 
   goToDashboard() {
