@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, OnDestroy, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { LoadingService } from '../../services/loading.service';
@@ -18,7 +18,7 @@ import { environment } from '../../../environments/environment';
 @Component({
   selector: 'app-sell',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './sell.component.html',
   styleUrls: ['./sell.component.scss']
 })

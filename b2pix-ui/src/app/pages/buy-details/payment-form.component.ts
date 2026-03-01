@@ -1,12 +1,12 @@
 import { Component, Input, Output, EventEmitter, ViewEncapsulation, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { PixCopiaColaComponent } from '../../components/pix-copia-cola/pix-copia-cola.component';
 
 @Component({
   selector: 'app-payment-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, PixCopiaColaComponent],
+  imports: [FormsModule, PixCopiaColaComponent],
   encapsulation: ViewEncapsulation.None,
   templateUrl: './payment-form.component.html',
   styleUrl: './payment-form.component.scss'

@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router, ActivatedRoute } from '@angular/router';
 import { AccountValidationService } from '../../shared/api/account-validation.service';
 import { AccountInfo } from '../../shared/models/account-validation.model';
@@ -7,7 +7,7 @@ import { AccountInfo } from '../../shared/models/account-validation.model';
 @Component({
   selector: 'app-account-validation-required',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './account-validation-required.component.html',
   styleUrl: './account-validation-required.component.scss'
 })

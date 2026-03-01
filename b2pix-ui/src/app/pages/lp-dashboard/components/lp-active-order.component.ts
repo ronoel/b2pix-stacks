@@ -1,12 +1,12 @@
 import { Component, input, output, signal, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { PixPayoutRequest, getSourceTypeLabel } from '../../../shared/models/pix-payout-request.model';
 
 @Component({
   selector: 'app-lp-active-order',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './lp-active-order.component.html',
   styleUrl: './lp-active-order.component.scss'
 })

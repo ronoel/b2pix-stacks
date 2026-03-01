@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, ViewEncapsulation, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { Router } from '@angular/router';
 import { PaymentRequestService } from '../../shared/api/payment-request.service';
 import { PaymentRequest, PaymentRequestStatus, PaymentSourceType } from '../../shared/models/payment-request.model';
@@ -8,7 +8,7 @@ import { environment } from '../../../environments/environment';
 @Component({
   selector: 'app-payment-requests',
   standalone: true,
-  imports: [CommonModule],
+  imports: [NgClass],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="payment-requests">

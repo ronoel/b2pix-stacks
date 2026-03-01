@@ -4,13 +4,13 @@ import { Subscription } from 'rxjs';
 import { LoadingService } from '../../services/loading.service';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import { BuyOrderService } from '../../shared/api/buy-order.service';
-import { CommonModule } from '@angular/common';
+
 import { BuyHistoryComponent } from './components/buy-history.component';
 
 @Component({
   selector: 'app-buy',
   standalone: true,
-  imports: [CommonModule, BuyHistoryComponent],
+  imports: [BuyHistoryComponent],
   templateUrl: './buy.component.html',
   styleUrl: './buy.component.scss'
 })

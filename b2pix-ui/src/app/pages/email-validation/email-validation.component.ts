@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy, inject, signal, ViewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { AccountValidationService } from '../../shared/api/account-validation.service';
@@ -10,7 +10,7 @@ import { CodeInputComponent } from './components/code-input.component';
 @Component({
   selector: 'app-email-validation',
   standalone: true,
-  imports: [CommonModule, FormsModule, CountdownTimerComponent, CodeInputComponent],
+  imports: [FormsModule, CountdownTimerComponent, CodeInputComponent],
   templateUrl: './email-validation.component.html',
   styleUrl: './email-validation.component.scss'
 })

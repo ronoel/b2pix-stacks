@@ -1,10 +1,10 @@
 import { Component, Input, signal, OnDestroy, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 @Component({
   selector: 'app-countdown-timer',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './countdown-timer.component.html',
   styleUrl: './countdown-timer.component.scss'
 })

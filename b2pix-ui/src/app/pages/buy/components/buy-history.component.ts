@@ -1,6 +1,6 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { CommonModule } from '@angular/common';
+
 import { WalletManagerService } from '../../../libs/wallet/wallet-manager.service';
 import { BuyOrderService } from '../../../shared/api/buy-order.service';
 import { BuyOrder, BuyOrderStatus } from '../../../shared/models/buy-order.model';
@@ -8,7 +8,7 @@ import { BuyOrder, BuyOrderStatus } from '../../../shared/models/buy-order.model
 @Component({
   selector: 'app-buy-history',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './buy-history.component.html',
   styleUrl: './buy-history.component.scss'
 })

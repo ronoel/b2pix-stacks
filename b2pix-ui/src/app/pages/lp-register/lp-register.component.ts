@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router } from '@angular/router';
 import { BankSetupComponent } from '../../components/bank-setup/bank-setup.component';
 import { AccountValidationService } from '../../shared/api/account-validation.service';
@@ -7,7 +7,7 @@ import { AccountValidationService } from '../../shared/api/account-validation.se
 @Component({
   selector: 'app-lp-register',
   standalone: true,
-  imports: [CommonModule, BankSetupComponent],
+  imports: [BankSetupComponent],
   templateUrl: './lp-register.component.html',
   styleUrls: ['./lp-register.component.scss']
 })

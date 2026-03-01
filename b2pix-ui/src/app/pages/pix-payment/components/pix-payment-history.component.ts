@@ -1,5 +1,5 @@
 import { Component, inject, signal, output, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { WalletManagerService } from '../../../libs/wallet/wallet-manager.service';
 import { PixPaymentService } from '../../../shared/api/pix-payment.service';
 import {
@@ -12,7 +12,7 @@ import {
 @Component({
   selector: 'app-pix-payment-history',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './pix-payment-history.component.html',
   styleUrls: ['./pix-payment-history.component.scss']
 })

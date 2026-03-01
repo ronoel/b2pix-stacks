@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, OnDestroy, signal, ViewEncapsulation, effect, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { interval, Subject } from 'rxjs';
@@ -15,7 +15,7 @@ import { PaymentFormComponent } from './payment-form.component';
 @Component({
   selector: 'app-buy-details',
   standalone: true,
-  imports: [CommonModule, PaymentFormComponent],
+  imports: [NgClass, PaymentFormComponent],
   encapsulation: ViewEncapsulation.None,
   templateUrl: './buy-details.component.html',
   styleUrl: './buy-details.component.scss'

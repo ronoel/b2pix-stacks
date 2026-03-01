@@ -1,11 +1,11 @@
 import { Component, input, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { PixPayoutRequest, getSourceTypeLabel } from '../../../shared/models/pix-payout-request.model';
 
 @Component({
   selector: 'app-lp-queue-card',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     <div class="queue-card">
       <div class="card-header">

@@ -1,5 +1,5 @@
 import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router } from '@angular/router';
 import { interval, Subscription } from 'rxjs';
 import { PixPayoutRequestService } from '../../shared/api/pix-payout-request.service';
@@ -19,7 +19,7 @@ import { LpActiveOrderComponent } from './components/lp-active-order.component';
 @Component({
   selector: 'app-lp-dashboard',
   standalone: true,
-  imports: [CommonModule, LpQueueCardComponent, LpActiveOrderComponent, BankSetupComponent],
+  imports: [LpQueueCardComponent, LpActiveOrderComponent, BankSetupComponent],
   templateUrl: './lp-dashboard.component.html',
   styleUrls: ['./lp-dashboard.component.scss']
 })

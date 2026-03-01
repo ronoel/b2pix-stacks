@@ -1,5 +1,5 @@
 import { Component, input, output, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 export interface PixQrData {
   payload: string;
@@ -10,7 +10,7 @@ export interface PixQrData {
 @Component({
   selector: 'app-payment-confirmation',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     <div class="confirmation">
       <div class="confirmation-header">

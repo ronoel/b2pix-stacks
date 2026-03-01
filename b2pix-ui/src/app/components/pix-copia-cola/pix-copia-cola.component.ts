@@ -1,12 +1,12 @@
 import { Component, Input, OnInit, OnChanges, SimpleChanges, signal, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { qrcode } from '@libs/qrcode';
 
 @Component({
   selector: 'app-pix-copia-cola',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './pix-copia-cola.component.html',
   styleUrl: './pix-copia-cola.component.scss'
 })

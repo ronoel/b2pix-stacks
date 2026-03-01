@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, OnDestroy, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { PixPaymentService } from '../../shared/api/pix-payment.service';
@@ -15,7 +15,6 @@ import { PixPaymentHistoryComponent } from './components/pix-payment-history.com
   selector: 'app-pix-payment',
   standalone: true,
   imports: [
-    CommonModule,
     QrScannerComponent,
     PaymentConfirmationComponent,
     OrderStatusComponent,

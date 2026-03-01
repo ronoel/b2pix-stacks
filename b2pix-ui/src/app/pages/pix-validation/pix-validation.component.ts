@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { forkJoin } from 'rxjs';
@@ -12,7 +12,7 @@ import { PixCopiaColaComponent } from '../../components/pix-copia-cola/pix-copia
 @Component({
   selector: 'app-pix-validation',
   standalone: true,
-  imports: [CommonModule, FormsModule, PixTimerComponent, PixKeyInputComponent, PixCopiaColaComponent],
+  imports: [FormsModule, PixTimerComponent, PixKeyInputComponent, PixCopiaColaComponent],
   templateUrl: './pix-validation.component.html',
   styleUrl: './pix-validation.component.scss'
 })
