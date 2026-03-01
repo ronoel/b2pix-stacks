@@ -164,9 +164,24 @@
             <p class="auto-confirm-notice">Se nenhuma ação for tomada, o pagamento será confirmado automaticamente em 24 horas.</p>
           </div>
         </div>
-        <button class="btn btn-warning" (click)="onOpenDisputeModal()">
-          Não recebi o PIX
-        </button>
+        <div class="dispute-actions">
+          <button
+            class="btn btn-success"
+            (click)="onConfirmReceipt()"
+            [disabled]="isConfirmingReceipt()">
+            @if (isConfirmingReceipt()) {
+              Confirmando...
+            } @else {
+              PIX pago
+            }
+          </button>
+          <button class="btn btn-warning" (click)="onOpenDisputeModal()">
+            PIX não pago
+          </button>
+        </div>
+        @if (confirmReceiptError()) {
+          <div class="error-msg">{{ confirmReceiptError() }}</div>
+        }
         @if (disputeError()) {
           <div class="error-msg">{{ disputeError() }}</div>
         }

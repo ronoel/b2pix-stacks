@@ -8,7 +8,7 @@ import {
   PaginatedPayoutRequestResponse,
   LpStats
 } from '../models/pix-payout-request.model';
-import { buildDisputePayload } from '../models/pix-order-payloads';
+import { buildDisputePayload, buildConfirmReceiptPayload } from '../models/pix-order-payloads';
 
 export interface GetPayoutRequestsParams {
   page?: number;
@@ -133,6 +133,27 @@ export class PixPayoutRequestService {
       }),
       catchError((error: any) => {
         console.error('Error cancelling payout request:', error);
+        throw error;
+      })
+    );
+  }
+
+  /**
+   * Confirm PIX receipt for a payout request (payer confirms they received the PIX).
+   */
+  confirmReceipt(id: string): Observable<PixPayoutRequest> {
+    const payload = buildConfirmReceiptPayload(id);
+
+    return from(this.walletManager.signMessage(payload)).pipe(
+      switchMap((signedMessage) => {
+        return this.http.post<PixPayoutRequest>(`${this.apiUrl}/v1/pix-payout-requests/${id}/confirm-receipt`, {
+          payload,
+          signature: signedMessage.signature,
+          publicKey: signedMessage.publicKey
+        });
+      }),
+      catchError((error: any) => {
+        console.error('Error confirming receipt:', error);
         throw error;
       })
     );

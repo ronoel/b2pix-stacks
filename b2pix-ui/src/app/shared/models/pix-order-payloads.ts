@@ -16,6 +16,11 @@ export function buildDisputePayload(payoutRequestId: string): string {
   return `B2PIX - Disputar Payout Request\nb2pix.org\n${payoutRequestId}\n${timestamp}`;
 }
 
+export function buildConfirmReceiptPayload(payoutRequestId: string): string {
+  const timestamp = new Date().toISOString();
+  return `B2PIX - Confirmar PIX Pago\nb2pix.org\n${payoutRequestId}\n${timestamp}`;
+}
+
 export function buildMarkAsReadPayload(
   sourceType: string,
   sourceId: string,

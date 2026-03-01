@@ -286,11 +286,28 @@
   }
 }
 
+.dispute-actions {
+  display: flex;
+  gap: 12px;
+
+  .btn { flex: 1; padding: 12px; font-size: 14px; font-weight: 600; }
+}
+
+.btn-success {
+  background: #16A34A;
+  color: #FFFFFF;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover:not(:disabled) { background: #15803D; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
 .btn-warning {
   background: #F59E0B;
   color: #FFFFFF;
-  width: 100%;
-  padding: 12px;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;

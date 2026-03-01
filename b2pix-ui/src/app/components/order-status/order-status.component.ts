@@ -49,6 +49,8 @@ export class OrderStatusComponent implements OnInit, OnDestroy {
   showDisputeModal = signal(false);
   isDisputing = signal(false);
   disputeError = signal<string | null>(null);
+  isConfirmingReceipt = signal(false);
+  confirmReceiptError = signal<string | null>(null);
 
   // Computed: current user role for messaging
   currentUserRole = computed((): MessageSenderRole | null => {
@@ -177,6 +179,30 @@ export class OrderStatusComponent implements OnInit, OnDestroy {
           this.disputeError.set('Assinatura cancelada');
         } else {
           this.disputeError.set(error?.error?.error || 'Erro ao abrir disputa');
+        }
+      }
+    });
+  }
+
+  onConfirmReceipt(): void {
+    const pr = this.payoutRequest();
+    if (!pr) return;
+
+    this.isConfirmingReceipt.set(true);
+    this.confirmReceiptError.set(null);
+
+    this.payoutRequestService.confirmReceipt(pr.id).subscribe({
+      next: (updatedPr) => {
+        this.payoutRequest.set(updatedPr);
+        this.isConfirmingReceipt.set(false);
+        this.loadOrder();
+      },
+      error: (error) => {
+        this.isConfirmingReceipt.set(false);
+        if (error?.message?.includes('cancelada') || error?.message?.includes('canceled')) {
+          this.confirmReceiptError.set('Assinatura cancelada');
+        } else {
+          this.confirmReceiptError.set(error?.error?.error || 'Erro ao confirmar recebimento');
         }
       }
     });
