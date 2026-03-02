@@ -96,6 +96,11 @@ export const routes: Routes = [
     canActivate: [authGuard, managerGuard]
   },
   {
+    path: 'payout-disputes',
+    loadComponent: () => import('./pages/payout-disputes/payout-disputes.component').then(m => m.PayoutDisputesComponent),
+    canActivate: [authGuard, managerGuard]
+  },
+  {
     path: 'lp-register',
     loadComponent: () => import('./pages/lp-register/lp-register.component').then(m => m.LpRegisterComponent),
     canActivate: [authGuard]

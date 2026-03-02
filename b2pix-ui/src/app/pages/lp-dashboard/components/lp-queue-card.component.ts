@@ -17,6 +17,17 @@ import { PixPayoutRequest, getSourceTypeLabel } from '../../../shared/models/pix
         </div>
         <div class="card-badges">
           <span class="source-badge" [class]="item().source_type">{{ getSourceLabel(item().source_type) }}</span>
+          @if (item().attempt_number > 1) {
+            <div class="attempt-badge" title="Numero da tentativa">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M3 12C3 7.02944 7.02944 3 12 3C14.5755 3 16.9 4.15205 18.5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path d="M21 12C21 16.9706 16.9706 21 12 21C9.42446 21 7.09995 19.848 5.5 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path d="M13 2L18 6L14 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M11 22L6 18L10 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Tentativa #{{ item().attempt_number }}
+            </div>
+          }
           @if (item().lp_cancel_count > 0) {
             <div class="cancel-badge" title="Cancelamentos anteriores">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -37,13 +48,6 @@ import { PixPayoutRequest, getSourceTypeLabel } from '../../../shared/models/pix
             <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           <span>{{ getTimeAgo(item().created_at) }}</span>
-        </div>
-        <div class="meta-item">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <path d="M12 22C6.5 22 2 17.5 2 12S6.5 2 12 2s10 4.5 10 10-4.5 10-10 10z" stroke="currentColor" stroke-width="2"/>
-            <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-          <span>Expira {{ formatDateTime(item().expires_at) }}</span>
         </div>
       </div>
 
@@ -149,6 +153,18 @@ import { PixPayoutRequest, getSourceTypeLabel } from '../../../shared/models/pix
       font-weight: 500;
     }
 
+    .attempt-badge {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      background: #DBEAFE;
+      color: #1E40AF;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
     .card-meta {
       display: flex;
       gap: 16px;
@@ -241,12 +257,4 @@ export class LpQueueCardComponent {
     return `${Math.floor(diffHours / 24)}d atras`;
   }
 
-  formatDateTime(dateString: string): string {
-    return new Intl.DateTimeFormat('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(new Date(dateString));
-  }
 }

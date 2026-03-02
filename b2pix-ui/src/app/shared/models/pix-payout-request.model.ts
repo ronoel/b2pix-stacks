@@ -4,8 +4,9 @@ export enum PayoutRequestStatus {
   Paid = 'paid',
   Disputed = 'disputed',
   Confirmed = 'confirmed',
-  Expired = 'expired',
   Error = 'error',
+  ErrorEscalated = 'error_escalated',
+  DisputeRejected = 'dispute_rejected',
   Failed = 'failed'
 }
 
@@ -28,7 +29,8 @@ export interface PixPayoutRequest {
   pix_end_to_end_id: string | null;
   error_message: string | null;
   confirmed_at: string | null;
-  expires_at: string;
+  disputed_at: string | null;
+  attempt_number: number;
   created_at: string;
   updated_at: string;
 }
@@ -45,13 +47,17 @@ export interface LpStats {
   total_paid_value_cents: number;
   active_order_count: number;
   cancelled_count: number;
+  error_count: number;
+  dispute_lost_count: number;
   balance_cents: number;
 }
 
 export function isPayoutRequestFinalStatus(status: PayoutRequestStatus): boolean {
   return status === PayoutRequestStatus.Confirmed
     || status === PayoutRequestStatus.Failed
-    || status === PayoutRequestStatus.Expired;
+    || status === PayoutRequestStatus.Error
+    || status === PayoutRequestStatus.ErrorEscalated
+    || status === PayoutRequestStatus.DisputeRejected;
 }
 
 export function getPayoutRequestStatusLabel(status: PayoutRequestStatus): string {
@@ -66,10 +72,12 @@ export function getPayoutRequestStatusLabel(status: PayoutRequestStatus): string
       return 'Disputado';
     case PayoutRequestStatus.Confirmed:
       return 'Confirmado';
-    case PayoutRequestStatus.Expired:
-      return 'Expirado';
     case PayoutRequestStatus.Error:
       return 'Erro';
+    case PayoutRequestStatus.ErrorEscalated:
+      return 'Erro Escalado';
+    case PayoutRequestStatus.DisputeRejected:
+      return 'Disputa Rejeitada';
     case PayoutRequestStatus.Failed:
       return 'Falhou';
     default:
@@ -91,9 +99,10 @@ export function getPayoutRequestStatusClass(status: PayoutRequestStatus): string
       return 'processing';
     case PayoutRequestStatus.Failed:
     case PayoutRequestStatus.Error:
+    case PayoutRequestStatus.DisputeRejected:
       return 'failed';
-    case PayoutRequestStatus.Expired:
-      return 'warning';
+    case PayoutRequestStatus.ErrorEscalated:
+      return 'escalated';
     default:
       return 'pending';
   }

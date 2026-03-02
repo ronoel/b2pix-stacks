@@ -65,6 +65,9 @@ export class OrderStatusComponent implements OnInit, OnDestroy {
   // Computed: payout request status checks
   isPayoutPaid = computed(() => this.payoutRequest()?.status === PayoutRequestStatus.Paid);
   isPayoutDisputed = computed(() => this.payoutRequest()?.status === PayoutRequestStatus.Disputed);
+  isPayoutError = computed(() => this.payoutRequest()?.status === PayoutRequestStatus.Error);
+  isPayoutErrorEscalated = computed(() => this.payoutRequest()?.status === PayoutRequestStatus.ErrorEscalated);
+  isPayoutDisputeRejected = computed(() => this.payoutRequest()?.status === PayoutRequestStatus.DisputeRejected);
 
   ngOnInit() {
     this.loadOrder();
@@ -230,6 +233,15 @@ export class OrderStatusComponent implements OnInit, OnDestroy {
       }
       if (pr?.status === PayoutRequestStatus.Paid) {
         return 'O LP informou que pagou o PIX. Confirme o recebimento ou abra uma disputa.';
+      }
+      if (pr?.status === PayoutRequestStatus.Error) {
+        return 'Ocorreu um erro no pagamento. Um novo pagamento será criado automaticamente.';
+      }
+      if (pr?.status === PayoutRequestStatus.ErrorEscalated) {
+        return 'Ocorreu um erro recorrente no pagamento. Um moderador está analisando.';
+      }
+      if (pr?.status === PayoutRequestStatus.DisputeRejected) {
+        return 'A disputa foi rejeitada. Um novo pagamento está sendo processado.';
       }
     }
 

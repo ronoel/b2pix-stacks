@@ -304,6 +304,34 @@
                   <span class="stat-description">Saldo disponivel</span>
                 </div>
               </div>
+
+              <div class="stat-card">
+                <div class="stat-icon error">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                    <path d="M12 8V12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    <circle cx="12" cy="16" r="1" fill="currentColor"/>
+                  </svg>
+                </div>
+                <div class="stat-info">
+                  <span class="stat-number">{{ stats()!.error_count }}</span>
+                  <span class="stat-description">Erros</span>
+                </div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-icon error">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="2"/>
+                    <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                <div class="stat-info">
+                  <span class="stat-number">{{ stats()!.dispute_lost_count }}</span>
+                  <span class="stat-description">Disputas perdidas</span>
+                </div>
+              </div>
             </div>
           }
         }

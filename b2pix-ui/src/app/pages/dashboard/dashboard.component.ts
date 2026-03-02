@@ -141,6 +141,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.router.navigate(['/pix-moderation']);
   }
 
+  goToPayoutDisputes() {
+    this.router.navigate(['/payout-disputes']);
+  }
+
   goToSendBitcoin() {
     this.router.navigate(['/send/sBTC']);
   }

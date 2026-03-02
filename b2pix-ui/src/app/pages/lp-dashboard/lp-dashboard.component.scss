@@ -505,6 +505,11 @@
     background: #EFF6FF;
     color: #1E40AF;
   }
+
+  &.error {
+    background: #FEE2E2;
+    color: #DC2626;
+  }
 }
 
 .stat-info {

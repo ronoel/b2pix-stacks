@@ -1,0 +1,284 @@
+.payout-disputes {
+  min-height: 100vh;
+  background: #F8FAFC;
+  padding: 24px 0;
+}
+
+// Header
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.btn-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  cursor: pointer;
+  color: #6B7280;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #D1D5DB;
+    color: #1F2937;
+    background: #F9FAFB;
+  }
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1F2937;
+  margin: 0;
+}
+
+.page-subtitle {
+  font-size: 14px;
+  color: #6B7280;
+  margin: 4px 0 0;
+}
+
+// Tabs
+.tabs {
+  display: flex;
+  gap: 4px;
+  background: #FFFFFF;
+  padding: 4px;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  justify-content: center;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6B7280;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #F9FAFB;
+    color: #374151;
+  }
+
+  &.active {
+    background: #1E40AF;
+    color: white;
+    box-shadow: 0 2px 8px rgba(30, 64, 175, 0.2);
+  }
+}
+
+.tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.tab:not(.active) .tab-count {
+  background: #E5E7EB;
+  color: #6B7280;
+}
+
+// Content
+.cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+// States
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 60px 20px;
+  text-align: center;
+
+  p {
+    color: #6B7280;
+    margin: 0;
+    font-size: 14px;
+  }
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #E5E7EB;
+  border-top: 3px solid #1E40AF;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 60px 20px;
+  text-align: center;
+  color: #DC2626;
+
+  p {
+    font-size: 14px;
+    color: #6B7280;
+    margin: 0;
+  }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 60px 20px;
+  text-align: center;
+  color: #9CA3AF;
+
+  h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #6B7280;
+    margin: 0;
+  }
+
+  p {
+    font-size: 14px;
+    color: #9CA3AF;
+    margin: 0;
+    max-width: 360px;
+  }
+}
+
+// Buttons
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &-outline {
+    background: #FFFFFF;
+    color: #374151;
+    border: 1px solid #D1D5DB;
+
+    &:hover:not(:disabled) {
+      border-color: #9CA3AF;
+      background: #F9FAFB;
+    }
+  }
+}
+
+// Toast
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  animation: slideIn 0.3s ease;
+
+  &.success {
+    background: #D1FAE5;
+    color: #065F46;
+    border: 1px solid #A7F3D0;
+  }
+
+  &.error {
+    background: #FEE2E2;
+    color: #991B1B;
+    border: 1px solid #FECACA;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .tabs {
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .payout-disputes { padding: 16px 0; }
+
+  .page-title { font-size: 20px; }
+
+  .tab {
+    font-size: 13px;
+    padding: 8px 12px;
+
+    svg { display: none; }
+  }
+
+  .toast {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+  }
+}
