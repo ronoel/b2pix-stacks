@@ -50,6 +50,7 @@ export interface LpStats {
   error_count: number;
   dispute_lost_count: number;
   balance_cents: number;
+  advance_cents: number;
 }
 
 export function isPayoutRequestFinalStatus(status: PayoutRequestStatus): boolean {

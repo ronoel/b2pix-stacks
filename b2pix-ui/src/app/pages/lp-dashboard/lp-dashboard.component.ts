@@ -390,6 +390,20 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
     }).format(cents / 100);
   }
 
+  formatBrlCentsSigned(cents: number): string {
+    const prefix = cents < 0 ? '-' : '';
+    const formatted = new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2
+    }).format(Math.abs(cents) / 100);
+    return prefix + formatted;
+  }
+
+  getEffectiveBalance(stats: LpStats): number {
+    return stats.balance_cents - stats.advance_cents;
+  }
+
   formatSats(amount: number): string {
     return new Intl.NumberFormat('pt-BR').format(amount);
   }

@@ -111,6 +111,12 @@
     border-color: #BBF7D0;
     .stat-value { color: #16A34A; }
   }
+
+  &.negative {
+    background: #FEF2F2;
+    border-color: #FECACA;
+    .stat-value { color: #DC2626; }
+  }
 }
 
 // Alerts
@@ -522,6 +528,8 @@
   font-size: 20px;
   font-weight: 700;
   color: #1F2937;
+
+  &.negative { color: #DC2626; }
 }
 
 .stat-description {
