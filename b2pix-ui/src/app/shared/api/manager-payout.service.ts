@@ -25,9 +25,9 @@ export class ManagerPayoutService {
     );
   }
 
-  confirmDispute(id: string): Observable<PixPayoutRequest> {
-    const timestamp = Date.now();
-    const payload = `B2PIX - Confirm Dispute\nb2pix.org\n${id}\n${timestamp}`;
+  resolveDispute(id: string, ruling: 'lp' | 'customer'): Observable<PixPayoutRequest> {
+    const timestamp = new Date().toISOString();
+    const payload = `B2PIX - Manager Resolver Disputa\nb2pix.org\n${id}\n${ruling}\n${timestamp}`;
 
     return from(this.walletManager.signMessage(payload)).pipe(
       switchMap(signedMessage => {
@@ -37,35 +37,7 @@ export class ManagerPayoutService {
           payload
         };
         return this.http.post<PixPayoutRequest>(
-          `${this.apiUrl}/v1/manager/pix-payout-requests/${id}/confirm-dispute`,
-          data
-        );
-      }),
-      catchError((error: any) => {
-        if (error.message?.includes('User denied')) {
-          throw new Error('Assinatura cancelada pelo usuário');
-        }
-        if (error.error?.error) {
-          throw new Error(error.error.error);
-        }
-        throw error;
-      })
-    );
-  }
-
-  rejectDispute(id: string): Observable<PixPayoutRequest> {
-    const timestamp = Date.now();
-    const payload = `B2PIX - Reject Dispute\nb2pix.org\n${id}\n${timestamp}`;
-
-    return from(this.walletManager.signMessage(payload)).pipe(
-      switchMap(signedMessage => {
-        const data: SignedRequest = {
-          publicKey: signedMessage.publicKey,
-          signature: signedMessage.signature,
-          payload
-        };
-        return this.http.post<PixPayoutRequest>(
-          `${this.apiUrl}/v1/manager/pix-payout-requests/${id}/reject-dispute`,
+          `${this.apiUrl}/v1/manager/pix-payout-requests/${id}/resolve-dispute`,
           data
         );
       }),

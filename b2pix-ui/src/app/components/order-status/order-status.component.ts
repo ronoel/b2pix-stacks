@@ -57,6 +57,7 @@ export class OrderStatusComponent implements OnInit, OnDestroy {
     const pr = this.payoutRequest();
     const address = this.walletManager.getSTXAddress();
     if (!pr || !address) return null;
+    if (address === environment.b2pixAddress) return 'moderator';
     if (pr.payer_address === address) return 'customer';
     if (pr.lp_address === address) return 'payer';
     return null;

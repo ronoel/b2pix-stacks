@@ -79,8 +79,7 @@
               [item]="item"
               [mode]="'disputed'"
               [isProcessing]="processingId() === item.id"
-              (confirmDispute)="onConfirmDispute($event)"
-              (rejectDispute)="onRejectDispute($event)"
+              (disputeResolved)="onResolveDispute($event)"
             />
           }
         </div>

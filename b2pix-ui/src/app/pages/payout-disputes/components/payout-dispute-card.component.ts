@@ -1,10 +1,11 @@
-import { Component, input, output } from '@angular/core';
+import { Component, input, output, signal } from '@angular/core';
 import { PixPayoutRequest, PayoutRequestStatus, getSourceTypeLabel, getPayoutRequestStatusLabel, getPayoutRequestStatusClass } from '../../../shared/models/pix-payout-request.model';
+import { MessageChatComponent } from '../../../components/order-status/components/message-chat/message-chat.component';
 
 @Component({
   selector: 'app-payout-dispute-card',
   standalone: true,
-  imports: [],
+  imports: [MessageChatComponent],
   template: `
     <div class="dispute-card">
       <div class="card-header">
@@ -49,25 +50,44 @@ import { PixPayoutRequest, PayoutRequestStatus, getSourceTypeLabel, getPayoutReq
         </div>
       </div>
 
+      <div class="chat-toggle">
+        <button class="btn btn-chat" (click)="toggleChat()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          {{ showChat() ? 'Ocultar mensagens' : 'Ver mensagens' }}
+        </button>
+      </div>
+
+      @if (showChat()) {
+        <div class="card-chat">
+          <app-message-chat
+            [sourceType]="item().source_type"
+            [sourceId]="item().source_id"
+            currentUserRole="moderator"
+          />
+        </div>
+      }
+
       <div class="card-footer">
         @if (mode() === 'disputed') {
           <button
             class="btn btn-confirm"
-            (click)="confirmDispute.emit(item().id)"
+            (click)="disputeResolved.emit({ id: item().id, ruling: 'lp' })"
             [disabled]="isProcessing()">
             @if (isProcessing()) {
               <div class="loading-spinner-sm"></div>
             }
-            Confirmar Disputa
+            PIX foi recebido
           </button>
           <button
             class="btn btn-reject"
-            (click)="rejectDispute.emit(item().id)"
+            (click)="disputeResolved.emit({ id: item().id, ruling: 'customer' })"
             [disabled]="isProcessing()">
             @if (isProcessing()) {
               <div class="loading-spinner-sm"></div>
             }
-            Rejeitar Disputa
+            PIX não recebido
           </button>
         } @else {
           <button
@@ -200,6 +220,36 @@ import { PixPayoutRequest, PayoutRequestStatus, getSourceTypeLabel, getPayoutReq
       &.error-text { color: #DC2626; }
     }
 
+    .chat-toggle {
+      padding: 12px 0;
+      text-align: center;
+    }
+
+    .btn-chat {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      background: #F9FAFB;
+      border: 1px solid #E5E7EB;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #374151;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: #F3F4F6;
+        border-color: #D1D5DB;
+      }
+    }
+
+    .card-chat {
+      padding: 0 0 12px;
+      border-bottom: 1px solid #F3F4F6;
+    }
+
     .card-footer {
       display: flex;
       gap: 12px;
@@ -281,9 +331,14 @@ export class PayoutDisputeCardComponent {
   mode = input.required<'disputed' | 'escalated'>();
   isProcessing = input<boolean>(false);
 
-  confirmDispute = output<string>();
-  rejectDispute = output<string>();
+  showChat = signal(false);
+
+  disputeResolved = output<{ id: string; ruling: 'lp' | 'customer' }>();
   resolveEscalation = output<string>();
+
+  toggleChat() {
+    this.showChat.update(v => !v);
+  }
 
   formatBrlCents(cents: number): string {
     return new Intl.NumberFormat('pt-BR', {

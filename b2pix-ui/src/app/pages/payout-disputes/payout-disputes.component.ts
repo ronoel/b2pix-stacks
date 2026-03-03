@@ -77,34 +77,21 @@ export class PayoutDisputesComponent implements OnInit {
     });
   }
 
-  onConfirmDispute(id: string) {
-    this.processingId.set(id);
+  onResolveDispute(event: { id: string; ruling: 'lp' | 'customer' }) {
+    this.processingId.set(event.id);
 
-    this.managerPayoutService.confirmDispute(id).subscribe({
+    this.managerPayoutService.resolveDispute(event.id, event.ruling).subscribe({
       next: () => {
-        this.disputedItems.set(this.disputedItems().filter(item => item.id !== id));
+        this.disputedItems.set(this.disputedItems().filter(item => item.id !== event.id));
         this.processingId.set(null);
-        this.showToast('Disputa confirmada com sucesso', 'success');
+        const msg = event.ruling === 'customer'
+          ? 'Disputa resolvida — PIX não recebido'
+          : 'Disputa resolvida — PIX foi recebido';
+        this.showToast(msg, 'success');
       },
       error: (error) => {
         this.processingId.set(null);
-        this.showToast(error.message || 'Erro ao confirmar disputa', 'error');
-      }
-    });
-  }
-
-  onRejectDispute(id: string) {
-    this.processingId.set(id);
-
-    this.managerPayoutService.rejectDispute(id).subscribe({
-      next: () => {
-        this.disputedItems.set(this.disputedItems().filter(item => item.id !== id));
-        this.processingId.set(null);
-        this.showToast('Disputa rejeitada com sucesso', 'success');
-      },
-      error: (error) => {
-        this.processingId.set(null);
-        this.showToast(error.message || 'Erro ao rejeitar disputa', 'error');
+        this.showToast(error.message || 'Erro ao resolver disputa', 'error');
       }
     });
   }

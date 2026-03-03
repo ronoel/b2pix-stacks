@@ -15,11 +15,12 @@ import {
 } from '../../shared/models/pix-payout-request.model';
 import { LpQueueCardComponent } from './components/lp-queue-card.component';
 import { LpActiveOrderComponent } from './components/lp-active-order.component';
+import { MessageChatComponent } from '../../components/order-status/components/message-chat/message-chat.component';
 
 @Component({
   selector: 'app-lp-dashboard',
   standalone: true,
-  imports: [LpQueueCardComponent, LpActiveOrderComponent, BankSetupComponent],
+  imports: [LpQueueCardComponent, LpActiveOrderComponent, BankSetupComponent, MessageChatComponent],
   templateUrl: './lp-dashboard.component.html',
   styleUrls: ['./lp-dashboard.component.scss']
 })
@@ -56,6 +57,9 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
   // Bank Setup
   showUpdateConfirm = signal(false);
   showBankSetup = signal(false);
+
+  // History Chat
+  expandedChatId = signal<string | null>(null);
 
   // Feedback
   successMessage = signal('');
@@ -321,6 +325,10 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
         this.showError(this.getErrorMessage(error));
       }
     });
+  }
+
+  toggleHistoryChat(id: string) {
+    this.expandedChatId.update(current => current === id ? null : id);
   }
 
   loadMoreHistory() {

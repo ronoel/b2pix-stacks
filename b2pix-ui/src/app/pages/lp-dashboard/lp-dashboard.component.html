@@ -210,22 +210,43 @@
           } @else {
             <div class="history-list">
               @for (item of historyItems(); track item.id) {
-                <div class="history-card">
-                  <div class="history-header">
-                    <div class="history-values">
-                      <span class="history-brl">{{ formatBrlCents(item.pix_value) }}</span>
-                      <span class="source-badge" [class]="item.source_type">{{ getSourceLabel(item.source_type) }}</span>
+                <div class="history-card-wrapper">
+                  <div class="history-card">
+                    <div class="history-header">
+                      <div class="history-values">
+                        <span class="history-brl">{{ formatBrlCents(item.pix_value) }}</span>
+                        <span class="source-badge" [class]="item.source_type">{{ getSourceLabel(item.source_type) }}</span>
+                      </div>
+                      <span class="status-badge" [class]="getStatusClass(item.status)">
+                        {{ getStatusLabel(item.status) }}
+                      </span>
                     </div>
-                    <span class="status-badge" [class]="getStatusClass(item.status)">
-                      {{ getStatusLabel(item.status) }}
-                    </span>
+                    <div class="history-meta">
+                      @if (item.pix_end_to_end_id) {
+                        <span class="meta-item mono">PIX: {{ item.pix_end_to_end_id }}</span>
+                      }
+                      <span class="meta-item">{{ formatDateTime(item.created_at) }}</span>
+                    </div>
                   </div>
-                  <div class="history-meta">
-                    @if (item.pix_end_to_end_id) {
-                      <span class="meta-item mono">PIX: {{ item.pix_end_to_end_id }}</span>
+                  @if (item.status === 'disputed') {
+                    <div class="history-chat-toggle">
+                      <button class="btn-chat-toggle" (click)="toggleHistoryChat(item.id)">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                          <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        {{ expandedChatId() === item.id ? 'Ocultar mensagens' : 'Ver mensagens' }}
+                      </button>
+                    </div>
+                    @if (expandedChatId() === item.id) {
+                      <div class="history-chat">
+                        <app-message-chat
+                          [sourceType]="item.source_type"
+                          [sourceId]="item.source_id"
+                          currentUserRole="payer"
+                        />
+                      </div>
                     }
-                    <span class="meta-item">{{ formatDateTime(item.created_at) }}</span>
-                  </div>
+                  }
                 </div>
               }
             </div>
