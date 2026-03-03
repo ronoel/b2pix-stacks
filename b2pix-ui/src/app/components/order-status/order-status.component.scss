@@ -179,6 +179,61 @@
   &.completed { background: #16A34A; }
 }
 
+// Payout tracking card
+.payout-tracking-card {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+
+  h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1F2937;
+    margin: 0 0 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #E5E7EB;
+  }
+}
+
+.payout-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.attempt-notice {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6B7280;
+  background: #F3F4F6;
+  padding: 6px 12px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.payout-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+
+  .loading-spinner {
+    width: 24px;
+    height: 24px;
+    border-width: 2px;
+  }
+
+  span {
+    font-size: 14px;
+    color: #6B7280;
+  }
+}
+
 // Details card
 .details-card {
   background: #FFFFFF;

@@ -5,14 +5,13 @@ export type OrderStatus =
   | 'awaiting_confirmation'
   | 'confirmed'
   | 'settlement_created'
-  | 'completed'
   | 'expired'
   | 'error'
   | 'failed'
   | 'refunded';
 
 export const FINAL_ORDER_STATUSES: OrderStatus[] = [
-  'completed', 'expired', 'failed', 'refunded'
+  'settlement_created', 'expired', 'failed', 'refunded'
 ];
 
 export interface CommonOrder {
@@ -64,9 +63,7 @@ export function getOrderStatusLabel(status: OrderStatus): string {
     case 'confirmed':
       return 'Confirmada';
     case 'settlement_created':
-      return 'Pagando';
-    case 'completed':
-      return 'Pago';
+      return 'Em Liquidação';
     case 'pending':
       return 'Pendente';
     case 'failed':
@@ -84,14 +81,13 @@ export function getOrderStatusLabel(status: OrderStatus): string {
 
 export function getOrderStatusClass(status: OrderStatus): string {
   switch (status) {
-    case 'completed':
+    case 'settlement_created':
       return 'completed';
     case 'broadcasted':
     case 'awaiting_confirmation':
     case 'pending':
       return 'pending';
     case 'confirmed':
-    case 'settlement_created':
       return 'processing';
     case 'failed':
     case 'error':

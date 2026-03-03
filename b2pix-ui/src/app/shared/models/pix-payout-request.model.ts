@@ -45,12 +45,12 @@ export interface PaginatedPayoutRequestResponse {
 export interface LpStats {
   total_paid_count: number;
   total_paid_value_cents: number;
-  active_order_count: number;
-  cancelled_count: number;
-  error_count: number;
-  dispute_lost_count: number;
   balance_cents: number;
   advance_cents: number;
+  completed_count: number;
+  cancel_count: number;
+  error_count: number;
+  dispute_lost_count: number;
 }
 
 export function isPayoutRequestFinalStatus(status: PayoutRequestStatus): boolean {

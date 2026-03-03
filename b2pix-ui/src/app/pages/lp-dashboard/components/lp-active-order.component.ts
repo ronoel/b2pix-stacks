@@ -1,12 +1,13 @@
 import { Component, input, output, signal, OnInit, OnDestroy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
+import { PixCopiaColaComponent } from '../../../components/pix-copia-cola/pix-copia-cola.component';
 import { PixPayoutRequest, getSourceTypeLabel } from '../../../shared/models/pix-payout-request.model';
 
 @Component({
   selector: 'app-lp-active-order',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, PixCopiaColaComponent],
   templateUrl: './lp-active-order.component.html',
   styleUrl: './lp-active-order.component.scss'
 })
@@ -22,7 +23,6 @@ export class LpActiveOrderComponent implements OnInit, OnDestroy {
   pixIdValue = '';
   reportReason = '';
   showReportModal = signal(false);
-  payloadCopied = signal(false);
 
   remainingSeconds = signal(0);
   private timerInterval?: ReturnType<typeof setInterval>;
@@ -77,26 +77,6 @@ export class LpActiveOrderComponent implements OnInit, OnDestroy {
 
   getSourceLabel(sourceType: string): string {
     return getSourceTypeLabel(sourceType as any);
-  }
-
-  copyPayload() {
-    const payload = this.order().qr_code_payload;
-    if (payload) {
-      navigator.clipboard.writeText(payload).then(() => {
-        this.payloadCopied.set(true);
-        setTimeout(() => this.payloadCopied.set(false), 2000);
-      });
-    }
-  }
-
-  copyPixKey() {
-    const pixKey = this.order().pix_key;
-    if (pixKey) {
-      navigator.clipboard.writeText(pixKey).then(() => {
-        this.payloadCopied.set(true);
-        setTimeout(() => this.payloadCopied.set(false), 2000);
-      });
-    }
   }
 
   onConfirmPayment() {

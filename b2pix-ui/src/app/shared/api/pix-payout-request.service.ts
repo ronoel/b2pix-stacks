@@ -6,7 +6,8 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import {
   PixPayoutRequest,
   PaginatedPayoutRequestResponse,
-  LpStats
+  LpStats,
+  PayoutSourceType
 } from '../models/pix-payout-request.model';
 import { buildDisputePayload, buildConfirmReceiptPayload } from '../models/pix-order-payloads';
 
@@ -38,6 +39,24 @@ export class PixPayoutRequestService {
     }).pipe(
       catchError((error: any) => {
         console.error('Error fetching payout request queue:', error);
+        throw error;
+      })
+    );
+  }
+
+  /**
+   * Get payout requests by source (order type + order ID).
+   */
+  getBySource(sourceType: PayoutSourceType, sourceId: string): Observable<PixPayoutRequest[]> {
+    const httpParams = new HttpParams()
+      .set('source_type', sourceType)
+      .set('source_id', sourceId);
+
+    return this.http.get<PixPayoutRequest[]>(`${this.apiUrl}/v1/pix-payout-requests/by-source`, {
+      params: httpParams
+    }).pipe(
+      catchError((error: any) => {
+        console.error('Error fetching payout requests by source:', error);
         throw error;
       })
     );

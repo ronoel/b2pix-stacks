@@ -20,11 +20,18 @@
     <div class="status-card" [class]="'status-' + getStatusClass(order()!.status)">
       <div class="status-icon">
         @switch (order()!.status) {
-          @case ('completed') {
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-              <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-            </svg>
+          @case ('settlement_created') {
+            @if (latestPayoutRequest() && latestPayoutRequest()!.status === 'confirmed') {
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              </svg>
+            } @else {
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            }
           }
           @case ('failed') {
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
@@ -68,7 +75,7 @@
       </div>
     </div>
 
-    <!-- Progress Steps (4 steps) -->
+    <!-- Order Progress Steps (3 steps) -->
     <div class="progress-steps">
       <div class="step" [class.completed]="isStepCompleted(1)" [class.active]="isStepActive(1)">
         <div class="step-icon">1</div>
@@ -77,22 +84,62 @@
       <div class="step-line" [class.completed]="isStepCompleted(2)"></div>
       <div class="step" [class.completed]="isStepCompleted(2)" [class.active]="isStepActive(2)">
         <div class="step-icon">2</div>
-        <div class="step-label">Transmitida</div>
+        <div class="step-label">Confirmada</div>
       </div>
       <div class="step-line" [class.completed]="isStepCompleted(3)"></div>
-      <div class="step" [class.completed]="isStepCompleted(3)" [class.active]="isStepActive(3)">
-        <div class="step-icon">3</div>
-        <div class="step-label">Pagando</div>
-      </div>
-      <div class="step-line" [class.completed]="isStepCompleted(4)"></div>
       <div class="step"
-        [class.completed]="isStepCompleted(4)"
-        [class.active]="isStepActive(4)"
+        [class.completed]="isStepCompleted(3)"
+        [class.active]="isStepActive(3)"
         [class.failed]="isErrorStatus(order()!.status)">
-        <div class="step-icon">4</div>
+        <div class="step-icon">3</div>
         <div class="step-label">{{ getLastStepLabel(order()!.status) }}</div>
       </div>
     </div>
+
+    <!-- Payout Tracking (Phase 2) -->
+    @if (isPayoutPhase()) {
+      <div class="payout-tracking-card">
+        <h3>Pagamento PIX</h3>
+
+        @if (isPayoutLoading() && !latestPayoutRequest()) {
+          <div class="payout-loading">
+            <div class="loading-spinner"></div>
+            <span>Carregando pagamento...</span>
+          </div>
+        } @else if (latestPayoutRequest()) {
+          @if (latestPayoutRequest()!.attempt_number > 1) {
+            <div class="attempt-notice">
+              Tentativa {{ latestPayoutRequest()!.attempt_number }}
+            </div>
+          }
+
+          <div class="payout-steps">
+            <div class="step" [class.completed]="isPayoutStepCompleted(1)" [class.active]="isPayoutStepActive(1)">
+              <div class="step-icon">1</div>
+              <div class="step-label">Pendente</div>
+            </div>
+            <div class="step-line" [class.completed]="isPayoutStepCompleted(2)"></div>
+            <div class="step" [class.completed]="isPayoutStepCompleted(2)" [class.active]="isPayoutStepActive(2)">
+              <div class="step-icon">2</div>
+              <div class="step-label">LP Processando</div>
+            </div>
+            <div class="step-line" [class.completed]="isPayoutStepCompleted(3)"></div>
+            <div class="step" [class.completed]="isPayoutStepCompleted(3)" [class.active]="isPayoutStepActive(3)">
+              <div class="step-icon">3</div>
+              <div class="step-label">Pago</div>
+            </div>
+            <div class="step-line" [class.completed]="isPayoutStepCompleted(4)"></div>
+            <div class="step"
+              [class.completed]="isPayoutStepCompleted(4)"
+              [class.active]="isPayoutStepActive(4)"
+              [class.failed]="isPayoutErrorState()">
+              <div class="step-icon">4</div>
+              <div class="step-label">{{ getPayoutLastStepLabel() }}</div>
+            </div>
+          </div>
+        }
+      </div>
+    }
 
     <!-- Order Details -->
     <div class="details-card">
@@ -125,10 +172,10 @@
             </a>
           </div>
         }
-        @if (order()!.payout_request_id) {
+        @if (latestPayoutRequest()) {
           <div class="detail-item full-width">
             <span class="label">Solicitação de Pagamento</span>
-            <span class="value mono">{{ order()!.payout_request_id }}</span>
+            <span class="value mono">{{ latestPayoutRequest()!.id }}</span>
           </div>
         }
         <div class="detail-item">
@@ -176,7 +223,7 @@
             @if (isConfirmingReceipt()) {
               Confirmando...
             } @else {
-              PIX pago
+              Confirmar PIX pago
             }
           </button>
           @if (isPayoutPaid()) {
@@ -242,7 +289,7 @@
     }
 
     <!-- Auto-refresh notice -->
-    @if (!isOrderFinal()) {
+    @if (!isFullyComplete()) {
       <div class="refresh-notice">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
           <path d="M3 12C3 7.02944 7.02944 3 12 3C14.5755 3 16.9 4.15205 18.5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>

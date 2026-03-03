@@ -10,7 +10,12 @@ import {
   getOrderStatusLabel,
   getOrderStatusClass
 } from '../../shared/models/pix-payment.model';
-import { PixPayoutRequest, PayoutRequestStatus, PayoutSourceType } from '../../shared/models/pix-payout-request.model';
+import {
+  PixPayoutRequest,
+  PayoutRequestStatus,
+  PayoutSourceType,
+  isPayoutRequestFinalStatus
+} from '../../shared/models/pix-payout-request.model';
 import { MessageSenderRole } from '../../shared/models/message.model';
 import { environment } from '../../../environments/environment';
 import { DisputeModalComponent } from './components/dispute-modal/dispute-modal.component';
@@ -37,7 +42,8 @@ export class OrderStatusComponent implements OnInit, OnDestroy {
   private sellOrderService = inject(SellOrderService);
   private payoutRequestService = inject(PixPayoutRequestService);
   private walletManager = inject(WalletManagerService);
-  private refreshSubscription?: Subscription;
+  private orderRefreshSubscription?: Subscription;
+  private payoutRefreshSubscription?: Subscription;
 
   // Order state
   order = signal<CommonOrder | null>(null);
@@ -45,16 +51,30 @@ export class OrderStatusComponent implements OnInit, OnDestroy {
   error = signal<string | null>(null);
 
   // Payout request state
-  payoutRequest = signal<PixPayoutRequest | null>(null);
+  payoutRequests = signal<PixPayoutRequest[]>([]);
+  latestPayoutRequest = computed(() => this.payoutRequests()[0] ?? null);
+  isPayoutPhase = computed(() => this.order()?.status === 'settlement_created');
+  isPayoutFinal = computed(() => {
+    const pr = this.latestPayoutRequest();
+    return pr ? isPayoutRequestFinalStatus(pr.status) : false;
+  });
+  isFullyComplete = computed(() => {
+    const o = this.order();
+    if (!o?.is_final) return false;
+    if (o.status !== 'settlement_created') return true;
+    return this.isPayoutFinal();
+  });
+
   showDisputeModal = signal(false);
   isDisputing = signal(false);
   disputeError = signal<string | null>(null);
   isConfirmingReceipt = signal(false);
   confirmReceiptError = signal<string | null>(null);
+  isPayoutLoading = signal(false);
 
   // Computed: current user role for messaging
   currentUserRole = computed((): MessageSenderRole | null => {
-    const pr = this.payoutRequest();
+    const pr = this.latestPayoutRequest();
     const address = this.walletManager.getSTXAddress();
     if (!pr || !address) return null;
     if (address === environment.b2pixAddress) return 'moderator';
@@ -64,18 +84,19 @@ export class OrderStatusComponent implements OnInit, OnDestroy {
   });
 
   // Computed: payout request status checks
-  isPayoutPaid = computed(() => this.payoutRequest()?.status === PayoutRequestStatus.Paid);
-  isPayoutDisputed = computed(() => this.payoutRequest()?.status === PayoutRequestStatus.Disputed);
-  isPayoutError = computed(() => this.payoutRequest()?.status === PayoutRequestStatus.Error);
-  isPayoutErrorEscalated = computed(() => this.payoutRequest()?.status === PayoutRequestStatus.ErrorEscalated);
-  isPayoutDisputeRejected = computed(() => this.payoutRequest()?.status === PayoutRequestStatus.DisputeRejected);
+  isPayoutPaid = computed(() => this.latestPayoutRequest()?.status === PayoutRequestStatus.Paid);
+  isPayoutDisputed = computed(() => this.latestPayoutRequest()?.status === PayoutRequestStatus.Disputed);
+  isPayoutError = computed(() => this.latestPayoutRequest()?.status === PayoutRequestStatus.Error);
+  isPayoutErrorEscalated = computed(() => this.latestPayoutRequest()?.status === PayoutRequestStatus.ErrorEscalated);
+  isPayoutDisputeRejected = computed(() => this.latestPayoutRequest()?.status === PayoutRequestStatus.DisputeRejected);
 
   ngOnInit() {
     this.loadOrder();
   }
 
   ngOnDestroy() {
-    this.stopAutoRefresh();
+    this.stopOrderPolling();
+    this.stopPayoutPolling();
   }
 
   loadOrder() {
@@ -90,14 +111,14 @@ export class OrderStatusComponent implements OnInit, OnDestroy {
         this.order.set(order);
         this.isLoading.set(false);
 
-        if (order.payout_request_id) {
-          this.loadPayoutRequest(order.payout_request_id);
-        }
-
-        if (!order.is_final) {
-          this.startAutoRefresh(id);
+        if (order.status === 'settlement_created') {
+          this.stopOrderPolling();
+          this.loadPayoutRequests();
+          this.startPayoutPolling();
+        } else if (!order.is_final) {
+          this.startOrderPolling(id);
         } else {
-          this.stopAutoRefresh();
+          this.stopOrderPolling();
         }
       },
       error: (err) => {
@@ -114,30 +135,33 @@ export class OrderStatusComponent implements OnInit, OnDestroy {
       : this.sellOrderService.getSellOrderById(id);
   }
 
-  private loadPayoutRequest(payoutRequestId: string): void {
-    this.payoutRequestService.getById(payoutRequestId).subscribe({
-      next: (pr) => {
-        this.payoutRequest.set(pr);
+  private loadPayoutRequests(): void {
+    this.isPayoutLoading.set(true);
+    this.payoutRequestService.getBySource(this.sourceType(), this.orderId()).subscribe({
+      next: (prs) => {
+        this.payoutRequests.set(prs);
+        this.isPayoutLoading.set(false);
       },
       error: (err) => {
-        console.error('Error loading payout request:', err);
+        console.error('Error loading payout requests:', err);
+        this.isPayoutLoading.set(false);
       }
     });
   }
 
-  private startAutoRefresh(orderId: string) {
-    this.stopAutoRefresh();
-    this.refreshSubscription = interval(this.refreshInterval()).subscribe(() => {
+  private startOrderPolling(orderId: string) {
+    this.stopOrderPolling();
+    this.orderRefreshSubscription = interval(this.refreshInterval()).subscribe(() => {
       this.fetchOrder(orderId).subscribe({
         next: (order) => {
           this.order.set(order);
 
-          if (order.payout_request_id) {
-            this.loadPayoutRequest(order.payout_request_id);
-          }
-
-          if (order.is_final) {
-            this.stopAutoRefresh();
+          if (order.status === 'settlement_created') {
+            this.stopOrderPolling();
+            this.loadPayoutRequests();
+            this.startPayoutPolling();
+          } else if (order.is_final) {
+            this.stopOrderPolling();
           }
         },
         error: (err) => {
@@ -147,10 +171,35 @@ export class OrderStatusComponent implements OnInit, OnDestroy {
     });
   }
 
-  private stopAutoRefresh() {
-    if (this.refreshSubscription) {
-      this.refreshSubscription.unsubscribe();
-      this.refreshSubscription = undefined;
+  private startPayoutPolling() {
+    this.stopPayoutPolling();
+    this.payoutRefreshSubscription = interval(this.refreshInterval()).subscribe(() => {
+      this.payoutRequestService.getBySource(this.sourceType(), this.orderId()).subscribe({
+        next: (prs) => {
+          this.payoutRequests.set(prs);
+          const latest = prs[0];
+          if (latest && isPayoutRequestFinalStatus(latest.status)) {
+            this.stopPayoutPolling();
+          }
+        },
+        error: (err) => {
+          console.error('Error refreshing payout requests:', err);
+        }
+      });
+    });
+  }
+
+  private stopOrderPolling() {
+    if (this.orderRefreshSubscription) {
+      this.orderRefreshSubscription.unsubscribe();
+      this.orderRefreshSubscription = undefined;
+    }
+  }
+
+  private stopPayoutPolling() {
+    if (this.payoutRefreshSubscription) {
+      this.payoutRefreshSubscription.unsubscribe();
+      this.payoutRefreshSubscription = undefined;
     }
   }
 
@@ -165,17 +214,17 @@ export class OrderStatusComponent implements OnInit, OnDestroy {
   }
 
   onDisputeSubmitted(): void {
-    const pr = this.payoutRequest();
+    const pr = this.latestPayoutRequest();
     if (!pr) return;
 
     this.isDisputing.set(true);
     this.disputeError.set(null);
 
     this.payoutRequestService.disputeRequest(pr.id).subscribe({
-      next: (updatedPr) => {
-        this.payoutRequest.set(updatedPr);
+      next: () => {
         this.isDisputing.set(false);
         this.showDisputeModal.set(false);
+        this.loadPayoutRequests();
       },
       error: (error) => {
         this.isDisputing.set(false);
@@ -189,17 +238,16 @@ export class OrderStatusComponent implements OnInit, OnDestroy {
   }
 
   onConfirmReceipt(): void {
-    const pr = this.payoutRequest();
+    const pr = this.latestPayoutRequest();
     if (!pr) return;
 
     this.isConfirmingReceipt.set(true);
     this.confirmReceiptError.set(null);
 
     this.payoutRequestService.confirmReceipt(pr.id).subscribe({
-      next: (updatedPr) => {
-        this.payoutRequest.set(updatedPr);
+      next: () => {
         this.isConfirmingReceipt.set(false);
-        this.loadOrder();
+        this.loadPayoutRequests();
       },
       error: (error) => {
         this.isConfirmingReceipt.set(false);
@@ -226,24 +274,29 @@ export class OrderStatusComponent implements OnInit, OnDestroy {
   }
 
   getStatusDescription(status: OrderStatus): string {
-    // Override description based on payout request sub-status
     if (status === 'settlement_created') {
-      const pr = this.payoutRequest();
-      if (pr?.status === PayoutRequestStatus.Disputed) {
-        return 'Disputa aberta. Um moderador está analisando o caso.';
+      const pr = this.latestPayoutRequest();
+      if (pr) {
+        switch (pr.status) {
+          case PayoutRequestStatus.Disputed:
+            return 'Disputa aberta. Um moderador está analisando o caso.';
+          case PayoutRequestStatus.Paid:
+            return 'O LP informou que pagou o PIX. Confirme o recebimento ou abra uma disputa.';
+          case PayoutRequestStatus.Error:
+            return 'Ocorreu um erro no pagamento. Um novo pagamento será criado automaticamente.';
+          case PayoutRequestStatus.ErrorEscalated:
+            return 'Ocorreu um erro recorrente no pagamento. Um moderador está analisando.';
+          case PayoutRequestStatus.DisputeRejected:
+            return 'A disputa foi rejeitada. Um novo pagamento está sendo processado.';
+          case PayoutRequestStatus.Confirmed:
+            return 'Pagamento PIX confirmado com sucesso!';
+          case PayoutRequestStatus.LpAssigned:
+            return 'Um Liquidity Provider aceitou e está processando o pagamento PIX.';
+          default:
+            return 'Liquidação criada. Aguardando um Liquidity Provider processar o pagamento PIX.';
+        }
       }
-      if (pr?.status === PayoutRequestStatus.Paid) {
-        return 'O LP informou que pagou o PIX. Confirme o recebimento ou abra uma disputa.';
-      }
-      if (pr?.status === PayoutRequestStatus.Error) {
-        return 'Ocorreu um erro no pagamento. Um novo pagamento será criado automaticamente.';
-      }
-      if (pr?.status === PayoutRequestStatus.ErrorEscalated) {
-        return 'Ocorreu um erro recorrente no pagamento. Um moderador está analisando.';
-      }
-      if (pr?.status === PayoutRequestStatus.DisputeRejected) {
-        return 'A disputa foi rejeitada. Um novo pagamento está sendo processado.';
-      }
+      return 'Liquidação criada. Aguardando um Liquidity Provider processar o pagamento PIX.';
     }
 
     switch (status) {
@@ -253,10 +306,6 @@ export class OrderStatusComponent implements OnInit, OnDestroy {
         return 'Aguardando confirmação na blockchain. Isso pode levar alguns minutos.';
       case 'confirmed':
         return 'Transação confirmada na blockchain! Preparando liquidação.';
-      case 'settlement_created':
-        return 'Liquidação criada. Um Liquidity Provider está processando o pagamento PIX.';
-      case 'completed':
-        return 'Pagamento PIX concluído com sucesso!';
       case 'pending':
         return 'Ordem pendente.';
       case 'failed':
@@ -272,7 +321,7 @@ export class OrderStatusComponent implements OnInit, OnDestroy {
     }
   }
 
-  // 4-step stepper logic
+  // 3-step order stepper logic
   private getStepNumber(status: OrderStatus): number {
     switch (status) {
       case 'broadcasted':
@@ -282,8 +331,6 @@ export class OrderStatusComponent implements OnInit, OnDestroy {
         return 2;
       case 'settlement_created':
         return 3;
-      case 'completed':
-        return 4;
       default:
         return 0;
     }
@@ -299,7 +346,7 @@ export class OrderStatusComponent implements OnInit, OnDestroy {
     const o = this.order();
     if (!o) return false;
     if (this.isErrorStatus(o.status)) {
-      return step === 4;
+      return step === 3;
     }
     return this.getStepNumber(o.status) === step;
   }
@@ -318,7 +365,67 @@ export class OrderStatusComponent implements OnInit, OnDestroy {
       case 'refunded':
         return 'Reembolsado';
       default:
-        return 'Pago';
+        return 'Em Liquidação';
+    }
+  }
+
+  // Payout stepper logic (4 steps)
+  getPayoutStepNumber(status: PayoutRequestStatus): number {
+    switch (status) {
+      case PayoutRequestStatus.Pending:
+        return 1;
+      case PayoutRequestStatus.LpAssigned:
+        return 2;
+      case PayoutRequestStatus.Paid:
+      case PayoutRequestStatus.Disputed:
+        return 3;
+      case PayoutRequestStatus.Confirmed:
+      case PayoutRequestStatus.Failed:
+      case PayoutRequestStatus.Error:
+      case PayoutRequestStatus.ErrorEscalated:
+      case PayoutRequestStatus.DisputeRejected:
+        return 4;
+      default:
+        return 0;
+    }
+  }
+
+  isPayoutStepCompleted(step: number): boolean {
+    const pr = this.latestPayoutRequest();
+    if (!pr) return false;
+    return this.getPayoutStepNumber(pr.status) >= step;
+  }
+
+  isPayoutStepActive(step: number): boolean {
+    const pr = this.latestPayoutRequest();
+    if (!pr) return false;
+    if (this.isPayoutErrorState()) {
+      return step === 4;
+    }
+    return this.getPayoutStepNumber(pr.status) === step;
+  }
+
+  isPayoutErrorState(): boolean {
+    const pr = this.latestPayoutRequest();
+    if (!pr) return false;
+    return pr.status === PayoutRequestStatus.Failed
+      || pr.status === PayoutRequestStatus.Error
+      || pr.status === PayoutRequestStatus.ErrorEscalated
+      || pr.status === PayoutRequestStatus.DisputeRejected;
+  }
+
+  getPayoutLastStepLabel(): string {
+    const pr = this.latestPayoutRequest();
+    if (!pr) return 'Confirmado';
+    switch (pr.status) {
+      case PayoutRequestStatus.Failed:
+      case PayoutRequestStatus.Error:
+      case PayoutRequestStatus.ErrorEscalated:
+        return 'Falhou';
+      case PayoutRequestStatus.DisputeRejected:
+        return 'Disputa Rejeitada';
+      default:
+        return 'Confirmado';
     }
   }
 

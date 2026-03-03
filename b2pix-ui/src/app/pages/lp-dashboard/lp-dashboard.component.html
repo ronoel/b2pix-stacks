@@ -115,7 +115,7 @@
             <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/>
             <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/>
           </svg>
-          Fila
+          PIX Pendentes
           @if (queueItems().length > 0) {
             <span class="tab-count">{{ queueItems().length }}</span>
           }
@@ -295,7 +295,7 @@
                   </svg>
                 </div>
                 <div class="stat-info">
-                  <span class="stat-number">{{ stats()!.cancelled_count }}</span>
+                  <span class="stat-number">{{ stats()!.cancel_count }}</span>
                   <span class="stat-description">Cancelamentos</span>
                 </div>
               </div>

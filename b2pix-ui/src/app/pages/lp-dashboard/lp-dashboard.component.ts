@@ -113,12 +113,8 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
         this.stats.set(stats);
         this.isLoadingStats.set(false);
 
-        // If LP has an active order, fetch it from history
-        if (stats.active_order_count > 0) {
-          this.loadActiveOrderFromHistory();
-        } else {
-          this.loadQueue();
-        }
+        // Check history for any active order (lp_assigned)
+        this.loadActiveOrderFromHistory();
       },
       error: (error) => {
         console.error('Error loading LP stats:', error);
