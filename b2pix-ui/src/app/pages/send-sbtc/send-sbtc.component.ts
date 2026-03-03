@@ -4,9 +4,9 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import { BoltContractSBTCService } from '../../libs/bolt-contract-sbtc.service';
-import { environment } from '../../../environments/environment';
 import { sBTCTokenService } from '../../libs/sbtc-token.service';
 import { QuoteService } from '../../shared/api/quote.service';
+import { formatSats as formatSatsUtil, getExplorerUrl } from '../../shared/utils/format.util';
 
 @Component({
   selector: 'app-send-sbtc',
@@ -191,13 +191,7 @@ export class SendSBTCComponent implements OnInit {
     return `${txId.substring(0, 12)}...${txId.substring(txId.length - 8)}`;
   }
 
-  getBlockchainExplorerUrl(txId: string): string {
-    if (!txId) return '';
-    // Add 0x prefix if not present and generate Hiro explorer link
-    const transactionId = txId.startsWith('0x') ? txId : `0x${txId}`;
-    const chain = environment.network === 'mainnet' ? 'mainnet' : 'testnet';
-    return `https://explorer.hiro.so/txid/${transactionId}?chain=${chain}`;
-  }
+  getBlockchainExplorerUrl = getExplorerUrl;
 
   copyTransactionId() {
     const txId = this.transactionId();
@@ -212,7 +206,7 @@ export class SendSBTCComponent implements OnInit {
   }
 
   formatSats(amount: string): string {
-    return new Intl.NumberFormat('pt-BR').format(Number(amount));
+    return formatSatsUtil(Number(amount));
   }
 
   /**

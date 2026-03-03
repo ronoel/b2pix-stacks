@@ -13,7 +13,14 @@ import {
   getStatusLabel as getSellOrderStatusLabel,
   getStatusClass as getSellOrderStatusClass
 } from '../../shared/models/sell-order.model';
-import { environment } from '../../../environments/environment';
+import {
+  formatBrlCents,
+  formatSats,
+  formatSatsToBtc,
+  formatDateTime,
+  formatTruncated,
+  getExplorerUrl
+} from '../../shared/utils/format.util';
 
 @Component({
   selector: 'app-sell',
@@ -467,42 +474,12 @@ export class SellComponent implements OnInit, OnDestroy {
     }).format(value);
   }
 
-  formatSats(amount: number): string {
-    return new Intl.NumberFormat('pt-BR').format(amount);
-  }
-
-  formatSatsToBtc(sats: number): string {
-    return (sats / this.SATS_PER_BTC).toFixed(8);
-  }
-
-  formatBrlCents(cents: number): string {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'decimal',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(cents / 100);
-  }
-
-  formatDateTime(dateString: string): string {
-    return new Intl.DateTimeFormat('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(new Date(dateString));
-  }
-
-  formatTxHash(txHash: string): string {
-    if (!txHash || txHash.length <= 16) return txHash;
-    return `${txHash.substring(0, 8)}...${txHash.substring(txHash.length - 8)}`;
-  }
-
-  getExplorerUrl(txHash: string): string {
-    const tx = txHash.startsWith('0x') ? txHash : `0x${txHash}`;
-    const chain = environment.network === 'mainnet' ? 'mainnet' : 'testnet';
-    return `https://explorer.hiro.so/txid/${tx}?chain=${chain}`;
-  }
+  formatBrlCents = formatBrlCents;
+  formatSats = formatSats;
+  formatSatsToBtc = formatSatsToBtc;
+  formatDateTime = formatDateTime;
+  formatTruncated = formatTruncated;
+  getExplorerUrl = getExplorerUrl;
 
   getStatusLabel(status: OrderStatus): string {
     return getSellOrderStatusLabel(status);

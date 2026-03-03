@@ -1,6 +1,7 @@
 import { Component, input, output } from '@angular/core';
 
 import { PixPayoutRequest, getSourceTypeLabel } from '../../../shared/models/pix-payout-request.model';
+import { formatBrlCents } from '../../../shared/utils/format.util';
 
 @Component({
   selector: 'app-lp-queue-card',
@@ -12,7 +13,7 @@ import { PixPayoutRequest, getSourceTypeLabel } from '../../../shared/models/pix
         <div class="card-values">
           <div class="pix-value">
             <span class="label">Valor PIX</span>
-            <span class="value brl">R$ {{ formatBrlCents(item().pix_value) }}</span>
+            <span class="value brl">{{ formatBrlCents(item().pix_value) }}</span>
           </div>
         </div>
         <div class="card-badges">
@@ -234,12 +235,7 @@ export class LpQueueCardComponent {
   isAccepting = input<boolean>(false);
   accept = output<string>();
 
-  formatBrlCents(cents: number): string {
-    return new Intl.NumberFormat('pt-BR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(cents / 100);
-  }
+  formatBrlCents = formatBrlCents;
 
   getSourceLabel(sourceType: string): string {
     return getSourceTypeLabel(sourceType as any);

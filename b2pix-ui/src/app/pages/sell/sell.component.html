@@ -262,7 +262,7 @@
                 {{ getStatusLabel(order.status) }}
               </span>
               @if (order.pix_value) {
-              <div class="order-value">R$ {{ formatBrlCents(order.pix_value) }}</div>
+              <div class="order-value">{{ formatBrlCents(order.pix_value) }}</div>
               }
             </div>
           </div>
@@ -271,7 +271,7 @@
             <span class="tx-label">TX:</span>
             <a [href]="getExplorerUrl(order.tx_hash)" target="_blank" class="tx-link"
               (click)="$event.stopPropagation()">
-              {{ formatTxHash(order.tx_hash) }}
+              {{ formatTruncated(order.tx_hash) }}
             </a>
           </div>
           }

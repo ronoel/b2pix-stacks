@@ -3,6 +3,7 @@ import { Component, input, output, signal, OnInit, OnDestroy } from '@angular/co
 import { FormsModule } from '@angular/forms';
 import { PixCopiaColaComponent } from '../../../components/pix-copia-cola/pix-copia-cola.component';
 import { PixPayoutRequest, getSourceTypeLabel } from '../../../shared/models/pix-payout-request.model';
+import { formatBrlCents } from '../../../shared/utils/format.util';
 
 @Component({
   selector: 'app-lp-active-order',
@@ -68,12 +69,7 @@ export class LpActiveOrderComponent implements OnInit, OnDestroy {
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   }
 
-  formatBrlCents(cents: number): string {
-    return new Intl.NumberFormat('pt-BR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(cents / 100);
-  }
+  formatBrlCents = formatBrlCents;
 
   getSourceLabel(sourceType: string): string {
     return getSourceTypeLabel(sourceType as any);

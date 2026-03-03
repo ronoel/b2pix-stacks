@@ -9,6 +9,7 @@ import { sBTCTokenService } from '../../libs/sbtc-token.service';
 import { QuoteService } from '../../shared/api/quote.service';
 import { AccountValidationService } from '../../shared/api/account-validation.service';
 import { AccountInfo } from '../../shared/models/account-validation.model';
+import { formatBrlCents, formatSats as formatSatsUtil, formatSatsToBtc } from '../../shared/utils/format.util';
 
 
 @Component({
@@ -191,23 +192,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   formatBRLCurrency(valueInCents: string | number): string {
     const value = typeof valueInCents === 'string' ? parseInt(valueInCents) : valueInCents;
-    const valueInReais = value / 100;
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(valueInReais);
+    return formatBrlCents(value);
   }
 
   formatSatoshisToBTC(satoshis: string | number): string {
     const sats = typeof satoshis === 'string' ? parseInt(satoshis) : satoshis;
-    const btc = sats / 100000000; // Convert satoshis to BTC
-    return btc.toFixed(8);
+    return formatSatsToBtc(sats);
   }
 
   formatSats(amount: string): string {
-    return new Intl.NumberFormat('pt-BR').format(Number(amount));
+    return formatSatsUtil(Number(amount));
   }
 
   // Receive Bitcoin modal methods

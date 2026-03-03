@@ -1,6 +1,7 @@
 import { Component, input, output, signal } from '@angular/core';
 import { PixPayoutRequest, PayoutRequestStatus, getSourceTypeLabel, getPayoutRequestStatusLabel, getPayoutRequestStatusClass } from '../../../shared/models/pix-payout-request.model';
 import { MessageChatComponent } from '../../../components/order-status/components/message-chat/message-chat.component';
+import { formatBrlCents, formatTruncated, formatDateTime } from '../../../shared/utils/format.util';
 
 @Component({
   selector: 'app-payout-dispute-card',
@@ -10,7 +11,7 @@ import { MessageChatComponent } from '../../../components/order-status/component
     <div class="dispute-card">
       <div class="card-header">
         <div class="card-left">
-          <span class="pix-value">R$ {{ formatBrlCents(item().pix_value) }}</span>
+          <span class="pix-value">{{ formatBrlCents(item().pix_value) }}</span>
           <span class="source-badge" [class]="item().source_type">{{ getSourceLabel(item().source_type) }}</span>
           @if (item().attempt_number > 1) {
             <span class="attempt-badge">Tentativa #{{ item().attempt_number }}</span>
@@ -23,11 +24,11 @@ import { MessageChatComponent } from '../../../components/order-status/component
         <div class="detail-grid">
           <div class="detail-item">
             <span class="label">Pagador</span>
-            <span class="value mono">{{ formatAddress(item().payer_address) }}</span>
+            <span class="value mono">{{ formatTruncated(item().payer_address) }}</span>
           </div>
           <div class="detail-item">
             <span class="label">LP</span>
-            <span class="value mono">{{ item().lp_address ? formatAddress(item().lp_address!) : '-' }}</span>
+            <span class="value mono">{{ item().lp_address ? formatTruncated(item().lp_address!) : '-' }}</span>
           </div>
           @if (item().pix_end_to_end_id) {
             <div class="detail-item">
@@ -38,7 +39,7 @@ import { MessageChatComponent } from '../../../components/order-status/component
           @if (item().disputed_at) {
             <div class="detail-item">
               <span class="label">Disputado em</span>
-              <span class="value">{{ formatDate(item().disputed_at!) }}</span>
+              <span class="value">{{ formatDateTime(item().disputed_at!) }}</span>
             </div>
           }
           @if (item().error_message) {
@@ -340,12 +341,9 @@ export class PayoutDisputeCardComponent {
     this.showChat.update(v => !v);
   }
 
-  formatBrlCents(cents: number): string {
-    return new Intl.NumberFormat('pt-BR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(cents / 100);
-  }
+  formatBrlCents = formatBrlCents;
+  formatTruncated = formatTruncated;
+  formatDateTime = formatDateTime;
 
   getSourceLabel(sourceType: string): string {
     return getSourceTypeLabel(sourceType as any);
@@ -357,20 +355,5 @@ export class PayoutDisputeCardComponent {
 
   getStatusClass(status: PayoutRequestStatus): string {
     return getPayoutRequestStatusClass(status);
-  }
-
-  formatAddress(address: string): string {
-    if (!address || address.length <= 16) return address;
-    return `${address.substring(0, 8)}...${address.substring(address.length - 8)}`;
-  }
-
-  formatDate(dateString: string): string {
-    return new Intl.DateTimeFormat('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(new Date(dateString));
   }
 }

@@ -8,6 +8,7 @@ import {
   getOrderStatusLabel,
   getOrderStatusClass
 } from '../../../shared/models/pix-payment.model';
+import { formatBrlCents, formatSats, formatDateTime } from '../../../shared/utils/format.util';
 
 @Component({
   selector: 'app-pix-payment-history',
@@ -88,25 +89,7 @@ export class PixPaymentHistoryComponent implements OnInit {
     return getOrderStatusClass(status);
   }
 
-  formatBrlCents(cents: number): string {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'decimal',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(cents / 100);
-  }
-
-  formatSats(amount: number): string {
-    return new Intl.NumberFormat('pt-BR').format(amount);
-  }
-
-  formatDateTime(dateString: string): string {
-    return new Intl.DateTimeFormat('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(new Date(dateString));
-  }
+  formatBrlCents = formatBrlCents;
+  formatSats = formatSats;
+  formatDateTime = formatDateTime;
 }

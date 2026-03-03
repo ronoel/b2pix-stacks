@@ -1,4 +1,5 @@
 import { Component, input, output, computed } from '@angular/core';
+import { formatSats, formatSatsToBtc } from '../../../shared/utils/format.util';
 
 
 export interface PixQrData {
@@ -268,11 +269,6 @@ export class PaymentConfirmationComponent {
     }).format(value);
   }
 
-  formatSats(amount: number): string {
-    return new Intl.NumberFormat('pt-BR').format(amount);
-  }
-
-  formatSatsToBtc(sats: number): string {
-    return (sats / 100000000).toFixed(8);
-  }
+  formatSats = formatSats;
+  formatSatsToBtc = formatSatsToBtc;
 }

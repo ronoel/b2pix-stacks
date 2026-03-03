@@ -18,6 +18,14 @@ import {
 } from '../../shared/models/pix-payout-request.model';
 import { MessageSenderRole } from '../../shared/models/message.model';
 import { environment } from '../../../environments/environment';
+import {
+  formatBrlCents,
+  formatSats,
+  formatSatsToBtc,
+  formatDateTime,
+  formatTruncated,
+  getExplorerUrl
+} from '../../shared/utils/format.util';
 import { DisputeModalComponent } from './components/dispute-modal/dispute-modal.component';
 import { MessageChatComponent } from './components/message-chat/message-chat.component';
 
@@ -429,40 +437,11 @@ export class OrderStatusComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Formatting
-  formatSats(amount: number): string {
-    return new Intl.NumberFormat('pt-BR').format(amount);
-  }
-
-  formatSatsToBtc(sats: number): string {
-    return (sats / 100000000).toFixed(8);
-  }
-
-  formatBrlCents(cents: number): string {
-    return new Intl.NumberFormat('pt-BR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(cents / 100);
-  }
-
-  formatDateTime(dateString: string): string {
-    return new Intl.DateTimeFormat('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(new Date(dateString));
-  }
-
-  formatTxHash(txHash: string): string {
-    if (!txHash || txHash.length <= 16) return txHash;
-    return `${txHash.substring(0, 8)}...${txHash.substring(txHash.length - 8)}`;
-  }
-
-  getExplorerUrl(txHash: string): string {
-    const tx = txHash.startsWith('0x') ? txHash : `0x${txHash}`;
-    const chain = environment.network === 'mainnet' ? 'mainnet' : 'testnet';
-    return `https://explorer.hiro.so/txid/${tx}?chain=${chain}`;
-  }
+  // Formatting — delegated to shared utils
+  formatBrlCents = formatBrlCents;
+  formatSats = formatSats;
+  formatSatsToBtc = formatSatsToBtc;
+  formatDateTime = formatDateTime;
+  formatTruncated = formatTruncated;
+  getExplorerUrl = getExplorerUrl;
 }

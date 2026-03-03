@@ -3,7 +3,7 @@ import { NgClass } from '@angular/common';
 import { Router } from '@angular/router';
 import { PaymentRequestService } from '../../shared/api/payment-request.service';
 import { PaymentRequest, PaymentRequestStatus, PaymentSourceType } from '../../shared/models/payment-request.model';
-import { environment } from '../../../environments/environment';
+import { formatTruncated, formatSats, formatDateTime, getExplorerUrl } from '../../shared/utils/format.util';
 
 @Component({
   selector: 'app-payment-requests',
@@ -137,7 +137,7 @@ import { environment } from '../../../environments/environment';
                     </div>
                     <div class="detail-row">
                       <span class="label">Endereço do Destinatário:</span>
-                      <span class="value mono-text">{{ formatAddress(payment.receiver_address) }}</span>
+                      <span class="value mono-text">{{ formatTruncated(payment.receiver_address) }}</span>
                     </div>
                     <div class="detail-row">
                       <span class="label">Valor (sats):</span>
@@ -149,10 +149,10 @@ import { environment } from '../../../environments/environment';
                         <span class="value">
                           <a
                             class="tx-link"
-                            [href]="getBlockchainExplorerLink(payment.blockchain_tx_id)"
+                            [href]="getExplorerUrl(payment.blockchain_tx_id)"
                             target="_blank"
                             (click)="$event.stopPropagation()">
-                            {{ formatAddress(payment.blockchain_tx_id) }}
+                            {{ formatTruncated(payment.blockchain_tx_id) }}
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
                               <path d="M18 13V19C18 19.5304 17.7893 20.0391 17.4142 20.4142C17.0391 20.7893 16.5304 21 16 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V8C3 7.46957 3.21071 6.96086 3.58579 6.58579C3.96086 6.21071 4.46957 6 5 6H11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                               <path d="M15 3H21V9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -164,11 +164,11 @@ import { environment } from '../../../environments/environment';
                     }
                     <div class="detail-row">
                       <span class="label">Criado em:</span>
-                      <span class="value">{{ formatDate(payment.created_at) }}</span>
+                      <span class="value">{{ formatDateTime(payment.created_at) }}</span>
                     </div>
                     <div class="detail-row">
                       <span class="label">Atualizado em:</span>
-                      <span class="value">{{ formatDate(payment.updated_at) }}</span>
+                      <span class="value">{{ formatDateTime(payment.updated_at) }}</span>
                     </div>
                   </div>
 
@@ -872,32 +872,12 @@ export class PaymentRequestsComponent implements OnInit {
     }
   }
 
-  formatAddress(address: string): string {
-    if (!address) return '';
-    if (address.length <= 16) return address;
-    return `${address.substring(0, 8)}...${address.substring(address.length - 8)}`;
-  }
+  formatTruncated = formatTruncated;
+  formatDateTime = formatDateTime;
+  getExplorerUrl = getExplorerUrl;
 
   formatSatoshis(satoshis: number): string {
-    return new Intl.NumberFormat('pt-BR').format(satoshis) + ' sats';
-  }
-
-  formatDate(dateString: string): string {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(date);
-  }
-
-  getBlockchainExplorerLink(txId: string): string {
-    // Use the appropriate explorer based on your environment
-    const cleanTxId = txId.startsWith('0x') ? txId.substring(2) : txId;
-    const chain = environment.network === 'mainnet' ? 'mainnet' : 'testnet';
-    return `https://explorer.hiro.so/txid/0x${cleanTxId}?chain=${chain}`;
+    return formatSats(satoshis) + ' sats';
   }
 
   payPaymentRequest(payment: PaymentRequest) {
@@ -906,7 +886,7 @@ export class PaymentRequestsComponent implements OnInit {
     }
 
     // Confirm payment action
-    const confirmMessage = `Confirmar pagamento de ${this.formatSatoshis(payment.amount)} para ${this.formatAddress(payment.receiver_address)}?`;
+    const confirmMessage = `Confirmar pagamento de ${this.formatSatoshis(payment.amount)} para ${this.formatTruncated(payment.receiver_address)}?`;
     if (!confirm(confirmMessage)) {
       return;
     }

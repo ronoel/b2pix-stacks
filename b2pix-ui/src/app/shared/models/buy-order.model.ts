@@ -45,3 +45,49 @@ export interface PaginatedBuyOrdersResponse {
   limit: number;
   has_more: boolean;
 }
+
+export function isBuyOrderFinalStatus(status: BuyOrderStatus): boolean {
+  return status === BuyOrderStatus.Confirmed
+    || status === BuyOrderStatus.Rejected
+    || status === BuyOrderStatus.Canceled
+    || status === BuyOrderStatus.Expired;
+}
+
+export function getBuyOrderStatusLabel(status: BuyOrderStatus): string {
+  switch (status) {
+    case BuyOrderStatus.Created:
+      return 'Pendente';
+    case BuyOrderStatus.Processing:
+      return 'Verificando Pagamento';
+    case BuyOrderStatus.Analyzing:
+      return 'Em Análise';
+    case BuyOrderStatus.Confirmed:
+      return 'Confirmado';
+    case BuyOrderStatus.Rejected:
+      return 'Rejeitado';
+    case BuyOrderStatus.Canceled:
+      return 'Cancelado';
+    case BuyOrderStatus.Expired:
+      return 'Expirado';
+    default:
+      return 'Desconhecido';
+  }
+}
+
+export function getBuyOrderStatusClass(status: BuyOrderStatus): string {
+  switch (status) {
+    case BuyOrderStatus.Confirmed:
+      return 'completed';
+    case BuyOrderStatus.Processing:
+    case BuyOrderStatus.Analyzing:
+      return 'processing';
+    case BuyOrderStatus.Created:
+      return 'pending';
+    case BuyOrderStatus.Rejected:
+    case BuyOrderStatus.Canceled:
+    case BuyOrderStatus.Expired:
+      return 'warning';
+    default:
+      return 'pending';
+  }
+}

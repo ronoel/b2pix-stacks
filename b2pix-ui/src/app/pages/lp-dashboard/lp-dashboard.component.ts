@@ -16,6 +16,7 @@ import {
 import { LpQueueCardComponent } from './components/lp-queue-card.component';
 import { LpActiveOrderComponent } from './components/lp-active-order.component';
 import { MessageChatComponent } from '../../components/order-status/components/message-chat/message-chat.component';
+import { formatBrlCents, formatSats, formatDateTime } from '../../shared/utils/format.util';
 
 @Component({
   selector: 'app-lp-dashboard',
@@ -386,40 +387,17 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
   // Helpers
   // ============================================
 
-  formatBrlCents(cents: number): string {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-      minimumFractionDigits: 2
-    }).format(cents / 100);
-  }
+  formatBrlCents = formatBrlCents;
+  formatSats = formatSats;
+  formatDateTime = formatDateTime;
 
   formatBrlCentsSigned(cents: number): string {
     const prefix = cents < 0 ? '-' : '';
-    const formatted = new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-      minimumFractionDigits: 2
-    }).format(Math.abs(cents) / 100);
-    return prefix + formatted;
+    return prefix + formatBrlCents(Math.abs(cents));
   }
 
   getEffectiveBalance(stats: LpStats): number {
     return stats.balance_cents - stats.advance_cents;
-  }
-
-  formatSats(amount: number): string {
-    return new Intl.NumberFormat('pt-BR').format(amount);
-  }
-
-  formatDateTime(dateString: string): string {
-    return new Intl.DateTimeFormat('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(new Date(dateString));
   }
 
   getStatusLabel(status: string): string {

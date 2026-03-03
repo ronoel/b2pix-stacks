@@ -3,6 +3,7 @@ import { Component, inject, OnInit, ViewEncapsulation, signal } from '@angular/c
 import { ActivatedRoute, Router } from '@angular/router';
 import { BuyOrderService } from '../../shared/api/buy-order.service';
 import { BuyOrder, BuyOrderStatus } from '../../shared/models/buy-order.model';
+import { formatBrlCents } from '../../shared/utils/format.util';
 
 @Component({
   selector: 'app-analyzing-order',
@@ -97,7 +98,7 @@ import { BuyOrder, BuyOrderStatus } from '../../shared/models/buy-order.model';
                 </div>
                 <div class="detail-content">
                   <h3>Valor PIX</h3>
-                  <p class="detail-value">R$ {{ formatCurrency(order()!.buy_value) }}</p>
+                  <p class="detail-value">{{ formatCurrency(order()!.buy_value) }}</p>
                   <p class="detail-label">Valor a ser pago</p>
                 </div>
               </div>
@@ -830,14 +831,9 @@ export class AnalyzingOrderComponent implements OnInit {
   }
 
   formatCurrency(value: string | number | null | undefined): string {
-    if (value === null || value === undefined) return '0,00';
+    if (value === null || value === undefined) return 'R$ 0,00';
     const numValue = typeof value === 'string' ? parseFloat(value) : value;
-    // Convert from cents to BRL by dividing by 100
-    const valueInBRL = numValue / 100;
-    return new Intl.NumberFormat('pt-BR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(valueInBRL);
+    return formatBrlCents(numValue);
   }
 
   formatBitcoin(value: string | number | null | undefined): string {

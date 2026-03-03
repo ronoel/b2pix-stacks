@@ -6,6 +6,7 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import { BuyOrderService } from '../../shared/api/buy-order.service';
 
 import { BuyHistoryComponent } from './components/buy-history.component';
+import { formatSats } from '../../shared/utils/format.util';
 
 @Component({
   selector: 'app-buy',
@@ -139,9 +140,7 @@ export class BuyComponent implements OnInit, OnDestroy {
     }).format(value);
   }
 
-  formatSats(amount: number): string {
-    return new Intl.NumberFormat('pt-BR').format(amount);
-  }
+  formatSats = formatSats;
 
   startBuyProcess() {
     this.showConfirmationModal.set(true);

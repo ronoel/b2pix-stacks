@@ -9,7 +9,14 @@ import { BuyOrderService } from '../../shared/api/buy-order.service';
 import { PaymentRequestService } from '../../shared/api/payment-request.service';
 import { BuyOrder, BuyOrderStatus } from '../../shared/models/buy-order.model';
 import { PaymentRequest, PaymentRequestStatus, PaymentSourceType } from '../../shared/models/payment-request.model';
-import { environment } from '../../../environments/environment';
+import {
+  formatBrlCents,
+  formatSats,
+  formatSatsToBtc,
+  formatDateTime as formatDateTimeUtil,
+  formatTruncated,
+  getExplorerUrl
+} from '../../shared/utils/format.util';
 import { PaymentFormComponent } from './payment-form.component';
 
 @Component({
@@ -285,9 +292,7 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     return amount.toFixed(8);
   }
 
-  formatSats(sats: number): string {
-    return new Intl.NumberFormat('pt-BR').format(sats);
-  }
+  formatSats = formatSats;
 
   onTransactionIdChange(transactionId: string) {
     this.transactionId.set(transactionId.toUpperCase());
@@ -552,32 +557,15 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
 
   formatBRLCurrency(valueInCents: string | number): string {
     const value = typeof valueInCents === 'string' ? parseInt(valueInCents) : valueInCents;
-    const valueInReais = value / 100;
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(valueInReais);
+    return formatBrlCents(value);
   }
 
   formatSatoshisToBTC(satoshis: string | number): string {
     const sats = typeof satoshis === 'string' ? parseInt(satoshis) : satoshis;
-    const btc = sats / 100000000;
-    return btc.toFixed(8);
+    return formatSatsToBtc(sats);
   }
 
-  formatDateTime(dateString: string): string {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    }).format(date);
-  }
+  formatDateTime = formatDateTimeUtil;
 
   getPaymentRequestStatusClass(status: PaymentRequestStatus): string {
     switch (status) {
@@ -612,15 +600,10 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   }
 
   formatTransactionId(txId: string): string {
-    if (!txId || txId.length <= 12) return txId;
-    return `${txId.substring(0, 8)}...${txId.substring(txId.length - 4)}`;
+    return formatTruncated(txId, 8, 4);
   }
 
-  getBlockchainExplorerUrl(txId: string): string {
-    const transactionId = txId.startsWith('0x') ? txId : `0x${txId}`;
-    const chain = environment.network === 'mainnet' ? 'mainnet' : 'testnet';
-    return `https://explorer.hiro.so/txid/${transactionId}?chain=${chain}`;
-  }
+  getBlockchainExplorerUrl = getExplorerUrl;
 
   goBack() {
     this.router.navigate(['/dashboard']);
