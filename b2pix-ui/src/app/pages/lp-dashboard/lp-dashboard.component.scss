@@ -117,6 +117,12 @@
     border-color: #FECACA;
     .stat-value { color: #DC2626; }
   }
+
+  &.btc {
+    background: #FFF7ED;
+    border-color: #FDBA74;
+    .stat-value { color: #EA580C; }
+  }
 }
 
 // Alerts
@@ -658,6 +664,89 @@
   }
 }
 
+// Ledger
+.ledger-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ledger-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #D1D5DB;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
+  }
+}
+
+.ledger-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.ledger-type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+
+  &.reward {
+    background: #F0FDF4;
+    color: #166534;
+  }
+
+  &.conversion {
+    background: #DBEAFE;
+    color: #1E40AF;
+  }
+
+  &.withdrawal {
+    background: #FFF7ED;
+    color: #9A3412;
+  }
+}
+
+.ledger-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ledger-amount {
+  font-size: 16px;
+  font-weight: 600;
+
+  &.positive { color: #16A34A; }
+  &.negative { color: #DC2626; }
+}
+
+.ledger-brl {
+  font-size: 13px;
+  color: #6B7280;
+}
+
+.ledger-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.ledger-date {
+  font-size: 12px;
+  color: #9CA3AF;
+}
+
 // Responsive
 @media (max-width: 768px) {
   .page-header {
@@ -682,6 +771,16 @@
   }
 
   .history-meta {
+    align-items: flex-start;
+  }
+
+  .ledger-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .ledger-meta {
     align-items: flex-start;
   }
 

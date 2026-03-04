@@ -13,15 +13,23 @@ import {
   getPayoutRequestStatusClass,
   getSourceTypeLabel
 } from '../../shared/models/pix-payout-request.model';
+import {
+  LpLedgerEntry,
+  getLedgerEntryTypeLabel,
+  getLedgerEntryTypeClass
+} from '../../shared/models/lp-ledger.model';
 import { LpQueueCardComponent } from './components/lp-queue-card.component';
 import { LpActiveOrderComponent } from './components/lp-active-order.component';
+import { LpBtcRewardsCardComponent } from './components/lp-btc-rewards-card.component';
+import { LpConvertModalComponent } from './components/lp-convert-modal.component';
+import { LpWithdrawModalComponent } from './components/lp-withdraw-modal.component';
 import { MessageChatComponent } from '../../components/order-status/components/message-chat/message-chat.component';
-import { formatBrlCents, formatSats, formatDateTime } from '../../shared/utils/format.util';
+import { formatBrlCents, formatSats, formatSatsToBtc, formatDateTime } from '../../shared/utils/format.util';
 
 @Component({
   selector: 'app-lp-dashboard',
   standalone: true,
-  imports: [LpQueueCardComponent, LpActiveOrderComponent, BankSetupComponent, MessageChatComponent],
+  imports: [LpQueueCardComponent, LpActiveOrderComponent, BankSetupComponent, MessageChatComponent, LpBtcRewardsCardComponent, LpConvertModalComponent, LpWithdrawModalComponent],
   templateUrl: './lp-dashboard.component.html',
   styleUrls: ['./lp-dashboard.component.scss']
 })
@@ -31,7 +39,7 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
   private accountValidationService = inject(AccountValidationService);
 
   // Tabs
-  currentTab = signal<'queue' | 'history' | 'stats'>('queue');
+  currentTab = signal<'queue' | 'history' | 'stats' | 'btc'>('queue');
 
   // Stats
   stats = signal<LpStats | null>(null);
@@ -54,6 +62,18 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
   isLoadingHistory = signal(false);
   historyPage = signal(1);
   historyHasMore = signal(false);
+
+  // BTC Rewards
+  showConvertModal = signal(false);
+  showWithdrawModal = signal(false);
+  isConvertingBalance = signal(false);
+  isWithdrawingBtc = signal(false);
+
+  // BTC Ledger
+  ledgerItems = signal<LpLedgerEntry[]>([]);
+  isLoadingLedger = signal(false);
+  ledgerPage = signal(1);
+  ledgerHasMore = signal(false);
 
   // Bank Setup
   showUpdateConfirm = signal(false);
@@ -82,7 +102,7 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
   // Tab Navigation
   // ============================================
 
-  switchTab(tab: 'queue' | 'history' | 'stats') {
+  switchTab(tab: 'queue' | 'history' | 'stats' | 'btc') {
     this.currentTab.set(tab);
     this.clearMessages();
 
@@ -99,6 +119,11 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
         break;
       case 'stats':
         this.loadStats();
+        break;
+      case 'btc':
+        if (this.ledgerItems().length === 0) {
+          this.loadLedger();
+        }
         break;
     }
   }
@@ -384,11 +409,98 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
   }
 
   // ============================================
+  // BTC Ledger
+  // ============================================
+
+  loadLedger() {
+    this.isLoadingLedger.set(true);
+    this.ledgerPage.set(1);
+
+    this.payoutRequestService.getLedger({ page: 1, limit: 10 }).subscribe({
+      next: (response) => {
+        this.ledgerItems.set(response.items);
+        this.ledgerHasMore.set(response.has_more);
+        this.isLoadingLedger.set(false);
+      },
+      error: (error) => {
+        console.error('Error loading ledger:', error);
+        this.isLoadingLedger.set(false);
+        this.showError(this.getErrorMessage(error));
+      }
+    });
+  }
+
+  loadMoreLedger() {
+    const nextPage = this.ledgerPage() + 1;
+    this.isLoadingLedger.set(true);
+
+    this.payoutRequestService.getLedger({ page: nextPage, limit: 10 }).subscribe({
+      next: (response) => {
+        this.ledgerItems.update(items => [...items, ...response.items]);
+        this.ledgerPage.set(nextPage);
+        this.ledgerHasMore.set(response.has_more);
+        this.isLoadingLedger.set(false);
+      },
+      error: (error) => {
+        console.error('Error loading more ledger:', error);
+        this.isLoadingLedger.set(false);
+      }
+    });
+  }
+
+  // ============================================
+  // BTC Convert & Withdraw
+  // ============================================
+
+  onConvertBalance(cents: number) {
+    this.isConvertingBalance.set(true);
+
+    this.payoutRequestService.convertBalance(cents).subscribe({
+      next: () => {
+        this.isConvertingBalance.set(false);
+        this.showConvertModal.set(false);
+        this.showSuccess('Saldo convertido para BTC com sucesso!');
+        this.loadStats();
+        if (this.currentTab() === 'btc') {
+          this.loadLedger();
+        }
+      },
+      error: (error) => {
+        console.error('Error converting balance:', error);
+        this.isConvertingBalance.set(false);
+        this.showError(this.getErrorMessage(error));
+      }
+    });
+  }
+
+  onWithdrawBtc(sats: number) {
+    this.isWithdrawingBtc.set(true);
+
+    this.payoutRequestService.withdrawBtc(sats).subscribe({
+      next: () => {
+        this.isWithdrawingBtc.set(false);
+        this.showWithdrawModal.set(false);
+        this.showSuccess('Saque de BTC realizado com sucesso!');
+        this.loadStats();
+        if (this.currentTab() === 'btc') {
+          this.loadLedger();
+        }
+      },
+      error: (error) => {
+        console.error('Error withdrawing BTC:', error);
+        this.isWithdrawingBtc.set(false);
+        this.showError(this.getErrorMessage(error));
+      }
+    });
+  }
+
+  // ============================================
   // Helpers
   // ============================================
 
   formatBrlCents = formatBrlCents;
   formatSats = formatSats;
+  formatSatsToBtc = formatSatsToBtc;
   formatDateTime = formatDateTime;
 
   formatBrlCentsSigned(cents: number): string {
@@ -410,6 +522,14 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
 
   getSourceLabel(sourceType: string): string {
     return getSourceTypeLabel(sourceType as any);
+  }
+
+  getLedgerEntryLabel(entryType: string): string {
+    return getLedgerEntryTypeLabel(entryType as any);
+  }
+
+  getLedgerEntryClass(entryType: string): string {
+    return getLedgerEntryTypeClass(entryType as any);
   }
 
   private getErrorMessage(error: any): string {

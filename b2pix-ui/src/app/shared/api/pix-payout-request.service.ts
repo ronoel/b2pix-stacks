@@ -9,6 +9,7 @@ import {
   LpStats,
   PayoutSourceType
 } from '../models/pix-payout-request.model';
+import { PaginatedLedgerResponse } from '../models/lp-ledger.model';
 import { buildDisputePayload, buildConfirmReceiptPayload } from '../models/pix-order-payloads';
 
 export interface GetPayoutRequestsParams {
@@ -243,6 +244,87 @@ export class PixPayoutRequestService {
     }).pipe(
       catchError((error: any) => {
         console.error('Error fetching LP stats:', error);
+        throw error;
+      })
+    );
+  }
+
+  /**
+   * Convert BRL balance to BTC.
+   */
+  convertBalance(amountCents: number): Observable<void> {
+    const timestamp = new Date().toISOString();
+    const payload = [
+      'B2PIX - Converter Saldo para BTC',
+      'b2pix.org',
+      amountCents.toString(),
+      timestamp
+    ].join('\n');
+
+    return from(this.walletManager.signMessage(payload)).pipe(
+      switchMap((signedMessage) => {
+        return this.http.post<void>(`${this.apiUrl}/v1/lp/convert`, {
+          payload,
+          signature: signedMessage.signature,
+          publicKey: signedMessage.publicKey
+        });
+      }),
+      catchError((error: any) => {
+        console.error('Error converting balance:', error);
+        throw error;
+      })
+    );
+  }
+
+  /**
+   * Withdraw accumulated BTC.
+   */
+  withdrawBtc(amountSatoshis: number): Observable<void> {
+    const timestamp = new Date().toISOString();
+    const payload = [
+      'B2PIX - Sacar BTC',
+      'b2pix.org',
+      amountSatoshis.toString(),
+      timestamp
+    ].join('\n');
+
+    return from(this.walletManager.signMessage(payload)).pipe(
+      switchMap((signedMessage) => {
+        return this.http.post<void>(`${this.apiUrl}/v1/lp/withdraw`, {
+          payload,
+          signature: signedMessage.signature,
+          publicKey: signedMessage.publicKey
+        });
+      }),
+      catchError((error: any) => {
+        console.error('Error withdrawing BTC:', error);
+        throw error;
+      })
+    );
+  }
+
+  /**
+   * Get LP BTC ledger (rewards, conversions, withdrawals).
+   */
+  getLedger(params?: GetPayoutRequestsParams): Observable<PaginatedLedgerResponse> {
+    const address = this.walletManager.getSTXAddress();
+    if (!address) {
+      throw new Error('Wallet not connected');
+    }
+
+    let httpParams = new HttpParams().set('address', address);
+    if (params?.page !== undefined) {
+      httpParams = httpParams.set('page', params.page.toString());
+    }
+    if (params?.limit !== undefined) {
+      httpParams = httpParams.set('limit', params.limit.toString());
+    }
+
+    return this.http.get<PaginatedLedgerResponse>(`${this.apiUrl}/v1/lp/ledger`, {
+      params: httpParams
+    }).pipe(
+      catchError((error: any) => {
+        console.error('Error fetching LP ledger:', error);
         throw error;
       })
     );

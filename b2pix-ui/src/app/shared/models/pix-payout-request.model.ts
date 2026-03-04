@@ -47,6 +47,7 @@ export interface LpStats {
   total_paid_value_cents: number;
   balance_cents: number;
   advance_cents: number;
+  claimable_satoshis: number;
   completed_count: number;
   cancel_count: number;
   error_count: number;
