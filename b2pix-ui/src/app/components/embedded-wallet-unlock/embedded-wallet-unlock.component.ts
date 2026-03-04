@@ -19,7 +19,7 @@ import { EncryptionMethod } from '../../libs/wallet/wallet.types';
           </svg>
         </div>
 
-        <h2 class="unlock-title">Desbloquear Carteira</h2>
+        <h2 class="unlock-title">Acessar Carteira</h2>
 
         @if (usePasskey()) {
           <p class="unlock-description">
@@ -107,9 +107,9 @@ import { EncryptionMethod } from '../../libs/wallet/wallet.types';
             <button class="btn btn-primary" (click)="unlockWallet()" [disabled]="isLoading()">
               @if (isLoading()) {
                 <span class="spinner"></span>
-                Desbloqueando...
+                Acessando...
               } @else {
-                Desbloquear
+                Acessar
               }
             </button>
           </div>

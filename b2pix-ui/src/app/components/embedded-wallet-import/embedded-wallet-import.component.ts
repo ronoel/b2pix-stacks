@@ -18,16 +18,16 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
           </svg>
         </div>
 
-        <h2 class="import-title">Importar Carteira Embarcada</h2>
+        <h2 class="import-title">Importar Carteira Existente</h2>
         <p class="import-description">
-          Cole sua frase de recuperação de 24 palavras e escolha como proteger sua carteira.
+          Use sua frase de recuperação para restaurar sua carteira.
         </p>
 
         @if (currentStep() === 1) {
           <!-- Step 1: Seed Phrase Input -->
           <div class="step-content">
             <div class="form-group">
-              <label for="seedPhrase" class="form-label">Frase de Recuperação (24 palavras)</label>
+              <label for="seedPhrase" class="form-label">Frase de recuperação (24 palavras)</label>
               <textarea
                 id="seedPhrase"
                 class="form-textarea"

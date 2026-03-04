@@ -62,7 +62,7 @@ npm test
 
 - **Angular 20+** - Frontend framework
 - **TypeScript** - Programming language
-- **Stacks Connect** - Stacks blockchain integration
+- **Stacks Connect** - Stacks integration
 - **SCSS** - CSS preprocessor
 
 ## 📁 Project Structure
@@ -170,12 +170,12 @@ This project is open source and available under the [MIT License](LICENSE).
 ## 🔗 Links
 
 - **Website**: [b2pix.org](https://b2pix.org)
-- **Stacks Blockchain**: [stacks.org](https://stacks.org)
+- **Stacks**: [stacks.org](https://stacks.org)
 - **PIX**: [bcb.gov.br](https://www.bcb.gov.br/estabilidadefinanceira/pix)
 
 ## ⚡ About sBTC
 
-sBTC (synthetic Bitcoin) is a 1:1 Bitcoin-backed asset on the Stacks blockchain that enables:
+sBTC (synthetic Bitcoin) is a 1:1 Bitcoin-backed asset on the Stacks that enables:
 - Fast, cheap Bitcoin transactions
 - Smart contract programmability
 - DeFi integration while maintaining Bitcoin exposure
