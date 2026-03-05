@@ -1,0 +1,13 @@
+<div class="quick-chips">
+  @for (amount of amounts(); track amount) {
+    <button
+      type="button"
+      class="quick-chip"
+      [class.active]="selectedAmount() === amount"
+      [disabled]="isDisabled(amount)"
+      (click)="select(amount)"
+    >
+      {{ getLabel(amount) }}
+    </button>
+  }
+</div>

@@ -1,0 +1,153 @@
+.manager-dashboard {
+  min-height: 100vh;
+  background: var(--bg-secondary);
+  padding-bottom: 100px;
+}
+
+/* Summary Banner */
+.summary-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: var(--btc-bg);
+  border: 1px solid var(--warning);
+  border-radius: var(--r-md);
+  margin-bottom: 20px;
+  color: #92400E;
+  font-size: 15px;
+  font-weight: 600;
+
+  svg {
+    flex-shrink: 0;
+    color: var(--warning);
+  }
+
+  &--ok {
+    background: var(--success-bg);
+    border-color: var(--success);
+    color: var(--success);
+
+    svg {
+      color: var(--success);
+    }
+  }
+}
+
+/* Category Cards */
+.category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.category-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 16px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+
+  &:hover {
+    background: var(--bg-secondary);
+    border-color: var(--text-muted);
+  }
+
+  &--dimmed {
+    opacity: 0.6;
+  }
+}
+
+.category-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-md);
+  flex-shrink: 0;
+
+  &--warning {
+    background: var(--btc-bg);
+    color: var(--btc);
+  }
+
+  &--primary {
+    background: var(--primary-bg);
+    color: var(--primary);
+  }
+
+  &--success {
+    background: var(--success-bg);
+    color: var(--success);
+  }
+
+  &--danger {
+    background: var(--danger-bg);
+    color: var(--danger);
+  }
+}
+
+.category-card__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+
+  strong {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  span {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+}
+
+/* Count Badge */
+.count-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: var(--r-full);
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+
+  &--ok {
+    background: var(--bg-elevated);
+    color: var(--text-dim);
+  }
+
+  &--warning {
+    background: var(--btc-bg);
+    color: var(--btc);
+  }
+
+  &--danger {
+    background: var(--danger-bg);
+    color: var(--danger);
+  }
+}
+
+.category-card__chevron {
+  flex-shrink: 0;
+  color: var(--text-dim);
+}
+
+/* Refresh Button */
+.refresh-btn {
+  margin-top: 24px;
+}

@@ -3,11 +3,12 @@ import { Router } from '@angular/router';
 import { ManagerPayoutService } from '../../shared/api/manager-payout.service';
 import { PixPayoutRequest } from '../../shared/models/pix-payout-request.model';
 import { PayoutDisputeCardComponent } from './components/payout-dispute-card.component';
+import { PageHeaderComponent } from '../../components/page-header/page-header.component';
 
 @Component({
   selector: 'app-payout-disputes',
   standalone: true,
-  imports: [PayoutDisputeCardComponent],
+  imports: [PayoutDisputeCardComponent, PageHeaderComponent],
   templateUrl: './payout-disputes.component.html',
   styleUrl: './payout-disputes.component.scss'
 })
@@ -40,7 +41,7 @@ export class PayoutDisputesComponent implements OnInit {
   }
 
   goBack() {
-    this.router.navigate(['/dashboard']);
+    this.router.navigate(['/manager-dashboard']);
   }
 
   loadDisputed() {
@@ -71,7 +72,7 @@ export class PayoutDisputesComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error loading escalated requests:', error);
-        this.errorEscalated.set('Erro ao carregar escalacoes. Tente novamente.');
+        this.errorEscalated.set('Erro ao carregar escalações. Tente novamente.');
         this.isLoadingEscalated.set(false);
       }
     });
@@ -103,11 +104,11 @@ export class PayoutDisputesComponent implements OnInit {
       next: () => {
         this.escalatedItems.set(this.escalatedItems().filter(item => item.id !== id));
         this.processingId.set(null);
-        this.showToast('Escalacao resolvida com sucesso', 'success');
+        this.showToast('Escalação resolvida com sucesso', 'success');
       },
       error: (error) => {
         this.processingId.set(null);
-        this.showToast(error.message || 'Erro ao resolver escalacao', 'error');
+        this.showToast(error.message || 'Erro ao resolver escalação', 'error');
       }
     });
   }

@@ -1,0 +1,95 @@
+<div class="card dispute-card">
+  <div class="card-header">
+    <div class="card-left">
+      <span class="pix-value">{{ formatBrlCents(item().pix_value) }}</span>
+      <span class="source-badge" [class]="item().source_type">{{ getSourceLabel(item().source_type) }}</span>
+      @if (item().attempt_number > 1) {
+        <span class="attempt-badge">Tentativa #{{ item().attempt_number }}</span>
+      }
+    </div>
+    <span class="status-badge" [class]="getStatusClass(item().status)">{{ getStatusLabel(item().status) }}</span>
+  </div>
+
+  <div class="card-body">
+    <div class="detail-grid">
+      <div class="detail-item">
+        <span class="label">Pagador</span>
+        <span class="value font-mono">{{ formatTruncated(item().payer_address) }}</span>
+      </div>
+      <div class="detail-item">
+        <span class="label">LP</span>
+        <span class="value font-mono">{{ item().lp_address ? formatTruncated(item().lp_address!) : '-' }}</span>
+      </div>
+      @if (item().pix_end_to_end_id) {
+        <div class="detail-item">
+          <span class="label">PIX E2E ID</span>
+          <span class="value font-mono">{{ item().pix_end_to_end_id }}</span>
+        </div>
+      }
+      @if (item().disputed_at) {
+        <div class="detail-item">
+          <span class="label">Disputado em</span>
+          <span class="value">{{ formatDateTime(item().disputed_at!) }}</span>
+        </div>
+      }
+      @if (item().error_message) {
+        <div class="detail-item full-width">
+          <span class="label">Erro</span>
+          <span class="value error-text">{{ item().error_message }}</span>
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="chat-toggle">
+    <button class="btn btn-ghost btn-sm" (click)="toggleChat()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      {{ showChat() ? 'Ocultar mensagens' : 'Ver mensagens' }}
+    </button>
+  </div>
+
+  @if (showChat()) {
+    <div class="card-chat">
+      <app-message-chat
+        [sourceType]="item().source_type"
+        [sourceId]="item().source_id"
+        currentUserRole="moderator"
+      />
+    </div>
+  }
+
+  <div class="card-footer">
+    @if (mode() === 'disputed') {
+      <button
+        class="btn btn-success"
+        (click)="disputeResolved.emit({ id: item().id, ruling: 'lp' })"
+        [disabled]="isProcessing()">
+        @if (isProcessing()) {
+          <div class="loading-spinner-sm"></div>
+        }
+        PIX foi recebido
+      </button>
+      <button
+        class="btn btn-danger"
+        (click)="disputeResolved.emit({ id: item().id, ruling: 'customer' })"
+        [disabled]="isProcessing()">
+        @if (isProcessing()) {
+          <div class="loading-spinner-sm"></div>
+        }
+        PIX não recebido
+      </button>
+    } @else {
+      <button
+        class="btn btn-primary"
+        (click)="resolveEscalation.emit(item().id)"
+        [disabled]="isProcessing()">
+        @if (isProcessing()) {
+          <div class="loading-spinner-sm"></div>
+        }
+        Resolver escalação
+      </button>
+    }
+  </div>
+</div>

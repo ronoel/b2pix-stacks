@@ -1,23 +1,15 @@
 <div class="dispute-management">
-  <div class="container">
+  <div class="container-wide">
     <!-- Header -->
-    <div class="page-header">
-      <button class="btn btn-ghost" (click)="goBack()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <path d="M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M12 19L5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        Voltar
-      </button>
-      <div class="header-content">
-        <h1 class="page-title">Análise de Ordens</h1>
-        <p class="page-subtitle">Analise e resolva ordens pendentes de verificação</p>
-      </div>
-    </div>
+    <app-page-header
+      title="Análise de ordens"
+      subtitle="Ordens pendentes de verificação"
+      backRoute="/manager-dashboard"
+    />
 
     @if (loading()) {
       <!-- Loading State -->
-      <div class="loading-section">
+      <div class="loading-state">
         <div class="loading-spinner"></div>
         <p>Carregando ordens...</p>
       </div>
@@ -33,7 +25,7 @@
         </div>
         <h2>Erro ao carregar ordens</h2>
         <p>{{ error() }}</p>
-        <button class="retry-button" (click)="loadAnalyzingOrders()">Tentar Novamente</button>
+        <button class="btn btn-outline" (click)="loadAnalyzingOrders()">Tentar novamente</button>
       </div>
     } @else if (analyzingOrders().length === 0) {
       <!-- Empty State -->
@@ -50,38 +42,36 @@
     } @else {
       <!-- Disputes List -->
       <div class="disputes-list">
-        <div class="disputes-header">
-          <h2>Ordens em Análise ({{ analyzingOrders().length }})</h2>
+        <div class="section-header">
+          <h2 class="section-title">Ordens em análise ({{ analyzingOrders().length }})</h2>
         </div>
 
         <div class="dispute-cards">
           @for (buy of analyzingOrders(); track buy.id) {
-            <div class="dispute-card" (click)="viewOrderDetails(buy.id)">
+            <div class="card dispute-card" (click)="viewOrderDetails(buy.id)">
               <div class="dispute-header">
-                <div class="dispute-id">
-                  <strong>ID:</strong> {{ buy.id }}
+                <div class="dispute-id font-mono">
+                  {{ buy.id }}
                 </div>
-                <div class="dispute-status">
-                  <span class="status-badge dispute">{{ getStatusText(buy.status) }}</span>
-                </div>
+                <span class="status-badge processing">{{ getStatusText(buy.status) }}</span>
               </div>
 
               <div class="dispute-details">
                 <div class="detail-row">
-                  <span class="label">Valor:</span>
-                  <span class="value">{{ formatCurrency(buy.buy_value) }}</span>
+                  <span class="detail-label">Valor</span>
+                  <span class="detail-value">{{ formatCurrency(buy.buy_value) }}</span>
                 </div>
                 <div class="detail-row">
-                  <span class="label">Bitcoin:</span>
-                  <span class="value">{{ formatBitcoin(buy.amount) }} BTC</span>
+                  <span class="detail-label">Bitcoin</span>
+                  <span class="detail-value">{{ formatBitcoin(buy.amount) }} BTC</span>
                 </div>
                 <div class="detail-row">
-                  <span class="label">Comprador:</span>
-                  <span class="value">{{ formatAddress(buy.address_buy) }}</span>
+                  <span class="detail-label">Comprador</span>
+                  <span class="detail-value font-mono">{{ formatAddress(buy.address_buy) }}</span>
                 </div>
                 <div class="detail-row">
-                  <span class="label">Data da Criação:</span>
-                  <span class="value">{{ formatDate(buy.created_at) }}</span>
+                  <span class="detail-label">Criado em</span>
+                  <span class="detail-value">{{ formatDate(buy.created_at) }}</span>
                 </div>
               </div>
 

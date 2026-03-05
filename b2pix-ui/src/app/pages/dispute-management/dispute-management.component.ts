@@ -1,15 +1,15 @@
-import { Component, inject, OnInit, ViewEncapsulation, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 
 import { Router } from '@angular/router';
 import { BuyOrderService } from '../../shared/api/buy-order.service';
 import { BuyOrder, BuyOrderStatus } from '../../shared/models/buy-order.model';
 import { formatBrlCents } from '../../shared/utils/format.util';
+import { PageHeaderComponent } from '../../components/page-header/page-header.component';
 
 @Component({
   selector: 'app-order-analysis',
   standalone: true,
-  imports: [],
-  encapsulation: ViewEncapsulation.None,
+  imports: [PageHeaderComponent],
   templateUrl: './dispute-management.component.html',
   styleUrl: './dispute-management.component.scss'
 })
@@ -27,7 +27,7 @@ export class OrderAnalysisComponent implements OnInit {
   }
 
   goBack() {
-    this.router.navigate(['/dashboard']);
+    this.router.navigate(['/manager-dashboard']);
   }
 
   loadAnalyzingOrders() {

@@ -28,11 +28,12 @@ import {
 } from '../../shared/utils/format.util';
 import { DisputeModalComponent } from './components/dispute-modal/dispute-modal.component';
 import { MessageChatComponent } from './components/message-chat/message-chat.component';
+import { TechnicalDetailsComponent } from '../technical-details/technical-details.component';
 
 @Component({
   selector: 'app-order-status',
   standalone: true,
-  imports: [DisputeModalComponent, MessageChatComponent],
+  imports: [DisputeModalComponent, MessageChatComponent, TechnicalDetailsComponent],
   templateUrl: './order-status.component.html',
   styleUrl: './order-status.component.scss'
 })
@@ -289,7 +290,7 @@ export class OrderStatusComponent implements OnInit, OnDestroy {
           case PayoutRequestStatus.Disputed:
             return 'Disputa aberta. Um moderador está analisando o caso.';
           case PayoutRequestStatus.Paid:
-            return 'O LP informou que pagou o PIX. Confirme o recebimento ou abra uma disputa.';
+            return 'O operador PIX informou que realizou o pagamento. Confirme o recebimento ou abra uma disputa.';
           case PayoutRequestStatus.Error:
             return 'Ocorreu um erro no pagamento. Um novo pagamento será criado automaticamente.';
           case PayoutRequestStatus.ErrorEscalated:
@@ -299,12 +300,12 @@ export class OrderStatusComponent implements OnInit, OnDestroy {
           case PayoutRequestStatus.Confirmed:
             return 'Pagamento PIX confirmado com sucesso!';
           case PayoutRequestStatus.LpAssigned:
-            return 'Um Liquidity Provider aceitou e está processando o pagamento PIX.';
+            return 'Um operador PIX aceitou e está processando o pagamento.';
           default:
-            return 'Liquidação criada. Aguardando um Liquidity Provider processar o pagamento PIX.';
+            return 'Aguardando um operador PIX processar o pagamento.';
         }
       }
-      return 'Liquidação criada. Aguardando um Liquidity Provider processar o pagamento PIX.';
+      return 'Aguardando um operador PIX processar o pagamento.';
     }
 
     switch (status) {
@@ -313,17 +314,17 @@ export class OrderStatusComponent implements OnInit, OnDestroy {
       case 'awaiting_confirmation':
         return 'Aguardando confirmação na blockchain. Isso pode levar alguns minutos.';
       case 'confirmed':
-        return 'Transação confirmada na blockchain! Preparando liquidação.';
+        return 'Transação confirmada na blockchain. Preparando pagamento.';
       case 'pending':
-        return 'Ordem pendente.';
+        return 'Pedido criado. Aguardando processamento.';
       case 'failed':
         return 'Ocorreu um erro durante o processamento.';
       case 'error':
         return 'Ocorreu um problema durante o pagamento. Em análise.';
       case 'expired':
-        return 'A ordem expirou sem ser processada. Reembolso em andamento.';
+        return 'O pedido expirou sem ser processado. Reembolso em andamento.';
       case 'refunded':
-        return 'O pagamento falhou e seus satoshis foram devolvidos.';
+        return 'O pagamento falhou e seus bitcoins foram devolvidos.';
       default:
         return '';
     }
@@ -373,7 +374,36 @@ export class OrderStatusComponent implements OnInit, OnDestroy {
       case 'refunded':
         return 'Reembolsado';
       default:
-        return 'Em Liquidação';
+        return 'Recebendo Bitcoin';
+    }
+  }
+
+  // Step labels based on source type
+  getOrderStepLabel(step: number): string {
+    if (this.sourceType() === 'sell_order') {
+      switch (step) {
+        case 1: return 'Pedido criado';
+        case 2: return 'Pagamento confirmado';
+        case 3: return this.getLastStepLabel(this.order()?.status ?? 'pending');
+        default: return '';
+      }
+    }
+    // pix_order (buy flow)
+    switch (step) {
+      case 1: return 'Pedido criado';
+      case 2: return 'Pagamento confirmado';
+      case 3: return this.getLastStepLabel(this.order()?.status ?? 'pending');
+      default: return '';
+    }
+  }
+
+  getPayoutStepLabel(step: number): string {
+    switch (step) {
+      case 1: return 'Aguardando pagamento';
+      case 2: return 'Processando PIX';
+      case 3: return 'PIX enviado';
+      case 4: return this.getPayoutLastStepLabel();
+      default: return '';
     }
   }
 
@@ -424,16 +454,16 @@ export class OrderStatusComponent implements OnInit, OnDestroy {
 
   getPayoutLastStepLabel(): string {
     const pr = this.latestPayoutRequest();
-    if (!pr) return 'Confirmado';
+    if (!pr) return 'Concluído';
     switch (pr.status) {
       case PayoutRequestStatus.Failed:
       case PayoutRequestStatus.Error:
       case PayoutRequestStatus.ErrorEscalated:
         return 'Falhou';
       case PayoutRequestStatus.DisputeRejected:
-        return 'Disputa Rejeitada';
+        return 'Disputa rejeitada';
       default:
-        return 'Confirmado';
+        return 'Concluído';
     }
   }
 

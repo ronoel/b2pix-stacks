@@ -87,4 +87,5 @@ export class BuyHistoryComponent implements OnInit {
   formatBrlCents = formatBrlCents;
   formatSats = formatSats;
   formatDateTime = formatDateTime;
+
 }

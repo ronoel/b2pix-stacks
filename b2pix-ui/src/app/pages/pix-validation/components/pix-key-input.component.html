@@ -1,25 +1,18 @@
 <div class="pix-key-input-group">
-  <label for="pixKey">Chave PIX (CPF ou CNPJ)</label>
+  <label for="pixKey" class="field-label">Sua chave PIX (CPF ou CNPJ)</label>
   <input
     type="text"
     id="pixKey"
-    class="form-control"
-    [class.is-valid]="isValid() && value()"
-    [class.is-invalid]="!isValid() && value()"
+    class="input"
+    [class.input-valid]="isValid() && value()"
+    [class.input-error]="!isValid() && value()"
     placeholder="000.000.000-00 ou 00.000.000/0000-00"
     [value]="displayValue()"
     (input)="onInput($event)"
     [disabled]="disabled()"
     inputmode="numeric"
   />
-  @if (value() && !isValid()) {
-    <div class="invalid-feedback">
-      CPF ou CNPJ inválido
-    </div>
-  }
   @if (value() && isValid()) {
-    <div class="valid-feedback">
-      {{ getDocumentType() }} válido
-    </div>
+    <p class="pix-valid-feedback">{{ getDocumentType() }} válido</p>
   }
 </div>

@@ -8,11 +8,13 @@ import { PixVerificationStep, PixVerificationStatus } from '../../shared/models/
 import { PixTimerComponent } from './components/pix-timer.component';
 import { PixKeyInputComponent } from './components/pix-key-input.component';
 import { PixCopiaColaComponent } from '../../components/pix-copia-cola/pix-copia-cola.component';
+import { PageHeaderComponent } from '../../components/page-header/page-header.component';
+import { formatBrlCents } from '../../shared/utils/format.util';
 
 @Component({
   selector: 'app-pix-validation',
   standalone: true,
-  imports: [FormsModule, PixTimerComponent, PixKeyInputComponent, PixCopiaColaComponent],
+  imports: [FormsModule, PixTimerComponent, PixKeyInputComponent, PixCopiaColaComponent, PageHeaderComponent],
   templateUrl: './pix-validation.component.html',
   styleUrl: './pix-validation.component.scss'
 })
@@ -33,21 +35,21 @@ export class PixValidationComponent implements OnInit, OnDestroy {
   confirmationCode = signal('');
   noConfirmationCode = signal(false);
   pixKeyConfirmed = signal(false);
-  pixKeyCopied = signal(false);
 
-  onConfirmationCodeChange(value: string): void {
-    this.confirmationCode.set(value);
-    // Limpar mensagem de erro quando usuário começa a digitar
-    if (this.error()) {
-      this.error.set('');
-    }
-  }
+  // Deposit amount upfront (fetched on init from pending verification or will be revealed on step 2)
+  depositAmountCents = signal<number | null>(null);
+
+  // Confirmation code individual chars (3 boxes)
+  confirmCodeChars = signal<string[]>(['', '', '']);
 
   // Polling
   private pollInterval: any;
 
   // Return URL
   private returnUrl = '/dashboard';
+
+  // Expose format function to template
+  readonly formatBrlCents = formatBrlCents;
 
   ngOnInit(): void {
     this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
@@ -64,19 +66,19 @@ export class PixValidationComponent implements OnInit, OnDestroy {
       next: ({ status, pixVerify }) => {
         this.loading.set(false);
 
-        // Já validado - redirecionar
+        // Already validated — redirect
         if (status.pix_verified) {
           this.router.navigateByUrl(this.returnUrl);
           return;
         }
 
-        // Email não validado - voltar
+        // Email not verified — go back
         if (!status.email_verified) {
           this.router.navigate(['/email-validation']);
           return;
         }
 
-        // Tem verificação em andamento
+        // Has pending/ongoing verification
         if (pixVerify && pixVerify.status !== null) {
           this.handlePixVerificationStatus(pixVerify);
         }
@@ -96,36 +98,36 @@ export class PixValidationComponent implements OnInit, OnDestroy {
       this.pixKeyValid.set(true);
     }
 
+    if (pixVerify.confirmation_value_cents) {
+      this.depositAmountCents.set(pixVerify.confirmation_value_cents);
+    }
+
     switch (pixVerify.status) {
       case 'awaiting':
-        // Aguardando depósito do usuário
         this.step.set('deposit-instructions');
         break;
       case 'processing':
-        // Pagamento sendo processado - não permite mais entrada de dados
-        this.step.set('processing');
-        this.startPolling();
+        // Navigate to dashboard — processing is handled there
+        this.navigateToDashboardWithBanner();
         break;
       case 'verified':
-        this.step.set('success');
-        // Refresh account data before redirecting
+        // Already verified — redirect
         this.validationService.getAccount().subscribe({
-          next: () => {
-            setTimeout(() => this.router.navigateByUrl(this.returnUrl), 1500);
-          },
-          error: () => {
-            // Even if refresh fails, still redirect
-            setTimeout(() => this.router.navigateByUrl(this.returnUrl), 1500);
-          }
+          next: () => this.router.navigateByUrl(this.returnUrl),
+          error: () => this.router.navigateByUrl(this.returnUrl)
         });
         break;
       case 'failed':
-        this.step.set('failed');
-        this.error.set('Código de confirmação incorreto. Solicite nova validação.');
-        break;
       case 'expired':
-        this.step.set('failed');
-        this.error.set('Validação expirada. Solicite nova validação.');
+        // Show failure on account-validation-required
+        this.router.navigate(['/account-validation-required'], {
+          queryParams: {
+            pixFailed: 'true',
+            message: pixVerify.status === 'expired'
+              ? 'Verificação expirada. Tente novamente.'
+              : 'Verificação falhou. Tente novamente.'
+          }
+        });
         break;
     }
   }
@@ -138,18 +140,11 @@ export class PixValidationComponent implements OnInit, OnDestroy {
     this.pixKeyValid.set(isValid);
   }
 
-  confirmPixKeyAndProceed(): void {
-    if (!this.pixKeyValid()) {
-      this.error.set('CPF ou CNPJ inválido');
-      return;
-    }
-
-    // Avança para confirmação sem chamar API ainda
-    this.step.set('confirm-pix-key');
-    this.error.set('');
-  }
-
-  createPixVerification(): void {
+  /**
+   * View 1 → API call → View 2
+   * The old confirm-pix-key step is now merged here (checkbox in view 1).
+   */
+  submitPixKey(): void {
     if (!this.pixKeyValid()) {
       this.error.set('CPF ou CNPJ inválido');
       return;
@@ -162,7 +157,7 @@ export class PixValidationComponent implements OnInit, OnDestroy {
       next: (verify) => {
         this.loading.set(false);
         this.pixVerification.set({
-          status: 'processing',
+          status: 'awaiting',
           user_pix_key: this.userPixKey(),
           destination_pix_key: verify.destination_pix_key,
           confirmation_value_cents: verify.confirmation_value_cents,
@@ -170,26 +165,31 @@ export class PixValidationComponent implements OnInit, OnDestroy {
           attempts: verify.attempts,
           max_attempts: verify.max_attempts
         });
+        this.depositAmountCents.set(verify.confirmation_value_cents);
         this.step.set('deposit-instructions');
       },
       error: (err) => {
         this.loading.set(false);
-        this.error.set(err.message || 'Erro ao criar verificação PIX');
+        this.error.set(err.message || 'Erro ao iniciar verificação PIX');
       }
     });
+  }
+
+  onConfirmationCodeChange(value: string): void {
+    this.confirmationCode.set(value.toUpperCase());
+    if (this.error()) this.error.set('');
   }
 
   confirmDeposit(): void {
     this.loading.set(true);
     this.error.set('');
 
-    const code = this.noConfirmationCode() ? undefined : this.confirmationCode();
+    const code = this.noConfirmationCode() ? undefined : this.confirmationCode() || undefined;
 
     this.validationService.confirmPixPayment(code).subscribe({
       next: (response) => {
         this.loading.set(false);
 
-        // Atualizar dados de verificação com resposta
         const currentVerification = this.pixVerification();
         if (currentVerification) {
           this.pixVerification.set({
@@ -200,51 +200,36 @@ export class PixValidationComponent implements OnInit, OnDestroy {
           });
         }
 
-        // Verificar status da resposta
         if (response.status === 'verified') {
-          // Pagamento encontrado e validado - sucesso!
-          this.step.set('success');
-          // Refresh account data before redirecting
+          // Verified immediately
           this.validationService.getAccount().subscribe({
-            next: () => {
-              setTimeout(() => this.router.navigateByUrl(this.returnUrl), 2000);
-            },
-            error: () => {
-              // Even if refresh fails, still redirect
-              setTimeout(() => this.router.navigateByUrl(this.returnUrl), 2000);
-            }
+            next: () => this.router.navigateByUrl(this.returnUrl),
+            error: () => this.router.navigateByUrl(this.returnUrl)
           });
         } else if (response.status === 'failed') {
-          // Máximo de tentativas excedido
-          this.step.set('failed');
-          this.error.set('Máximo de tentativas excedido. Você precisará iniciar uma nova validação com um novo depósito.');
-        } else if (response.status === 'awaiting') {
-          // Sistema aguardando nova entrada do usuário
-          // PIX não encontrado - permanece na mesma tela para usuário tentar novamente
-          // Mostrar mensagem do servidor (ex: "Payment not found yet. You have 3 attempt(s) remaining.")
-          this.error.set(response.message || 'Depósito PIX não encontrado. Verifique se o depósito foi realizado e tente novamente.');
-          // Limpar o código para usuário digitar novamente
-          this.confirmationCode.set('');
+          this.navigateToFailure('Máximo de tentativas excedido. Você precisará iniciar uma nova verificação.');
         } else if (response.status === 'processing') {
-          // Processando internamente - mostrar tela de processamento e iniciar polling
-          this.step.set('processing');
-          this.startPolling();
+          // Navigate to dashboard with banner
+          this.navigateToDashboardWithBanner();
+        } else if (response.status === 'awaiting') {
+          // Payment not found yet — let user retry
+          this.error.set(response.message || 'Depósito PIX não encontrado. Verifique se o depósito foi realizado e tente novamente.');
+          this.confirmationCode.set('');
         } else if (response.status === 'expired') {
-          // Expirado
-          this.step.set('failed');
-          this.error.set('Validação expirada. Solicite nova validação.');
+          this.navigateToFailure('Verificação expirada. Tente novamente.');
         } else {
-          // Outro status
           this.error.set(response.message || 'Erro ao confirmar depósito');
         }
       },
       error: (err) => {
         this.loading.set(false);
 
-        // Verificar se excedeu tentativas ou se o status mudou para 'failed'
-        if (err.message.includes('Max attempts exceeded') || err.message.includes('maximum') || err.message.includes('attempt')) {
-          this.step.set('failed');
-          this.error.set('Máximo de tentativas excedido. Você precisará iniciar uma nova validação com um novo depósito.');
+        if (
+          err.message.includes('Max attempts exceeded') ||
+          err.message.includes('maximum') ||
+          err.message.includes('attempt')
+        ) {
+          this.navigateToFailure('Máximo de tentativas excedido. Você precisará iniciar uma nova verificação.');
           return;
         }
 
@@ -257,110 +242,46 @@ export class PixValidationComponent implements OnInit, OnDestroy {
     });
   }
 
-  private startPolling(): void {
-    this.stopPolling();
-
-    this.pollInterval = setInterval(() => {
-      this.validationService.getPixVerification().subscribe({
-        next: (verify) => {
-          // Atualizar dados de verificação incluindo tentativas
-          if (verify && verify.status !== null) {
-            const currentVerification = this.pixVerification();
-            if (currentVerification) {
-              this.pixVerification.set({
-                ...currentVerification,
-                status: verify.status,
-                attempts: verify.attempts,
-                max_attempts: verify.max_attempts
-              });
-            }
-          }
-
-          if (verify?.status === 'verified') {
-            this.stopPolling();
-            this.step.set('success');
-            // Refresh account data before redirecting
-            this.validationService.getAccount().subscribe({
-              next: () => {
-                setTimeout(() => this.router.navigateByUrl(this.returnUrl), 2000);
-              },
-              error: () => {
-                // Even if refresh fails, still redirect
-                setTimeout(() => this.router.navigateByUrl(this.returnUrl), 2000);
-              }
-            });
-          } else if (verify?.status === 'failed') {
-            this.stopPolling();
-            this.step.set('failed');
-            this.error.set('Validação falhou. Solicite nova validação.');
-          } else if (verify?.status === 'expired') {
-            this.stopPolling();
-            this.step.set('failed');
-            this.error.set('Validação expirada. Solicite nova validação.');
-          } else if (verify?.status === 'awaiting') {
-            // Sistema aguardando nova entrada - voltar para tela de confirmação
-            this.stopPolling();
-            this.step.set('deposit-instructions');
-            this.error.set('Depósito não encontrado. Por favor, verifique se realizou o depósito e tente novamente.');
-          }
-          // Continue polling if status is still 'processing'
-        },
-        error: (err) => {
-          // Continue polling even on error
-        }
-      });
-    }, 10000);
+  private navigateToDashboardWithBanner(): void {
+    this.validationService.pendingVerification.set(true);
+    this.router.navigate(['/dashboard']);
   }
 
-  private stopPolling(): void {
-    if (this.pollInterval) {
-      clearInterval(this.pollInterval);
-      this.pollInterval = null;
-    }
-  }
-
-  requestNewVerification(): void {
-    this.step.set('enter-pix');
-    this.pixVerification.set(null);
-    this.confirmationCode.set('');
-    this.noConfirmationCode.set(false);
-    this.error.set('');
-    this.stopPolling();
-  }
-
-  copyPixKey(): void {
-    const pixKey = this.pixVerification()?.destination_pix_key;
-    if (pixKey) {
-      navigator.clipboard.writeText(pixKey).then(() => {
-        this.pixKeyCopied.set(true);
-        setTimeout(() => this.pixKeyCopied.set(false), 3000);
-      });
-    }
+  private navigateToFailure(message: string): void {
+    this.router.navigate(['/account-validation-required'], {
+      queryParams: { pixFailed: 'true', message }
+    });
   }
 
   isLastAttempt(): boolean {
-    const verification = this.pixVerification();
-    if (!verification || !verification.attempts || !verification.max_attempts) {
-      return false;
-    }
-    return verification.attempts >= verification.max_attempts - 1;
+    const v = this.pixVerification();
+    if (!v || !v.attempts || !v.max_attempts) return false;
+    return v.attempts >= v.max_attempts - 1;
   }
 
   getRemainingAttempts(): number {
-    const verification = this.pixVerification();
-    if (!verification || !verification.attempts || !verification.max_attempts) {
-      return 0;
-    }
-    return verification.max_attempts - verification.attempts;
+    const v = this.pixVerification();
+    if (!v || !v.attempts || !v.max_attempts) return 0;
+    return v.max_attempts - v.attempts;
   }
 
   handleTimeout(): void {
-    this.stopPolling();
-    this.step.set('failed');
-    this.error.set('Tempo expirado. Solicite nova validação.');
+    this.navigateToFailure('Tempo expirado. Tente novamente.');
+  }
+
+  depositAmountFormatted(): string {
+    const cents = this.depositAmountCents();
+    if (cents == null) return '';
+    return formatBrlCents(cents);
+  }
+
+  depositAmountValue(): number {
+    return (this.depositAmountCents() ?? 0) / 100;
   }
 
   ngOnDestroy(): void {
-    this.stopPolling();
+    if (this.pollInterval) {
+      clearInterval(this.pollInterval);
+    }
   }
 }

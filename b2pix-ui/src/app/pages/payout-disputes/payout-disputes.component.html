@@ -1,45 +1,28 @@
 <div class="payout-disputes">
-  <div class="container">
+  <div class="container-wide">
     <!-- Header -->
-    <div class="page-header">
-      <button class="btn-back" (click)="goBack()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <path d="M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M12 19L5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <div class="header-content">
-        <h1 class="page-title">Disputas Payout</h1>
-        <p class="page-subtitle">Gerenciar disputas e escalacoes de pagamento</p>
-      </div>
-    </div>
+    <app-page-header
+      title="Disputas de pagamento"
+      subtitle="Disputas e escalações de pagamento"
+      backRoute="/manager-dashboard"
+    />
 
     <!-- Tabs -->
-    <div class="tabs">
+    <div class="seg-control">
       <button
-        class="tab"
+        class="seg-btn"
         [class.active]="selectedTab() === 'disputed'"
         (click)="setTab('disputed')">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="2"/>
-          <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-        Disputados
+        Disputas
         @if (disputedItems().length > 0) {
           <span class="tab-count">{{ disputedItems().length }}</span>
         }
       </button>
       <button
-        class="tab"
+        class="seg-btn"
         [class.active]="selectedTab() === 'escalated'"
         (click)="setTab('escalated')">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-          <path d="M12 8V12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          <circle cx="12" cy="16" r="1" fill="currentColor"/>
-        </svg>
-        Erros Escalados
+        Escalações
         @if (escalatedItems().length > 0) {
           <span class="tab-count">{{ escalatedItems().length }}</span>
         }
@@ -91,7 +74,7 @@
       @if (isLoadingEscalated()) {
         <div class="loading-state">
           <div class="loading-spinner"></div>
-          <p>Carregando escalacoes...</p>
+          <p>Carregando escalações...</p>
         </div>
       } @else if (errorEscalated()) {
         <div class="error-state">
@@ -109,8 +92,8 @@
             <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
           </svg>
-          <h3>Nenhuma escalacao pendente</h3>
-          <p>Todas as escalacoes foram resolvidas.</p>
+          <h3>Nenhuma escalação pendente</h3>
+          <p>Todas as escalações foram resolvidas.</p>
         </div>
       } @else {
         <div class="cards-list">

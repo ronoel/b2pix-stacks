@@ -1,60 +1,69 @@
 .pix-timer {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem 1.5rem;
-  background: #e7f5ff;
-  border: 2px solid #0d6efd;
-  border-radius: 0.75rem;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--primary-bg);
+  border: 1.5px solid var(--primary);
+  border-radius: var(--r-md);
+  margin-bottom: 16px;
   transition: all 0.3s;
 }
 
 .pix-timer.warning {
-  background: #fff3cd;
-  border-color: #ffc107;
+  background: rgba(217, 119, 6, 0.08);
+  border-color: var(--warning);
 }
 
 .pix-timer.danger {
-  background: #f8d7da;
-  border-color: #dc3545;
+  background: var(--danger-bg);
+  border-color: var(--danger);
   animation: pulse 1s infinite;
 }
 
 .timer-icon {
-  font-size: 2rem;
-  color: #0d6efd;
+  color: var(--primary);
+  flex-shrink: 0;
 }
 
 .pix-timer.warning .timer-icon {
-  color: #ffc107;
+  color: var(--warning);
 }
 
 .pix-timer.danger .timer-icon {
-  color: #dc3545;
+  color: var(--danger);
 }
 
 .timer-content {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .timer-label {
-  font-size: 0.875rem;
-  color: #6c757d;
-  margin-bottom: 0.25rem;
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
 }
 
 .timer-display {
-  font-size: 1.75rem;
+  font-family: var(--font-mono);
+  font-size: 18px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: #333;
+  color: var(--text-primary);
+}
+
+.pix-timer.warning .timer-display {
+  color: var(--warning);
+}
+
+.pix-timer.danger .timer-display {
+  color: var(--danger);
 }
 
 @keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.8;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
 }

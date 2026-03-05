@@ -47,10 +47,10 @@
 
   <!-- PIX ID Input -->
   <div class="pix-id-section">
-    <h3>Confirmar Pagamento</h3>
-    <p class="instruction">Apos pagar o PIX, informe o ID da transacao (End-to-End ID) para confirmar.</p>
+    <h3>Confirmar pagamento</h3>
+    <p class="instruction">Após pagar o PIX, informe o ID da transação (End-to-End ID) para confirmar.</p>
     <div class="form-group">
-      <label class="form-label">ID da Transacao PIX (E2E)</label>
+      <label class="form-label">ID da transação PIX (E2E)</label>
       <input
         type="text"
         class="form-input"
@@ -64,7 +64,7 @@
   <!-- Actions -->
   <div class="actions">
     <button
-      class="btn btn-success btn-lg"
+      class="btn btn-success btn-lg btn-full"
       (click)="onConfirmPayment()"
       [disabled]="!pixIdValue.trim() || isProcessing()">
       @if (isProcessing() && processingAction() === 'pay') {
@@ -75,7 +75,7 @@
           <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
         </svg>
-        Confirmar Pagamento
+        Confirmar pagamento
       }
     </button>
 
@@ -93,49 +93,40 @@
       </button>
 
       <button
-        class="btn btn-ghost"
-        (click)="showReportModal.set(true)"
+        class="btn btn-ghost-danger"
+        (click)="showReportSheet.set(true)"
         [disabled]="isProcessing()">
-        Reportar Problema
+        Reportar problema
       </button>
     </div>
   </div>
 
-  <!-- Report Modal -->
-  @if (showReportModal()) {
-    <div class="modal-overlay" (click)="showReportModal.set(false)">
-      <div class="modal-content" (click)="$event.stopPropagation()">
-        <div class="modal-header">
-          <h3>Reportar Problema</h3>
-          <button class="modal-close" (click)="showReportModal.set(false)">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <path d="M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-          </button>
-        </div>
-        <div class="modal-body">
-          <p>Descreva o problema encontrado ao tentar pagar este PIX.</p>
-          <textarea
-            class="form-input"
-            rows="4"
-            placeholder="Ex: PIX rejeitado pelo banco, dados invalidos..."
-            [(ngModel)]="reportReason"
-          ></textarea>
-        </div>
-        <div class="modal-actions">
-          <button class="btn btn-outline" (click)="showReportModal.set(false)">Cancelar</button>
+  <!-- Report Problem Bottom Sheet -->
+  @if (showReportSheet()) {
+    <div class="sheet-overlay" (click)="showReportSheet.set(false)">
+      <div class="sheet" (click)="$event.stopPropagation()">
+        <div class="sheet-handle"></div>
+        <h3 class="sheet-title">Reportar problema</h3>
+        <p class="sheet-text">Descreva o problema encontrado ao tentar pagar este PIX.</p>
+        <textarea
+          class="form-input"
+          rows="4"
+          placeholder="Ex: PIX rejeitado pelo banco, dados inválidos..."
+          [(ngModel)]="reportReason"
+        ></textarea>
+        <div class="sheet-actions">
           <button
-            class="btn btn-primary"
+            class="btn btn-primary btn-full"
             [disabled]="!reportReason.trim() || isProcessing()"
             (click)="onReport()">
             @if (isProcessing() && processingAction() === 'report') {
               <div class="loading-spinner-sm"></div>
               Enviando...
             } @else {
-              Enviar Report
+              Enviar relato
             }
           </button>
+          <button class="btn btn-ghost btn-full" (click)="showReportSheet.set(false)">Cancelar</button>
         </div>
       </div>
     </div>

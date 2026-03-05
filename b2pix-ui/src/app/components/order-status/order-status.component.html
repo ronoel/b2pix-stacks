@@ -6,55 +6,57 @@
     </div>
   } @else if (error()) {
     <div class="error-state">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-        <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/>
-        <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
-      </svg>
+      <div class="icon-box icon-box-lg error-icon-box">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+          <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/>
+          <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
+        </svg>
+      </div>
       <h3>Erro</h3>
       <p>{{ error() }}</p>
       <button class="btn btn-primary" (click)="loadOrder()">Tentar novamente</button>
     </div>
   } @else if (order()) {
     <!-- Status Card -->
-    <div class="status-card" [class]="'status-' + getStatusClass(order()!.status)">
-      <div class="status-icon">
+    <div class="status-card card" [class]="'status-card--' + getStatusClass(order()!.status)">
+      <div class="status-card__icon">
         @switch (order()!.status) {
           @case ('settlement_created') {
             @if (latestPayoutRequest() && latestPayoutRequest()!.status === 'confirmed') {
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
                 <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
               </svg>
             } @else {
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
                 <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
                 <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             }
           }
           @case ('failed') {
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
               <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
               <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/>
               <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
             </svg>
           }
           @case ('error') {
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
               <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
               <path d="M12 8V12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
               <circle cx="12" cy="16" r="1" fill="currentColor"/>
             </svg>
           }
           @case ('expired') {
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
               <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
               <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           }
           @case ('refunded') {
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
               <path d="M3 12C3 7.02944 7.02944 3 12 3C14.5755 3 16.9 4.15205 18.5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
               <path d="M21 12C21 16.9706 16.9706 21 12 21C9.42446 21 7.09995 19.848 5.5 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
               <path d="M13 2L18 6L14 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -62,144 +64,140 @@
             </svg>
           }
           @default {
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
               <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
               <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           }
         }
       </div>
-      <div class="status-content">
-        <h2>{{ getStatusLabel(order()!.status) }}</h2>
-        <p>{{ getStatusDescription(order()!.status) }}</p>
+      <div class="status-card__content">
+        <span class="status-badge" [class]="getStatusClass(order()!.status)">
+          {{ getStatusLabel(order()!.status) }}
+        </span>
+        <p class="status-card__description">{{ getStatusDescription(order()!.status) }}</p>
       </div>
     </div>
 
-    <!-- Order Progress Steps (3 steps) -->
-    <div class="progress-steps">
-      <div class="step" [class.completed]="isStepCompleted(1)" [class.active]="isStepActive(1)">
-        <div class="step-icon">1</div>
-        <div class="step-label">Enviada</div>
+    <!-- Order Progress Steps -->
+    <div class="card progress-card">
+      <div class="step-dots">
+        <div class="step-dot" [class.step-done]="isStepCompleted(1)" [class.step-active]="isStepActive(1)"></div>
+        <div class="step-connector" [class.done]="isStepCompleted(2)"></div>
+        <div class="step-dot" [class.step-done]="isStepCompleted(2)" [class.step-active]="isStepActive(2)"></div>
+        <div class="step-connector" [class.done]="isStepCompleted(3)"></div>
+        <div class="step-dot"
+          [class.step-done]="isStepCompleted(3)"
+          [class.step-active]="isStepActive(3)"
+          [class.step-failed]="isErrorStatus(order()!.status)"></div>
       </div>
-      <div class="step-line" [class.completed]="isStepCompleted(2)"></div>
-      <div class="step" [class.completed]="isStepCompleted(2)" [class.active]="isStepActive(2)">
-        <div class="step-icon">2</div>
-        <div class="step-label">Confirmada</div>
-      </div>
-      <div class="step-line" [class.completed]="isStepCompleted(3)"></div>
-      <div class="step"
-        [class.completed]="isStepCompleted(3)"
-        [class.active]="isStepActive(3)"
-        [class.failed]="isErrorStatus(order()!.status)">
-        <div class="step-icon">3</div>
-        <div class="step-label">{{ getLastStepLabel(order()!.status) }}</div>
+      <div class="step-labels">
+        <span class="step-label" [class.active]="isStepActive(1)" [class.done]="isStepCompleted(1)">
+          {{ getOrderStepLabel(1) }}
+        </span>
+        <span class="step-label" [class.active]="isStepActive(2)" [class.done]="isStepCompleted(2)">
+          {{ getOrderStepLabel(2) }}
+        </span>
+        <span class="step-label"
+          [class.active]="isStepActive(3)"
+          [class.done]="isStepCompleted(3)"
+          [class.failed]="isErrorStatus(order()!.status)">
+          {{ getOrderStepLabel(3) }}
+        </span>
       </div>
     </div>
 
     <!-- Payout Tracking (Phase 2) -->
     @if (isPayoutPhase()) {
-      <div class="payout-tracking-card">
-        <h3>Pagamento PIX</h3>
+      <div class="card payout-card">
+        <h3 class="card__title">Pagamento</h3>
 
         @if (isPayoutLoading() && !latestPayoutRequest()) {
           <div class="payout-loading">
-            <div class="loading-spinner"></div>
+            <div class="loading-spinner loading-spinner-sm"></div>
             <span>Carregando pagamento...</span>
           </div>
         } @else if (latestPayoutRequest()) {
           @if (latestPayoutRequest()!.attempt_number > 1) {
-            <div class="attempt-notice">
+            <div class="attempt-badge">
               Tentativa {{ latestPayoutRequest()!.attempt_number }}
             </div>
           }
 
-          <div class="payout-steps">
-            <div class="step" [class.completed]="isPayoutStepCompleted(1)" [class.active]="isPayoutStepActive(1)">
-              <div class="step-icon">1</div>
-              <div class="step-label">Pendente</div>
-            </div>
-            <div class="step-line" [class.completed]="isPayoutStepCompleted(2)"></div>
-            <div class="step" [class.completed]="isPayoutStepCompleted(2)" [class.active]="isPayoutStepActive(2)">
-              <div class="step-icon">2</div>
-              <div class="step-label">LP Processando</div>
-            </div>
-            <div class="step-line" [class.completed]="isPayoutStepCompleted(3)"></div>
-            <div class="step" [class.completed]="isPayoutStepCompleted(3)" [class.active]="isPayoutStepActive(3)">
-              <div class="step-icon">3</div>
-              <div class="step-label">Pago</div>
-            </div>
-            <div class="step-line" [class.completed]="isPayoutStepCompleted(4)"></div>
-            <div class="step"
-              [class.completed]="isPayoutStepCompleted(4)"
+          <div class="step-dots">
+            <div class="step-dot" [class.step-done]="isPayoutStepCompleted(1)" [class.step-active]="isPayoutStepActive(1)"></div>
+            <div class="step-connector" [class.done]="isPayoutStepCompleted(2)"></div>
+            <div class="step-dot" [class.step-done]="isPayoutStepCompleted(2)" [class.step-active]="isPayoutStepActive(2)"></div>
+            <div class="step-connector" [class.done]="isPayoutStepCompleted(3)"></div>
+            <div class="step-dot" [class.step-done]="isPayoutStepCompleted(3)" [class.step-active]="isPayoutStepActive(3)"></div>
+            <div class="step-connector" [class.done]="isPayoutStepCompleted(4)"></div>
+            <div class="step-dot"
+              [class.step-done]="isPayoutStepCompleted(4)"
+              [class.step-active]="isPayoutStepActive(4)"
+              [class.step-failed]="isPayoutErrorState()"></div>
+          </div>
+          <div class="step-labels step-labels--4">
+            <span class="step-label" [class.active]="isPayoutStepActive(1)" [class.done]="isPayoutStepCompleted(1)">
+              {{ getPayoutStepLabel(1) }}
+            </span>
+            <span class="step-label" [class.active]="isPayoutStepActive(2)" [class.done]="isPayoutStepCompleted(2)">
+              {{ getPayoutStepLabel(2) }}
+            </span>
+            <span class="step-label" [class.active]="isPayoutStepActive(3)" [class.done]="isPayoutStepCompleted(3)">
+              {{ getPayoutStepLabel(3) }}
+            </span>
+            <span class="step-label"
               [class.active]="isPayoutStepActive(4)"
+              [class.done]="isPayoutStepCompleted(4)"
               [class.failed]="isPayoutErrorState()">
-              <div class="step-icon">4</div>
-              <div class="step-label">{{ getPayoutLastStepLabel() }}</div>
-            </div>
+              {{ getPayoutStepLabel(4) }}
+            </span>
           </div>
         }
       </div>
     }
 
-    <!-- Order Details -->
-    <div class="details-card">
-      <h3>{{ detailsTitle() }}</h3>
-      <div class="details-grid">
-        @if (order()!.pix_value) {
-          <div class="detail-item highlight">
-            <span class="label">Valor PIX</span>
-            <span class="value brl">{{ formatBrlCents(order()!.pix_value!) }}</span>
-          </div>
-        }
-        <div class="detail-item">
-          <span class="label">Quantidade</span>
-          <span class="value mono">{{ formatSats(order()!.amount) }} sats</span>
+    <!-- Order Details — BRL first -->
+    <div class="card details-card">
+      <h3 class="card__title">{{ detailsTitle() }}</h3>
+
+      @if (order()!.pix_value) {
+        <div class="detail-row highlight">
+          <span class="detail-label">Valor</span>
+          <span class="detail-value">{{ formatBrlCents(order()!.pix_value!) }}</span>
         </div>
-        <div class="detail-item">
-          <span class="label">Em BTC</span>
-          <span class="value mono">{{ formatSatsToBtc(order()!.amount) }} BTC</span>
-        </div>
-        @if (order()!.tx_hash) {
-          <div class="detail-item full-width">
-            <span class="label">Transação Blockchain</span>
-            <a [href]="getExplorerUrl(order()!.tx_hash!)" target="_blank" class="value tx-link">
-              {{ formatTruncated(order()!.tx_hash!) }}
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M15 3h6v6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M10 14L21 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </a>
-          </div>
-        }
-        @if (latestPayoutRequest()) {
-          <div class="detail-item full-width">
-            <span class="label">Solicitação de Pagamento</span>
-            <span class="value mono">{{ latestPayoutRequest()!.id }}</span>
-          </div>
-        }
-        <div class="detail-item">
-          <span class="label">Criado em</span>
-          <span class="value">{{ formatDateTime(order()!.created_at) }}</span>
-        </div>
-        @if (order()!.confirmed_at) {
-          <div class="detail-item">
-            <span class="label">Confirmada em</span>
-            <span class="value">{{ formatDateTime(order()!.confirmed_at!) }}</span>
-          </div>
-        }
-        @if (order()!.error_message) {
-          <div class="detail-item full-width error">
-            <span class="label">Erro</span>
-            <span class="value">{{ order()!.error_message }}</span>
-          </div>
-        }
+      }
+      <div class="detail-row">
+        <span class="detail-label">Bitcoin</span>
+        <span class="detail-value font-mono">&asymp; {{ formatSatsToBtc(order()!.amount) }} BTC</span>
       </div>
+      <div class="detail-row">
+        <span class="detail-label">Criado em</span>
+        <span class="detail-value">{{ formatDateTime(order()!.created_at) }}</span>
+      </div>
+      @if (order()!.confirmed_at) {
+        <div class="detail-row">
+          <span class="detail-label">Confirmado em</span>
+          <span class="detail-value">{{ formatDateTime(order()!.confirmed_at!) }}</span>
+        </div>
+      }
+      @if (order()!.error_message) {
+        <div class="detail-row detail-row--error">
+          <span class="detail-label">Erro</span>
+          <span class="detail-value">{{ order()!.error_message }}</span>
+        </div>
+      }
+
+      <!-- Technical details collapsed -->
+      <app-technical-details
+        [txHash]="order()!.tx_hash ?? ''"
+        [satoshis]="order()!.amount"
+      />
     </div>
 
     <!-- Dispute Section: when payout request status is 'paid' or 'disputed' -->
     @if (isPayoutPaid() || isPayoutDisputed()) {
-      <div class="dispute-section">
+      <div class="card dispute-card">
         <div class="dispute-notice">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="2"/>
@@ -208,27 +206,27 @@
           </svg>
           <div>
             @if (isPayoutDisputed()) {
-              <p>Disputa aberta. Se você encontrou o pagamento PIX na sua conta, confirme o recebimento abaixo.</p>
+              <p>Disputa aberta. Se voc&ecirc; encontrou o pagamento PIX na sua conta, confirme o recebimento abaixo.</p>
             } @else {
-              <p>O comprador informou que efetuou o pagamento PIX. Se você não recebeu, abra uma disputa.</p>
-              <p class="auto-confirm-notice">Se nenhuma ação for tomada, o pagamento será confirmado automaticamente em 24 horas.</p>
+              <p>O operador PIX informou que efetuou o pagamento. Se voc&ecirc; n&atilde;o recebeu, abra uma disputa.</p>
+              <p class="auto-confirm-notice">Se nenhuma a&ccedil;&atilde;o for tomada, o pagamento ser&aacute; confirmado automaticamente em 24 horas.</p>
             }
           </div>
         </div>
         <div class="dispute-actions">
           <button
-            class="btn btn-success"
+            class="btn btn-success btn-full"
             (click)="onConfirmReceipt()"
             [disabled]="isConfirmingReceipt()">
             @if (isConfirmingReceipt()) {
               Confirmando...
             } @else {
-              Confirmar PIX pago
+              Confirmar PIX recebido
             }
           </button>
           @if (isPayoutPaid()) {
-            <button class="btn btn-warning" (click)="onOpenDisputeModal()">
-              PIX não pago
+            <button class="btn btn-outline btn-full" (click)="onOpenDisputeModal()">
+              N&atilde;o recebi o PIX
             </button>
           }
         </div>
@@ -260,7 +258,7 @@
           <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         </svg>
-        <p>Ocorreu um erro no pagamento. Um novo pagamento será criado automaticamente.</p>
+        <p>Ocorreu um erro no pagamento. Um novo pagamento ser&aacute; criado automaticamente.</p>
       </div>
     }
 
@@ -272,7 +270,7 @@
           <path d="M12 8V12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           <circle cx="12" cy="16" r="1" fill="currentColor"/>
         </svg>
-        <p>Ocorreu um erro recorrente no pagamento. Um moderador está analisando.</p>
+        <p>Ocorreu um erro recorrente no pagamento. Um moderador est&aacute; analisando.</p>
       </div>
     }
 
@@ -284,7 +282,7 @@
           <path d="M12 16V12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           <path d="M12 8H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         </svg>
-        <p>A disputa foi rejeitada. Um novo pagamento está sendo processado.</p>
+        <p>A disputa foi rejeitada. Um novo pagamento est&aacute; sendo processado.</p>
       </div>
     }
 

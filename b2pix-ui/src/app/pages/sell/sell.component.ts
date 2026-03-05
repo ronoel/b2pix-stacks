@@ -16,16 +16,18 @@ import {
 import {
   formatBrlCents,
   formatSats,
-  formatSatsToBtc,
   formatDateTime,
   formatTruncated,
   getExplorerUrl
 } from '../../shared/utils/format.util';
+import { PageHeaderComponent } from '../../components/page-header/page-header.component';
+import { StatusSheetComponent } from '../../components/status-sheet/status-sheet.component';
+import { QuickAmountChipsComponent } from '../../components/quick-amount-chips/quick-amount-chips.component';
 
 @Component({
   selector: 'app-sell',
   standalone: true,
-  imports: [],
+  imports: [PageHeaderComponent, StatusSheetComponent, QuickAmountChipsComponent],
   templateUrl: './sell.component.html',
   styleUrls: ['./sell.component.scss']
 })
@@ -39,24 +41,26 @@ export class SellComponent implements OnInit, OnDestroy {
 
   // Constants
   readonly SATS_PER_BTC = 100000000;
-  readonly MIN_SELL_BRL = 50;  // R$ 50,00 displayed minimum
-  readonly MAX_SELL_BRL = 1050; // R$ 1.050,00 displayed limit
-  readonly MIN_SELL_BRL_VALIDATION = 45;  // R$ 45,00 actual validation minimum (allows price fluctuation)
-  readonly MAX_SELL_BRL_VALIDATION = 1060; // R$ 1.060,00 actual validation limit (allows price fluctuation)
+  readonly MIN_SELL_BRL = 50;
+  readonly MAX_SELL_BRL = 1050;
+  readonly MIN_SELL_BRL_VALIDATION = 45;
+  readonly MAX_SELL_BRL_VALIDATION = 1060;
   readonly QUICK_AMOUNTS_BRL = [50, 250, 500, 1000];
 
   // Balance and pricing
   sBtcBalance = signal<number>(0);
   isLoadingBalance = signal(false);
-  currentBtcPrice = signal(0); // Price in BRL
+  currentBtcPrice = signal(0);
   isLoadingQuote = signal(true);
   private priceSubscription?: Subscription;
+
+  // BRL / Sats toggle
+  sellMode = signal<'brl' | 'sats'>('brl');
 
   // Amount input
   amountInSats = signal<number>(0);
   amountInBrl = signal<number>(0);
-  inputMode = signal<'sats' | 'brl'>('brl'); // Default to BRL mode
-  selectedQuickAmount = signal<number>(0);
+  selectedQuickAmount = signal<number>(0); // 0 = none, -1 = "Tudo"
 
   // Sell orders
   sellOrders = signal<SellOrder[]>([]);
@@ -66,12 +70,10 @@ export class SellComponent implements OnInit, OnDestroy {
   hasMoreOrders = signal(false);
   currentPage = signal(1);
 
-  // Modal states
-  showConfirmationModal = signal(false);
-  showSuccessModal = signal(false);
-  showErrorModal = signal(false);
-  errorMessage = signal('');
-  createdOrderId = signal<string | null>(null);
+  // Sheet + inline error (replaces modal signals)
+  showConfirmationSheet = signal(false);
+  inlineError = signal<string | null>(null);
+  private errorDismissTimer?: ReturnType<typeof setTimeout>;
 
   // Confirmation checkbox
   pixKeyConfirmed = signal(false);
@@ -80,11 +82,26 @@ export class SellComponent implements OnInit, OnDestroy {
   // Processing state
   isProcessing = signal(false);
 
-  // Network fee
+  // Network fee (in sats)
   fee = computed(() => this.sellOrderService.getFee());
 
-  // Expose Number for template
-  Number = Number;
+  // Computed: balance in BRL
+  balanceBrl = computed(() => {
+    const sats = this.sBtcBalance();
+    const price = this.currentBtcPrice();
+    if (!sats || !price) return 0;
+    return (sats / this.SATS_PER_BTC) * price;
+  });
+
+  // Computed: disabled quick amounts (balance too low)
+  disabledQuickAmounts = computed(() =>
+    this.QUICK_AMOUNTS_BRL.filter(a => this.isQuickAmountDisabled(a))
+  );
+
+  // Computed: dynamic max sell in BRL (balance-capped at MAX_SELL_BRL)
+  maxSellBrl = computed(() => {
+    return Math.min(this.balanceBrl(), this.MAX_SELL_BRL);
+  });
 
   ngOnInit() {
     this.loadBalance();
@@ -96,6 +113,9 @@ export class SellComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     if (this.priceSubscription) {
       this.priceSubscription.unsubscribe();
+    }
+    if (this.errorDismissTimer) {
+      clearTimeout(this.errorDismissTimer);
     }
   }
 
@@ -126,7 +146,6 @@ export class SellComponent implements OnInit, OnDestroy {
     this.isLoadingQuote.set(true);
     this.priceSubscription = this.sellOrderService.getBtcPrice().subscribe({
       next: (quote) => {
-        // Convert price from cents to reais
         const priceInCents = parseInt(quote.price, 10);
         this.currentBtcPrice.set(priceInCents / 100);
         this.isLoadingQuote.set(false);
@@ -138,85 +157,25 @@ export class SellComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Amount methods
-  setInputMode(mode: 'sats' | 'brl') {
-    if (this.inputMode() === mode) return;
-    // Values are already synced, just switch the display mode
-    // No need to clear - both amountInSats and amountInBrl are always kept in sync
-    this.inputMode.set(mode);
+  // Insufficient balance checks
+  hasInsufficientBalance(): boolean {
+    if (this.isLoadingBalance() || this.isLoadingQuote() || !this.hasBalance()) return false;
+    return this.balanceBrl() < this.MIN_SELL_BRL_VALIDATION;
   }
 
-  isBrlMode(): boolean {
-    return this.inputMode() === 'brl';
-  }
-
-  getDisplayAmount(): number {
-    if (this.isBrlMode()) {
-      return this.amountInBrl();
-    }
-    return Number(this.amountInSats());
-  }
-
-  getMinAmountInSats(): number {
-    // Calculate minimum sats based on MIN_SELL_BRL_VALIDATION
-    if (this.currentBtcPrice() > 0) {
-      const minBtc = this.MIN_SELL_BRL_VALIDATION / this.currentBtcPrice();
-      return Math.ceil(minBtc * this.SATS_PER_BTC);
-    }
-    return 100000; // Fallback to 100k sats
-  }
-
-  getStepAmount(): number {
-    return this.isBrlMode() ? 0.01 : 1;
+  isQuickAmountDisabled(amount: number): boolean {
+    if (!this.hasBalance() || this.isLoadingBalance() || this.isLoadingQuote()) return true;
+    return this.balanceBrl() < amount;
   }
 
   // Quick amount selection
   selectQuickAmount(brlAmount: number) {
     this.selectedQuickAmount.set(brlAmount);
     this.amountInBrl.set(brlAmount);
-    // Calculate equivalent sats using service
+    this.clearInlineError();
     if (this.currentBtcPrice() > 0) {
       const sats = this.sellOrderService.brlToSats(brlAmount, this.currentBtcPrice());
       this.amountInSats.set(sats);
-    }
-  }
-
-  // Insufficient balance checks
-  hasInsufficientBalance(): boolean {
-    if (this.isLoadingBalance() || this.isLoadingQuote() || !this.hasBalance()) return false;
-    const balanceBrl = this.getBalanceEstimatedBrl();
-    return balanceBrl < this.MIN_SELL_BRL_VALIDATION;
-  }
-
-  isQuickAmountDisabled(amount: number): boolean {
-    if (!this.hasBalance() || this.isLoadingBalance() || this.isLoadingQuote()) return true;
-    // Disable if balance in BRL is less than the button amount
-    const balanceBrl = this.getBalanceEstimatedBrl();
-    return balanceBrl < amount;
-  }
-
-  onAmountChange(event: any) {
-    const value = parseFloat(event.target.value) || 0;
-
-    // Clear quick amount selection when manually typing
-    this.selectedQuickAmount.set(0);
-
-    if (this.isBrlMode()) {
-      this.amountInBrl.set(value);
-      // Calculate sats from BRL using service
-      if (this.currentBtcPrice() > 0 && value > 0) {
-        this.amountInSats.set(this.sellOrderService.brlToSats(value, this.currentBtcPrice()));
-      } else {
-        this.amountInSats.set(0);
-      }
-    } else {
-      this.amountInSats.set(Math.floor(value));
-      // Calculate BRL from sats using service
-      if (this.currentBtcPrice() > 0 && value > 0) {
-        this.amountInBrl.set(this.sellOrderService.satsToBrl(Math.floor(value), this.currentBtcPrice()));
-      } else {
-        this.amountInBrl.set(0);
-      }
     }
   }
 
@@ -230,7 +189,6 @@ export class SellComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Get max sats respecting both balance and BRL limit
     const maxSats = this.sellOrderService.getMaxSellableSats(
       balance,
       this.fee(),
@@ -240,18 +198,39 @@ export class SellComponent implements OnInit, OnDestroy {
 
     this.amountInSats.set(maxSats);
     this.amountInBrl.set(this.sellOrderService.satsToBrl(maxSats, price));
-    this.selectedQuickAmount.set(0); // Clear quick selection
+    this.selectedQuickAmount.set(-1); // -1 = "Tudo" chip active
+    this.clearInlineError();
+  }
+
+  onSatsAmountChange(event: Event) {
+    const value = parseInt((event.target as HTMLInputElement).value) || 0;
+    this.selectedQuickAmount.set(0);
+    this.amountInSats.set(value);
+    this.clearInlineError();
+
+    if (this.currentBtcPrice() > 0 && value > 0) {
+      this.amountInBrl.set(this.sellOrderService.satsToBrl(value, this.currentBtcPrice()));
+    } else {
+      this.amountInBrl.set(0);
+    }
+  }
+
+  onAmountChange(event: Event) {
+    const value = parseFloat((event.target as HTMLInputElement).value) || 0;
+    this.selectedQuickAmount.set(0);
+    this.amountInBrl.set(value);
+    this.clearInlineError();
+
+    if (this.currentBtcPrice() > 0 && value > 0) {
+      this.amountInSats.set(this.sellOrderService.brlToSats(value, this.currentBtcPrice()));
+    } else {
+      this.amountInSats.set(0);
+    }
   }
 
   getEstimatedBrlAmount(): number {
     const sats = Number(this.amountInSats());
     const btcAmount = sats / this.SATS_PER_BTC;
-    return btcAmount * this.currentBtcPrice();
-  }
-
-  getBalanceEstimatedBrl(): number {
-    const balanceSats = Number(this.sBtcBalance());
-    const btcAmount = balanceSats / this.SATS_PER_BTC;
     return btcAmount * this.currentBtcPrice();
   }
 
@@ -338,12 +317,12 @@ export class SellComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Sell process
+  // Sell process — opens bottom sheet
   startSellProcess() {
     if (!this.canSell()) return;
     this.pixKeyConfirmed.set(false);
     this.loadUserPixKey();
-    this.showConfirmationModal.set(true);
+    this.showConfirmationSheet.set(true);
   }
 
   loadUserPixKey() {
@@ -366,17 +345,15 @@ export class SellComponent implements OnInit, OnDestroy {
   formatPixKey(pixKey: string): string {
     const digits = pixKey.replace(/\D/g, '');
     if (digits.length === 11) {
-      // CPF: XXX.XXX.XXX-XX
       return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
     } else if (digits.length === 14) {
-      // CNPJ: XX.XXX.XXX/XXXX-XX
       return digits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
     }
     return pixKey;
   }
 
-  closeConfirmationModal() {
-    this.showConfirmationModal.set(false);
+  closeConfirmationSheet() {
+    this.showConfirmationSheet.set(false);
     this.pixKeyConfirmed.set(false);
   }
 
@@ -390,29 +367,22 @@ export class SellComponent implements OnInit, OnDestroy {
       next: (order) => {
         this.isProcessing.set(false);
         this.loadingService.hide();
-        this.showConfirmationModal.set(false);
-        this.createdOrderId.set(order.id);
-        this.showSuccessModal.set(true);
+        this.showConfirmationSheet.set(false);
 
-        // Refresh data
-        this.loadBalance();
-        this.loadSellOrders();
-        this.checkForActiveSellOrder();
+        // Navigate directly to sell details — no intermediate modal
+        this.router.navigate(['/sell', order.id]);
       },
       error: (error) => {
         console.error('Error creating sell order:', error);
         this.isProcessing.set(false);
         this.loadingService.hide();
-        this.showConfirmationModal.set(false);
+        this.showConfirmationSheet.set(false);
 
-        // Handle specific errors
         if (error.message && error.message.includes('cancelada')) {
-          // User cancelled - don't show error
           return;
         }
 
-        this.errorMessage.set(this.getErrorMessage(error));
-        this.showErrorModal.set(true);
+        this.showInlineError(this.getErrorMessage(error));
       }
     });
   }
@@ -427,33 +397,27 @@ export class SellComponent implements OnInit, OnDestroy {
     return 'Ocorreu um erro ao criar a ordem de venda. Tente novamente.';
   }
 
-  // Modal methods
-  closeSuccessModal() {
-    this.showSuccessModal.set(false);
-    this.createdOrderId.set(null);
-    this.amountInSats.set(0);
-    this.amountInBrl.set(0);
-    this.selectedQuickAmount.set(0);
+  // Inline error — auto-dismisses after 8 seconds
+  private showInlineError(message: string) {
+    if (this.errorDismissTimer) {
+      clearTimeout(this.errorDismissTimer);
+    }
+    this.inlineError.set(message);
+    this.errorDismissTimer = setTimeout(() => {
+      this.inlineError.set(null);
+    }, 8000);
   }
 
-  viewCreatedOrder() {
-    const orderId = this.createdOrderId();
-    this.closeSuccessModal();
-    if (orderId) {
-      this.router.navigate(['/sell', orderId]);
+  clearInlineError() {
+    if (this.inlineError()) {
+      if (this.errorDismissTimer) {
+        clearTimeout(this.errorDismissTimer);
+      }
+      this.inlineError.set(null);
     }
   }
 
-  closeErrorModal() {
-    this.showErrorModal.set(false);
-    this.errorMessage.set('');
-  }
-
   // Navigation
-  goBack() {
-    this.router.navigate(['/dashboard']);
-  }
-
   goToActiveSellOrder() {
     const order = this.activeSellOrder();
     if (order) {
@@ -465,7 +429,7 @@ export class SellComponent implements OnInit, OnDestroy {
     this.router.navigate(['/sell', order.id]);
   }
 
-  // Formatting methods
+  // Formatting
   formatCurrency(value: number): string {
     return new Intl.NumberFormat('pt-BR', {
       style: 'decimal',
@@ -474,9 +438,8 @@ export class SellComponent implements OnInit, OnDestroy {
     }).format(value);
   }
 
+  formatSatsDisplay = formatSats;
   formatBrlCents = formatBrlCents;
-  formatSats = formatSats;
-  formatSatsToBtc = formatSatsToBtc;
   formatDateTime = formatDateTime;
   formatTruncated = formatTruncated;
   getExplorerUrl = getExplorerUrl;
@@ -488,4 +451,5 @@ export class SellComponent implements OnInit, OnDestroy {
   getStatusClass(status: OrderStatus): string {
     return getSellOrderStatusClass(status);
   }
+
 }

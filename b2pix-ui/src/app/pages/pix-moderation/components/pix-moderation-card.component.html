@@ -1,0 +1,86 @@
+<div class="card verification-card" [class.is-processing]="isProcessing">
+  <div class="card-header">
+    <div class="card-info">
+      <div class="address-badge">
+        <span class="label">Endereço</span>
+        <span class="value font-mono">{{ formatAddress(verification.address) }}</span>
+      </div>
+      <span class="status-badge processing">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+          <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        Aguardando análise
+      </span>
+    </div>
+    <div class="card-date">
+      <span class="label">Criado em</span>
+      <span class="value">{{ formatDate(verification.created_at) }}</span>
+    </div>
+  </div>
+
+  <div class="card-body">
+    <div class="details-grid">
+      <div class="detail-item">
+        <span class="label">Chave PIX do usuário</span>
+        <span class="value font-mono">{{ verification.user_pix_key }}</span>
+      </div>
+      <div class="detail-item">
+        <span class="label">Chave PIX destino</span>
+        <span class="value font-mono">{{ verification.destination_pix_key }}</span>
+      </div>
+      <div class="detail-item">
+        <span class="label">Valor de confirmação</span>
+        <span class="value highlight">R$ {{ (verification.pix_confirmation_value / 100).toFixed(2) }}</span>
+      </div>
+      <div class="detail-item">
+        <span class="label">Código de confirmação</span>
+        <span class="value code font-mono">{{ verification.pix_confirmation_code }}</span>
+      </div>
+      <div class="detail-item">
+        <span class="label">End-to-End ID</span>
+        <span class="value" [class.empty]="!verification.pix_end_to_end_id">
+          {{ verification.pix_end_to_end_id || 'Não informado' }}
+        </span>
+      </div>
+      <div class="detail-item">
+        <span class="label">Tentativas</span>
+        <span class="value">{{ verification.attempts }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-footer">
+    <button
+      class="btn btn-danger"
+      (click)="onReject()"
+      [disabled]="isProcessing"
+    >
+      @if (isProcessing) {
+        <div class="loading-spinner-sm"></div>
+      } @else {
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+          <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/>
+          <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
+        </svg>
+      }
+      Rejeitar
+    </button>
+    <button
+      class="btn btn-success"
+      (click)="onApprove()"
+      [disabled]="isProcessing"
+    >
+      @if (isProcessing) {
+        <div class="loading-spinner-sm"></div>
+      } @else {
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+        </svg>
+      }
+      Aprovar
+    </button>
+  </div>
+</div>

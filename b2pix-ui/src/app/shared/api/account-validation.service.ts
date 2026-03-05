@@ -1,5 +1,5 @@
 import { HttpClient } from "@angular/common/http";
-import { Injectable, inject, effect } from "@angular/core";
+import { Injectable, inject, effect, signal } from "@angular/core";
 import { Observable, from, of } from 'rxjs';
 import { switchMap, catchError, tap, map } from 'rxjs/operators';
 import { environment } from "../../../environments/environment";
@@ -25,6 +25,9 @@ export class AccountValidationService {
 
   // Cache only for getAccount()
   private accountCache = new Map<string, AccountInfo>();
+
+  // Signal for dashboard banner — set to true when PIX verification is submitted
+  pendingVerification = signal(false);
 
   constructor() {
     // Limpar cache ao deslogar

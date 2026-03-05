@@ -5,6 +5,8 @@ import { interval, Subscription } from 'rxjs';
 import { PixPayoutRequestService } from '../../shared/api/pix-payout-request.service';
 import { AccountValidationService } from '../../shared/api/account-validation.service';
 import { BankSetupComponent } from '../../components/bank-setup/bank-setup.component';
+import { PageHeaderComponent } from '../../components/page-header/page-header.component';
+import { StatusSheetComponent } from '../../components/status-sheet/status-sheet.component';
 import {
   PixPayoutRequest,
   LpStats,
@@ -20,7 +22,6 @@ import {
 } from '../../shared/models/lp-ledger.model';
 import { LpQueueCardComponent } from './components/lp-queue-card.component';
 import { LpActiveOrderComponent } from './components/lp-active-order.component';
-import { LpBtcRewardsCardComponent } from './components/lp-btc-rewards-card.component';
 import { LpConvertModalComponent } from './components/lp-convert-modal.component';
 import { LpWithdrawModalComponent } from './components/lp-withdraw-modal.component';
 import { MessageChatComponent } from '../../components/order-status/components/message-chat/message-chat.component';
@@ -29,7 +30,16 @@ import { formatBrlCents, formatSats, formatSatsToBtc, formatDateTime } from '../
 @Component({
   selector: 'app-lp-dashboard',
   standalone: true,
-  imports: [LpQueueCardComponent, LpActiveOrderComponent, BankSetupComponent, MessageChatComponent, LpBtcRewardsCardComponent, LpConvertModalComponent, LpWithdrawModalComponent],
+  imports: [
+    LpQueueCardComponent,
+    LpActiveOrderComponent,
+    BankSetupComponent,
+    MessageChatComponent,
+    LpConvertModalComponent,
+    LpWithdrawModalComponent,
+    PageHeaderComponent,
+    StatusSheetComponent
+  ],
   templateUrl: './lp-dashboard.component.html',
   styleUrls: ['./lp-dashboard.component.scss']
 })
@@ -38,8 +48,8 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
   private payoutRequestService = inject(PixPayoutRequestService);
   private accountValidationService = inject(AccountValidationService);
 
-  // Tabs
-  currentTab = signal<'queue' | 'history' | 'stats' | 'btc'>('queue');
+  // Tabs — 3 tabs: operations, history, ledger
+  currentTab = signal<'operations' | 'history' | 'ledger'>('operations');
 
   // Stats
   stats = signal<LpStats | null>(null);
@@ -63,11 +73,9 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
   historyPage = signal(1);
   historyHasMore = signal(false);
 
-  // BTC Rewards
-  showConvertModal = signal(false);
-  showWithdrawModal = signal(false);
-  isConvertingBalance = signal(false);
-  isWithdrawingBtc = signal(false);
+  // Sheets (replaces modal signals)
+  activeSheet = signal<'convert' | 'withdraw' | 'credentials' | null>(null);
+  isSheetProcessing = signal(false);
 
   // BTC Ledger
   ledgerItems = signal<LpLedgerEntry[]>([]);
@@ -76,7 +84,6 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
   ledgerHasMore = signal(false);
 
   // Bank Setup
-  showUpdateConfirm = signal(false);
   showBankSetup = signal(false);
 
   // History Chat
@@ -102,12 +109,12 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
   // Tab Navigation
   // ============================================
 
-  switchTab(tab: 'queue' | 'history' | 'stats' | 'btc') {
+  switchTab(tab: 'operations' | 'history' | 'ledger') {
     this.currentTab.set(tab);
     this.clearMessages();
 
     switch (tab) {
-      case 'queue':
+      case 'operations':
         if (this.queueItems().length === 0 && !this.activeOrder()) {
           this.loadQueue();
         }
@@ -117,10 +124,7 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
           this.loadHistory();
         }
         break;
-      case 'stats':
-        this.loadStats();
-        break;
-      case 'btc':
+      case 'ledger':
         if (this.ledgerItems().length === 0) {
           this.loadLedger();
         }
@@ -263,7 +267,7 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
         this.processingActionType.set('');
         this.activeOrder.set(null);
         this.stopPolling();
-        this.showSuccess('Pagamento confirmado com sucesso! Credito BRL adicionado.');
+        this.showSuccess('Pagamento confirmado com sucesso! Crédito BRL adicionado.');
         this.loadStats();
       },
       error: (error) => {
@@ -315,7 +319,7 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
         this.processingActionType.set('');
         this.activeOrder.set(null);
         this.stopPolling();
-        this.showSuccess('Problema reportado. A ordem sera analisada pela administracao.');
+        this.showSuccess('Problema reportado. A ordem será analisada pela administração.');
         this.loadQueue();
       },
       error: (error) => {
@@ -453,42 +457,42 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
   // ============================================
 
   onConvertBalance(cents: number) {
-    this.isConvertingBalance.set(true);
+    this.isSheetProcessing.set(true);
 
     this.payoutRequestService.convertBalance(cents).subscribe({
       next: () => {
-        this.isConvertingBalance.set(false);
-        this.showConvertModal.set(false);
-        this.showSuccess('Saldo convertido para BTC com sucesso!');
+        this.isSheetProcessing.set(false);
+        this.activeSheet.set(null);
+        this.showSuccess('Saldo convertido para Bitcoin com sucesso!');
         this.loadStats();
-        if (this.currentTab() === 'btc') {
+        if (this.currentTab() === 'ledger') {
           this.loadLedger();
         }
       },
       error: (error) => {
         console.error('Error converting balance:', error);
-        this.isConvertingBalance.set(false);
+        this.isSheetProcessing.set(false);
         this.showError(this.getErrorMessage(error));
       }
     });
   }
 
   onWithdrawBtc(sats: number) {
-    this.isWithdrawingBtc.set(true);
+    this.isSheetProcessing.set(true);
 
     this.payoutRequestService.withdrawBtc(sats).subscribe({
       next: () => {
-        this.isWithdrawingBtc.set(false);
-        this.showWithdrawModal.set(false);
-        this.showSuccess('Saque de BTC realizado com sucesso!');
+        this.isSheetProcessing.set(false);
+        this.activeSheet.set(null);
+        this.showSuccess('Saque de Bitcoin realizado com sucesso!');
         this.loadStats();
-        if (this.currentTab() === 'btc') {
+        if (this.currentTab() === 'ledger') {
           this.loadLedger();
         }
       },
       error: (error) => {
         console.error('Error withdrawing BTC:', error);
-        this.isWithdrawingBtc.set(false);
+        this.isSheetProcessing.set(false);
         this.showError(this.getErrorMessage(error));
       }
     });
@@ -534,7 +538,7 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
 
   private getErrorMessage(error: any): string {
     if (error?.message?.includes('cancelada') || error?.message?.includes('cancelled') || error?.message?.includes('User denied')) {
-      return 'Assinatura cancelada pelo usuario.';
+      return 'Assinatura cancelada pelo usuário.';
     }
     if (error?.error?.error) return error.error.error;
     if (error?.message) return error.message;
@@ -562,23 +566,19 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
   // Bank Setup Update
   // ============================================
 
-  openUpdateConfirm() {
-    this.showUpdateConfirm.set(true);
-  }
-
-  cancelUpdateConfirm() {
-    this.showUpdateConfirm.set(false);
+  openUpdateSheet() {
+    this.activeSheet.set('credentials');
   }
 
   confirmUpdate() {
-    this.showUpdateConfirm.set(false);
+    this.activeSheet.set(null);
     this.showBankSetup.set(true);
   }
 
   onBankSetupSuccess() {
     this.showBankSetup.set(false);
     this.accountValidationService.clearAccountCache();
-    this.showSuccess('Credenciais bancarias atualizadas com sucesso!');
+    this.showSuccess('Credenciais bancárias atualizadas com sucesso!');
   }
 
   onBankSetupComplete() {

@@ -1,249 +1,155 @@
 .validation-required-page {
   min-height: 100vh;
-  background: linear-gradient(180deg, #F8FAFC 0%, #EEF2F6 100%);
-  padding: 1rem;
-}
-
-.container {
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.page-header {
-  margin-bottom: 2rem;
+  background: var(--bg-secondary);
+  padding-bottom: 100px;
 }
 
 .loading-state {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 4rem 1rem;
+  gap: 16px;
+  padding: 48px 20px;
   text-align: center;
-
-  .loading-spinner {
-    width: 48px;
-    height: 48px;
-    border: 4px solid #E5E7EB;
-    border-top-color: #1E40AF;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin-bottom: 1rem;
-  }
 
   p {
-    color: #6B7280;
-    font-size: 1rem;
+    font-size: 14px;
+    color: var(--text-muted);
+    margin: 0;
   }
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
+// Step indicator rows inside the card
+.step-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+
+  &--last .step-indicator {
+    // Hide connector line on last step
+    .step-connector-v {
+      display: none;
+    }
   }
 }
 
-.validation-content {
+.step-indicator {
   display: flex;
-  justify-content: center;
-}
-
-.validation-card {
-  background: white;
-  border-radius: 16px;
-  padding: 2rem;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-  text-align: center;
-  width: 100%;
-}
-
-.validation-icon {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 1.5rem;
-
-  svg {
-    color: #F59E0B;
-  }
-}
-
-.validation-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #1F2937;
-  margin: 0 0 0.75rem 0;
-}
-
-.validation-message {
-  font-size: 1rem;
-  color: #6B7280;
-  margin: 0 0 2rem 0;
-  line-height: 1.5;
-}
-
-// Steps Progress
-.steps-progress {
-  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  margin-bottom: 2rem;
-  padding: 1.5rem;
-  background: #F9FAFB;
-  border-radius: 12px;
+  flex-shrink: 0;
 }
 
-.step {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  background: white;
-  border: 2px solid #E5E7EB;
-  transition: all 0.2s ease;
-
-  &.completed {
-    border-color: #16A34A;
-    background: #F0FDF4;
-
-    .step-icon {
-      background: #16A34A;
-      color: white;
-    }
-
-    .step-status {
-      color: #16A34A;
-    }
-  }
-
-  &.active {
-    border-color: #1E40AF;
-    box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
-
-    .step-icon {
-      background: #1E40AF;
-      color: white;
-    }
-  }
-}
-
-.step-icon {
+.step-circle {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #E5E7EB;
-  color: #6B7280;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 600;
-  font-size: 0.875rem;
+  font-size: 13px;
+  font-weight: 700;
   flex-shrink: 0;
+
+  &--done {
+    background: var(--success);
+    color: white;
+  }
+
+  &--active {
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 0 0 4px var(--primary-bg);
+  }
+
+  &--pending {
+    background: var(--bg-elevated);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+
+  &--failed {
+    background: var(--danger);
+    color: white;
+  }
 }
 
-.step-info {
+.step-connector-v {
+  width: 2px;
+  height: 24px;
+  background: var(--border);
+  margin: 4px 0;
+
+  &--done {
+    background: var(--success);
+  }
+}
+
+.step-body {
+  flex: 1;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  text-align: left;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0 24px;
 }
 
 .step-label {
+  font-size: 15px;
   font-weight: 600;
-  color: #1F2937;
-  font-size: 0.875rem;
+  color: var(--text-primary);
 }
 
 .step-status {
-  font-size: 0.75rem;
-  color: #6B7280;
-}
+  font-size: 13px;
+  color: var(--text-muted);
 
-.step-connector {
-  width: 24px;
-  height: 2px;
-  background: #E5E7EB;
-  flex-shrink: 0;
-
-  &.completed {
-    background: #16A34A;
-  }
-}
-
-// Info Section
-.info-section {
-  text-align: left;
-  padding: 1.5rem;
-  background: #F0F9FF;
-  border-radius: 12px;
-  margin-bottom: 2rem;
-
-  h3 {
-    font-size: 1rem;
+  &--done {
+    color: var(--success);
     font-weight: 600;
-    color: #1F2937;
-    margin: 0 0 1rem 0;
+  }
+
+  &--failed {
+    color: var(--danger);
+    font-weight: 600;
   }
 }
 
-.info-list {
+// Why verify list
+.section-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0 0 10px;
+}
+
+.why-list {
   list-style: none;
   padding: 0;
-  margin: 0;
+  margin: 0 0 24px;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 8px;
 
   li {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.75rem;
-    color: #4B5563;
-    font-size: 0.875rem;
-    line-height: 1.4;
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    padding-left: 16px;
+    position: relative;
 
-    svg {
-      flex-shrink: 0;
-      color: #1E40AF;
-      margin-top: 0.125rem;
+    &::before {
+      content: '·';
+      position: absolute;
+      left: 0;
+      color: var(--primary);
+      font-weight: 700;
     }
   }
 }
 
-// Action Section
-.action-section {
-  display: flex;
-  justify-content: center;
-
-  .btn-primary {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 1rem 2rem;
-    font-size: 1rem;
-    font-weight: 600;
-  }
-}
-
-// Responsive
-@media (max-width: 480px) {
-  .validation-card {
-    padding: 1.5rem;
-  }
-
-  .steps-progress {
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  .step-connector {
-    width: 2px;
-    height: 16px;
-  }
-
-  .step {
-    width: 100%;
-    justify-content: flex-start;
-  }
+.retry-text {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin: 0 0 24px;
+  line-height: 1.5;
 }

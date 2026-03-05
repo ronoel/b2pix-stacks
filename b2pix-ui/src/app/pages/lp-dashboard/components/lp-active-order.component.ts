@@ -23,7 +23,7 @@ export class LpActiveOrderComponent implements OnInit, OnDestroy {
 
   pixIdValue = '';
   reportReason = '';
-  showReportModal = signal(false);
+  showReportSheet = signal(false);
 
   remainingSeconds = signal(0);
   private timerInterval?: ReturnType<typeof setInterval>;
@@ -89,7 +89,7 @@ export class LpActiveOrderComponent implements OnInit, OnDestroy {
   onReport() {
     const reason = this.reportReason.trim();
     if (reason) {
-      this.showReportModal.set(false);
+      this.showReportSheet.set(false);
       this.reported.emit(reason);
     }
   }

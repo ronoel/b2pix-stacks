@@ -18,11 +18,14 @@ import {
   getExplorerUrl
 } from '../../shared/utils/format.util';
 import { PaymentFormComponent } from './payment-form.component';
+import { PageHeaderComponent } from '../../components/page-header/page-header.component';
+import { StatusSheetComponent } from '../../components/status-sheet/status-sheet.component';
+import { TechnicalDetailsComponent } from '../../components/technical-details/technical-details.component';
 
 @Component({
   selector: 'app-buy-details',
   standalone: true,
-  imports: [NgClass, PaymentFormComponent],
+  imports: [NgClass, PaymentFormComponent, PageHeaderComponent, StatusSheetComponent, TechnicalDetailsComponent],
   encapsulation: ViewEncapsulation.None,
   templateUrl: './buy-details.component.html',
   styleUrl: './buy-details.component.scss'
@@ -43,9 +46,8 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   transactionId = signal('');
   noTransactionId = signal(false);
 
-  // Timer warning modal state
-  showTimeWarningModal = signal(false);
-  hasReadWarning = signal(false);
+  // Time warning sheet state (bottom sheet, triggers at 3 minutes)
+  showTimeWarningSheet = signal(false);
   private hasShownTimeWarning = false;
   private hasShownTimeoutAlert = false;
 
@@ -86,44 +88,18 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   paymentRequest = signal<PaymentRequest | null>(null);
   isLoadingPaymentRequest = signal(false);
 
-  // BTC amount in sats cache
-  private btcAmountInSats = signal(0);
-  private btcAmountInBtc = computed(() => {
-    const sats = this.btcAmountInSats();
-    return sats / 100000000;
-  });
-
   // Auto-refresh timer
   private refreshTimeout: any = null;
 
   constructor() {
-    // Watch for buyData changes and calculate BTC amount
-    effect(() => {
-      const buy = this.buyData();
-      if (buy?.buy_value) {
-        this.buyOrderService.getSatoshisForPrice(buy.buy_value).subscribe({
-          next: (sats) => {
-            this.btcAmountInSats.set(sats);
-          },
-          error: (error) => {
-            console.error('Error getting sats for price:', error);
-            this.btcAmountInSats.set(0);
-          }
-        });
-      } else {
-        this.btcAmountInSats.set(0);
-      }
-    });
-    
     // Watch for timer changes and handle warnings/timeout
     effect(() => {
       const timeLeft = this.paymentTimeLeft();
       
-      // Show warning modal when less than 1 minute remaining (only once)
-      if (timeLeft > 0 && timeLeft < 60 && !this.hasShownTimeWarning) {
+      // Show warning sheet when less than 3 minutes remaining (only once)
+      if (timeLeft > 0 && timeLeft < 180 && !this.hasShownTimeWarning) {
         this.hasShownTimeWarning = true;
-        this.hasReadWarning.set(false);
-        this.showTimeWarningModal.set(true);
+        this.showTimeWarningSheet.set(true);
       }
       
       // Handle timeout
@@ -280,12 +256,10 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     }).format(value);
   }
 
-  getBtcAmountInSats(): number {
-    return this.btcAmountInSats();
-  }
-
   getBtcAmount(): number {
-    return this.btcAmountInBtc();
+    const buy = this.buyData();
+    if (!buy?.amount) return 0;
+    return buy.amount / 100_000_000;
   }
 
   formatBTC(amount: number): string {
@@ -327,20 +301,13 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     }
   }
 
-  closeTimeWarningModal() {
-    this.showTimeWarningModal.set(false);
-    this.hasReadWarning.set(false); // Reset checkbox when closing modal
+  closeTimeWarningSheet() {
+    this.showTimeWarningSheet.set(false);
   }
 
-  cancelFromWarningModal() {
-    this.showTimeWarningModal.set(false);
-    this.hasReadWarning.set(false); // Reset checkbox when closing modal
+  cancelFromWarningSheet() {
+    this.showTimeWarningSheet.set(false);
     this.cancelPurchase();
-  }
-
-  onWarningReadChange(event: Event) {
-    const target = event.target as HTMLInputElement;
-    this.hasReadWarning.set(target.checked);
   }
 
   confirmPayment(event?: Event) {
@@ -457,18 +424,18 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     const status = this.buyData()?.status;
     const statusStr = status?.toString().toLowerCase();
     if (statusStr === 'created') {
-      return 'Pagamento via PIX';
+      return 'Pagamento PIX';
     }
-    return 'Detalhes da Compra';
+    return 'Detalhes da compra';
   }
 
   getPageSubtitle(): string {
     const status = this.buyData()?.status;
     const statusStr = status?.toString().toLowerCase();
     if (statusStr === 'created') {
-      return 'Complete o pagamento para receber seus Bitcoins';
+      return 'Passo 1 de 2';
     }
-    return 'Acompanhe o status da sua compra de Bitcoin';
+    return 'Passo 2 de 2';
   }
 
   getStatusClass(status: BuyOrderStatus): string {
@@ -555,6 +522,15 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     }
   }
 
+  isTimerDanger(): boolean {
+    return this.paymentTimeLeft() < 60 && this.paymentTimeLeft() > 0;
+  }
+
+  isTimerWarning(): boolean {
+    const t = this.paymentTimeLeft();
+    return t >= 60 && t < 180;
+  }
+
   formatBRLCurrency(valueInCents: string | number): string {
     const value = typeof valueInCents === 'string' ? parseInt(valueInCents) : valueInCents;
     return formatBrlCents(value);
@@ -624,6 +600,7 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
 
     // Explicitly monitor these statuses that need auto-refresh
     const statusesNeedingMonitoring = [
+      'created',     // Payment pending, user may still be on page
       'processing',  // User marked as paid, payment being verified
       'analyzing'    // Payment verification failed, manual review needed
     ];
@@ -647,7 +624,7 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     if (this.needsMonitoring()) {
       this.refreshTimeout = setTimeout(() => {
         this.refreshBuyData();
-      }, 5000); // 5 seconds
+      }, 10000); // 10 seconds
     }
   }
 

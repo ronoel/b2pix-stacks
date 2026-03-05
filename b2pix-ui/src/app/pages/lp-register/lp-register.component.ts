@@ -2,12 +2,13 @@ import { Component, inject, signal } from '@angular/core';
 
 import { Router } from '@angular/router';
 import { BankSetupComponent } from '../../components/bank-setup/bank-setup.component';
+import { PageHeaderComponent } from '../../components/page-header/page-header.component';
 import { AccountValidationService } from '../../shared/api/account-validation.service';
 
 @Component({
   selector: 'app-lp-register',
   standalone: true,
-  imports: [BankSetupComponent],
+  imports: [BankSetupComponent, PageHeaderComponent],
   templateUrl: './lp-register.component.html',
   styleUrls: ['./lp-register.component.scss']
 })
@@ -30,7 +31,7 @@ export class LpRegisterComponent {
   }
 
   onSetupComplete() {
-    this.router.navigate(['/dashboard']);
+    this.router.navigate(['/lp-dashboard']);
   }
 
   onSetupCancelled() {
@@ -45,7 +46,7 @@ export class LpRegisterComponent {
     }
   }
 
-  goToDashboard() {
-    this.router.navigate(['/dashboard']);
+  goToPanel() {
+    this.router.navigate(['/lp-dashboard']);
   }
 }
