@@ -54,7 +54,7 @@ export class ManagerPayoutService {
   }
 
   resolveEscalation(id: string): Observable<PixPayoutRequest> {
-    const timestamp = Date.now();
+    const timestamp = new Date().toISOString();
     const payload = `B2PIX - Resolve Escalation\nb2pix.org\n${id}\n${timestamp}`;
 
     return from(this.walletManager.signMessage(payload)).pipe(
