@@ -3,7 +3,17 @@
 
     <!-- Header: wallet address + exit -->
     <div class="dash-header">
-      <span class="dash-header__address font-mono">{{ truncatedAddress() }}</span>
+      <button class="dash-header__address font-mono" (click)="navigate('/wallet')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 12V8H6a2 2 0 01-2-2c0-1.1.9-2 2-2h12v4"/>
+          <path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/>
+          <path d="M18 12a2 2 0 000 4h4v-4h-4z"/>
+        </svg>
+        {{ truncatedAddress() }}
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 18l6-6-6-6"/>
+        </svg>
+      </button>
       <button class="dash-header__exit" (click)="disconnect()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
