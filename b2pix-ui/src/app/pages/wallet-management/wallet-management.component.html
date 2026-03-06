@@ -200,6 +200,27 @@
         }
       </div>
     }
+    <!-- LP Register CTA -->
+    @if (!accountInfo()?.is_lp) {
+    <div class="lp-cta-card" (click)="navigateToLpRegister()">
+      <div class="lp-cta-card__icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2V22" stroke="currentColor" stroke-width="2"/>
+          <path d="M17 5H9.5C8.12 5 7 6.12 7 7.5C7 8.88 8.12 10 9.5 10H14.5C15.88 10 17 11.12 17 12.5C17 13.88 15.88 15 14.5 15H7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="lp-cta-card__content">
+        <span class="lp-cta-card__title">Tornar-se Operador PIX</span>
+        <span class="lp-cta-card__desc">Processe pagamentos e ganhe Bitcoin</span>
+      </div>
+      <div class="lp-cta-card__arrow">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+    }
+
   </div>
 </div>
 

@@ -201,6 +201,10 @@ export class WalletManagementComponent implements OnInit {
     this.router.navigate(['/']);
   }
 
+  navigateToLpRegister() {
+    this.router.navigate(['/lp-register']);
+  }
+
   navigateToEmailVerification() {
     this.router.navigate(['/email-validation']);
   }
