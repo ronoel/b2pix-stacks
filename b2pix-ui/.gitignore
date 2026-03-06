@@ -2,6 +2,7 @@
 /deploy/
 /.claude/
 /docs
+/prototype
 
 # Environment files
 /src/environments/environment.ts

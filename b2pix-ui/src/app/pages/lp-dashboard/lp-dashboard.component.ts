@@ -1,8 +1,12 @@
 import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router } from '@angular/router';
 import { interval, Subscription } from 'rxjs';
 import { PixPayoutRequestService } from '../../shared/api/pix-payout-request.service';
+import { AccountValidationService } from '../../shared/api/account-validation.service';
+import { BankSetupComponent } from '../../components/bank-setup/bank-setup.component';
+import { PageHeaderComponent } from '../../components/page-header/page-header.component';
+import { StatusSheetComponent } from '../../components/status-sheet/status-sheet.component';
 import {
   PixPayoutRequest,
   LpStats,
@@ -11,22 +15,41 @@ import {
   getPayoutRequestStatusClass,
   getSourceTypeLabel
 } from '../../shared/models/pix-payout-request.model';
+import {
+  LpLedgerEntry,
+  getLedgerEntryTypeLabel,
+  getLedgerEntryTypeClass
+} from '../../shared/models/lp-ledger.model';
 import { LpQueueCardComponent } from './components/lp-queue-card.component';
 import { LpActiveOrderComponent } from './components/lp-active-order.component';
+import { LpConvertModalComponent } from './components/lp-convert-modal.component';
+import { LpWithdrawModalComponent } from './components/lp-withdraw-modal.component';
+import { MessageChatComponent } from '../../components/order-status/components/message-chat/message-chat.component';
+import { formatBrlCents, formatSats, formatSatsToBtc, formatDateTime } from '../../shared/utils/format.util';
 
 @Component({
   selector: 'app-lp-dashboard',
   standalone: true,
-  imports: [CommonModule, LpQueueCardComponent, LpActiveOrderComponent],
+  imports: [
+    LpQueueCardComponent,
+    LpActiveOrderComponent,
+    BankSetupComponent,
+    MessageChatComponent,
+    LpConvertModalComponent,
+    LpWithdrawModalComponent,
+    PageHeaderComponent,
+    StatusSheetComponent
+  ],
   templateUrl: './lp-dashboard.component.html',
   styleUrls: ['./lp-dashboard.component.scss']
 })
 export class LpDashboardComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private payoutRequestService = inject(PixPayoutRequestService);
+  private accountValidationService = inject(AccountValidationService);
 
-  // Tabs
-  currentTab = signal<'queue' | 'history' | 'stats'>('queue');
+  // Tabs — 3 tabs: operations, history, ledger
+  currentTab = signal<'operations' | 'history' | 'ledger'>('operations');
 
   // Stats
   stats = signal<LpStats | null>(null);
@@ -50,6 +73,22 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
   historyPage = signal(1);
   historyHasMore = signal(false);
 
+  // Sheets (replaces modal signals)
+  activeSheet = signal<'convert' | 'withdraw' | 'credentials' | null>(null);
+  isSheetProcessing = signal(false);
+
+  // BTC Ledger
+  ledgerItems = signal<LpLedgerEntry[]>([]);
+  isLoadingLedger = signal(false);
+  ledgerPage = signal(1);
+  ledgerHasMore = signal(false);
+
+  // Bank Setup
+  showBankSetup = signal(false);
+
+  // History Chat
+  expandedChatId = signal<string | null>(null);
+
   // Feedback
   successMessage = signal('');
   errorMessage = signal('');
@@ -70,12 +109,12 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
   // Tab Navigation
   // ============================================
 
-  switchTab(tab: 'queue' | 'history' | 'stats') {
+  switchTab(tab: 'operations' | 'history' | 'ledger') {
     this.currentTab.set(tab);
     this.clearMessages();
 
     switch (tab) {
-      case 'queue':
+      case 'operations':
         if (this.queueItems().length === 0 && !this.activeOrder()) {
           this.loadQueue();
         }
@@ -85,8 +124,10 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
           this.loadHistory();
         }
         break;
-      case 'stats':
-        this.loadStats();
+      case 'ledger':
+        if (this.ledgerItems().length === 0) {
+          this.loadLedger();
+        }
         break;
     }
   }
@@ -102,12 +143,8 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
         this.stats.set(stats);
         this.isLoadingStats.set(false);
 
-        // If LP has an active order, fetch it from history
-        if (stats.active_order_count > 0) {
-          this.loadActiveOrderFromHistory();
-        } else {
-          this.loadQueue();
-        }
+        // Check history for any active order (lp_assigned)
+        this.loadActiveOrderFromHistory();
       },
       error: (error) => {
         console.error('Error loading LP stats:', error);
@@ -230,7 +267,7 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
         this.processingActionType.set('');
         this.activeOrder.set(null);
         this.stopPolling();
-        this.showSuccess('Pagamento confirmado com sucesso! Credito BRL adicionado.');
+        this.showSuccess('Pagamento confirmado com sucesso! Crédito BRL adicionado.');
         this.loadStats();
       },
       error: (error) => {
@@ -282,7 +319,7 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
         this.processingActionType.set('');
         this.activeOrder.set(null);
         this.stopPolling();
-        this.showSuccess('Problema reportado. A ordem sera analisada pela administracao.');
+        this.showSuccess('Problema reportado. A ordem será analisada pela administração.');
         this.loadQueue();
       },
       error: (error) => {
@@ -314,6 +351,10 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
         this.showError(this.getErrorMessage(error));
       }
     });
+  }
+
+  toggleHistoryChat(id: string) {
+    this.expandedChatId.update(current => current === id ? null : id);
   }
 
   loadMoreHistory() {
@@ -372,29 +413,107 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
   }
 
   // ============================================
+  // BTC Ledger
+  // ============================================
+
+  loadLedger() {
+    this.isLoadingLedger.set(true);
+    this.ledgerPage.set(1);
+
+    this.payoutRequestService.getLedger({ page: 1, limit: 10 }).subscribe({
+      next: (response) => {
+        this.ledgerItems.set(response.items);
+        this.ledgerHasMore.set(response.has_more);
+        this.isLoadingLedger.set(false);
+      },
+      error: (error) => {
+        console.error('Error loading ledger:', error);
+        this.isLoadingLedger.set(false);
+        this.showError(this.getErrorMessage(error));
+      }
+    });
+  }
+
+  loadMoreLedger() {
+    const nextPage = this.ledgerPage() + 1;
+    this.isLoadingLedger.set(true);
+
+    this.payoutRequestService.getLedger({ page: nextPage, limit: 10 }).subscribe({
+      next: (response) => {
+        this.ledgerItems.update(items => [...items, ...response.items]);
+        this.ledgerPage.set(nextPage);
+        this.ledgerHasMore.set(response.has_more);
+        this.isLoadingLedger.set(false);
+      },
+      error: (error) => {
+        console.error('Error loading more ledger:', error);
+        this.isLoadingLedger.set(false);
+      }
+    });
+  }
+
+  // ============================================
+  // BTC Convert & Withdraw
+  // ============================================
+
+  onConvertBalance(cents: number) {
+    this.isSheetProcessing.set(true);
+
+    this.payoutRequestService.convertBalance(cents).subscribe({
+      next: () => {
+        this.isSheetProcessing.set(false);
+        this.activeSheet.set(null);
+        this.showSuccess('Saldo convertido para Bitcoin com sucesso!');
+        this.loadStats();
+        if (this.currentTab() === 'ledger') {
+          this.loadLedger();
+        }
+      },
+      error: (error) => {
+        console.error('Error converting balance:', error);
+        this.isSheetProcessing.set(false);
+        this.showError(this.getErrorMessage(error));
+      }
+    });
+  }
+
+  onWithdrawBtc(sats: number) {
+    this.isSheetProcessing.set(true);
+
+    this.payoutRequestService.withdrawBtc(sats).subscribe({
+      next: () => {
+        this.isSheetProcessing.set(false);
+        this.activeSheet.set(null);
+        this.showSuccess('Saque de Bitcoin realizado com sucesso!');
+        this.loadStats();
+        if (this.currentTab() === 'ledger') {
+          this.loadLedger();
+        }
+      },
+      error: (error) => {
+        console.error('Error withdrawing BTC:', error);
+        this.isSheetProcessing.set(false);
+        this.showError(this.getErrorMessage(error));
+      }
+    });
+  }
+
+  // ============================================
   // Helpers
   // ============================================
 
-  formatBrlCents(cents: number): string {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-      minimumFractionDigits: 2
-    }).format(cents / 100);
+  formatBrlCents = formatBrlCents;
+  formatSats = formatSats;
+  formatSatsToBtc = formatSatsToBtc;
+  formatDateTime = formatDateTime;
+
+  formatBrlCentsSigned(cents: number): string {
+    const prefix = cents < 0 ? '-' : '';
+    return prefix + formatBrlCents(Math.abs(cents));
   }
 
-  formatSats(amount: number): string {
-    return new Intl.NumberFormat('pt-BR').format(amount);
-  }
-
-  formatDateTime(dateString: string): string {
-    return new Intl.DateTimeFormat('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(new Date(dateString));
+  getEffectiveBalance(stats: LpStats): number {
+    return stats.balance_cents - stats.advance_cents;
   }
 
   getStatusLabel(status: string): string {
@@ -409,9 +528,20 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
     return getSourceTypeLabel(sourceType as any);
   }
 
+  getLedgerEntryLabel(entryType: string): string {
+    return getLedgerEntryTypeLabel(entryType as any);
+  }
+
+  getLedgerEntryClass(entryType: string): string {
+    return getLedgerEntryTypeClass(entryType as any);
+  }
+
   private getErrorMessage(error: any): string {
     if (error?.message?.includes('cancelada') || error?.message?.includes('cancelled') || error?.message?.includes('User denied')) {
-      return 'Assinatura cancelada pelo usuario.';
+      return 'Assinatura cancelada pelo usuário.';
+    }
+    if (error?.status === 409) {
+      return 'Seu crédito está temporariamente bloqueado enquanto um pagamento está sendo processado. Tente novamente em alguns minutos.';
     }
     if (error?.error?.error) return error.error.error;
     if (error?.message) return error.message;
@@ -433,6 +563,33 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
   private clearMessages() {
     this.successMessage.set('');
     this.errorMessage.set('');
+  }
+
+  // ============================================
+  // Bank Setup Update
+  // ============================================
+
+  openUpdateSheet() {
+    this.activeSheet.set('credentials');
+  }
+
+  confirmUpdate() {
+    this.activeSheet.set(null);
+    this.showBankSetup.set(true);
+  }
+
+  onBankSetupSuccess() {
+    this.showBankSetup.set(false);
+    this.accountValidationService.clearAccountCache();
+    this.showSuccess('Credenciais bancárias atualizadas com sucesso!');
+  }
+
+  onBankSetupComplete() {
+    this.showBankSetup.set(false);
+  }
+
+  onBankSetupCancelled() {
+    this.showBankSetup.set(false);
   }
 
   goToDashboard() {

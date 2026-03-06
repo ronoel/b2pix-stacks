@@ -65,6 +65,11 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/blocked/blocked.component').then(m => m.BlockedComponent)
   },
   {
+    path: 'manager-dashboard',
+    loadComponent: () => import('./pages/manager-dashboard/manager-dashboard.component').then(m => m.ManagerDashboardComponent),
+    canActivate: [authGuard, managerGuard]
+  },
+  {
     path: 'order-analysis',
     loadComponent: () => import('./pages/dispute-management/dispute-management.component').then(m => m.OrderAnalysisComponent),
     canActivate: [authGuard, managerGuard]
@@ -96,6 +101,11 @@ export const routes: Routes = [
     canActivate: [authGuard, managerGuard]
   },
   {
+    path: 'payout-disputes',
+    loadComponent: () => import('./pages/payout-disputes/payout-disputes.component').then(m => m.PayoutDisputesComponent),
+    canActivate: [authGuard, managerGuard]
+  },
+  {
     path: 'lp-register',
     loadComponent: () => import('./pages/lp-register/lp-register.component').then(m => m.LpRegisterComponent),
     canActivate: [authGuard]
@@ -106,9 +116,15 @@ export const routes: Routes = [
     canActivate: [authGuard, lpGuard]
   },
   {
-    path: 'send/sBTC',
+    path: 'send/bitcoin',
     loadComponent: () => import('./pages/send-sbtc/send-sbtc.component').then(m => m.SendSBTCComponent),
     canActivate: [authGuard]
+  },
+  // Legacy route for backward compatibility
+  {
+    path: 'send/sBTC',
+    redirectTo: '/send/bitcoin',
+    pathMatch: 'full'
   },
   {
     path: 'wallet',

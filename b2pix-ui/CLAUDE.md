@@ -1,12 +1,14 @@
 # B2PIX UI
 
-Angular 19+ PIX↔Bitcoin exchange frontend.
+Angular 21+ PIX↔Bitcoin exchange frontend.
 
 ## Stack
 
-- Angular 19+ standalone components, signals, new control flow (`@if`, `@for`)
+- Angular 21+ standalone components, signals, new control flow (`@if`, `@for`, `@switch`)
 - TypeScript, SCSS, npm
 - Dependency injection via `inject()` — never constructor injection
+- Arrow functions supported in templates (e.g., `(click)="count.update(n => n + 1)"`)
+- Do NOT import `CommonModule` — use new control flow and direct pipe/directive imports instead
 
 ## Commands
 

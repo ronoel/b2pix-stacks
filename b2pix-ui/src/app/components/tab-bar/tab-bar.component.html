@@ -1,0 +1,27 @@
+<nav class="tab-bar" aria-label="Navegação principal">
+  <div class="tab-bar-inner">
+    <a class="tab-item" routerLink="/dashboard" [class.active]="isActive('/dashboard')">
+      <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+        <path d="M9 22V12h6v10"/>
+      </svg>
+      <span>Início</span>
+    </a>
+    <a class="tab-item" routerLink="/buy" [class.active]="isActive('/buy')">
+      <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 19V5M5 12l7-7 7 7"/>
+      </svg>
+      <span>Comprar</span>
+    </a>
+    <a class="tab-item" routerLink="/sell" [class.active]="isActive('/sell')">
+      <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 5v14M19 12l-7 7-7-7"/>
+      </svg>
+      <span>Vender</span>
+    </a>
+    <a class="tab-item" routerLink="/pix-payment" [class.active]="isActive('/pix-payment')">
+      <img src="images/qr-code-scan-icon.svg" width="23" height="23" alt="" class="tab-icon" />
+      <span>Pagar PIX</span>
+    </a>
+  </div>
+</nav>

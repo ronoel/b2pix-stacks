@@ -1,17 +1,21 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import { BoltContractSBTCService } from '../../libs/bolt-contract-sbtc.service';
-import { environment } from '../../../environments/environment';
 import { sBTCTokenService } from '../../libs/sbtc-token.service';
 import { QuoteService } from '../../shared/api/quote.service';
+import { formatSats as formatSatsUtil, formatBrlCents, getExplorerUrl, formatTruncated } from '../../shared/utils/format.util';
+import { PageHeaderComponent } from '../../components/page-header/page-header.component';
+import { StatusSheetComponent } from '../../components/status-sheet/status-sheet.component';
+import { TechnicalDetailsComponent } from '../../components/technical-details/technical-details.component';
+import { QuickAmountChipsComponent } from '../../components/quick-amount-chips/quick-amount-chips.component';
 
 @Component({
   selector: 'app-send-sbtc',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, PageHeaderComponent, StatusSheetComponent, TechnicalDetailsComponent, QuickAmountChipsComponent],
   templateUrl: './send-sbtc.component.html',
   styleUrl: './send-sbtc.component.scss'
 })
@@ -24,8 +28,15 @@ export class SendSBTCComponent implements OnInit {
 
   // Form fields
   recipientAddress = '';
-  sendAmount: number | null = null;
   sendMemo = '';
+
+  // Amount signals (dual-mode)
+  sendMode = signal<'brl' | 'sats'>('brl');
+  amountInSats = signal<number>(0);
+  amountInBrl = signal<number>(0);
+  selectedQuickAmount = signal<number>(0);
+
+  readonly QUICK_AMOUNTS_BRL = [50, 250, 500, 1000];
 
   // State signals
   isSending = signal<boolean>(false);
@@ -33,16 +44,47 @@ export class SendSBTCComponent implements OnInit {
   transactionSuccess = signal<boolean>(false);
   transactionId = signal<string>('');
   txIdCopied = signal<boolean>(false);
-  showConfirmation = signal<boolean>(false);
+  showConfirmationSheet = signal<boolean>(false);
 
   // Balance
-  sBtcBalance = signal<number>(0);
+  sBtcBalance = signal<number>(0); // in satoshis
   isLoadingBalance = signal<boolean>(false);
 
   // Fee and Price
-  fee = signal<number>(0);
+  fee = signal<number>(0); // fee in satoshis
   btcPriceInBRL = signal<number>(0); // Price in cents (e.g., 9534562 = R$95,345.62)
   isLoadingPrice = signal<boolean>(false);
+
+  /** BRL cents from amountInBrl (for display/summary) */
+  sendAmountCents = computed<number>(() => Math.round(this.amountInBrl() * 100));
+
+  /** Amount to send in satoshis */
+  sendAmountSats = computed<number>(() => this.amountInSats());
+
+  /** Fee in BRL cents */
+  feeCents = computed<number>(() => {
+    if (this.btcPriceInBRL() === 0) return 0;
+    const btcPriceInReais = this.btcPriceInBRL() / 100;
+    const feeBtc = this.fee() / 100_000_000;
+    return Math.round(feeBtc * btcPriceInReais * 100);
+  });
+
+  /** Total in BRL cents (amount + fee) */
+  totalCents = computed<number>(() => this.sendAmountCents() + this.feeCents());
+
+  /** Balance in BRL (reais, not cents) */
+  balanceBrl = computed<number>(() => {
+    if (this.btcPriceInBRL() === 0) return 0;
+    return (this.sBtcBalance() / 100_000_000) * (this.btcPriceInBRL() / 100);
+  });
+
+  /** Total amount (send + fee) in sats */
+  totalSats = computed<number>(() => this.sendAmountSats() + this.fee());
+
+  /** Disabled quick amounts (balance too low) */
+  disabledQuickAmounts = computed<number[]>(() =>
+    this.QUICK_AMOUNTS_BRL.filter(a => this.balanceBrl() < a)
+  );
 
   ngOnInit() {
     this.loadBalance();
@@ -60,7 +102,7 @@ export class SendSBTCComponent implements OnInit {
           this.isLoadingBalance.set(false);
         },
         error: (error) => {
-          console.error('Error fetching sBTC balance:', error);
+          console.error('Error fetching balance:', error);
           this.isLoadingBalance.set(false);
         }
       });
@@ -90,7 +132,7 @@ export class SendSBTCComponent implements OnInit {
     this.router.navigate(['/dashboard']);
   }
 
-  goToDashboard() {
+  goHome() {
     this.router.navigate(['/dashboard']);
   }
 
@@ -98,50 +140,92 @@ export class SendSBTCComponent implements OnInit {
     this.resetForm();
     this.transactionSuccess.set(false);
     this.transactionId.set('');
-    this.showConfirmation.set(false);
+    this.showConfirmationSheet.set(false);
   }
 
-  setMaxAmount() {
-    const balance = this.sBtcBalance();
-    const fee = this.fee();
-    if (balance > fee) {
-      // Subtract fee from balance to get the maximum sendable amount
-      this.sendAmount = balance - fee;
+  onAmountChange(event: Event) {
+    const value = parseFloat((event.target as HTMLInputElement).value) || 0;
+    this.selectedQuickAmount.set(0);
+    this.amountInBrl.set(value);
+    if (this.btcPriceInBRL() > 0 && value > 0) {
+      const btcPrice = this.btcPriceInBRL() / 100;
+      this.amountInSats.set(Math.round((value / btcPrice) * 100_000_000));
     } else {
-      this.sendAmount = 0;
+      this.amountInSats.set(0);
     }
+  }
+
+  onSatsAmountChange(event: Event) {
+    const value = parseInt((event.target as HTMLInputElement).value) || 0;
+    this.selectedQuickAmount.set(0);
+    this.amountInSats.set(value);
+    if (this.btcPriceInBRL() > 0 && value > 0) {
+      const btcPrice = this.btcPriceInBRL() / 100;
+      this.amountInBrl.set(Math.round(((value / 100_000_000) * btcPrice) * 100) / 100);
+    } else {
+      this.amountInBrl.set(0);
+    }
+  }
+
+  selectQuickAmount(brlAmount: number) {
+    this.selectedQuickAmount.set(brlAmount);
+    this.amountInBrl.set(brlAmount);
+    if (this.btcPriceInBRL() > 0) {
+      const btcPrice = this.btcPriceInBRL() / 100;
+      this.amountInSats.set(Math.round((brlAmount / btcPrice) * 100_000_000));
+    }
+  }
+
+  /** Set amount to maximum sendable (balance - fee) */
+  setMaxAmount() {
+    const balanceSats = this.sBtcBalance();
+    const feeSats = this.fee();
+    const maxSats = Math.max(0, balanceSats - feeSats);
+    this.amountInSats.set(maxSats);
+    if (this.btcPriceInBRL() > 0 && maxSats > 0) {
+      const btcPrice = this.btcPriceInBRL() / 100;
+      this.amountInBrl.set(Math.round(((maxSats / 100_000_000) * btcPrice) * 100) / 100);
+    } else {
+      this.amountInBrl.set(0);
+    }
+    this.selectedQuickAmount.set(-1);
   }
 
   resetForm() {
     this.recipientAddress = '';
-    this.sendAmount = null;
     this.sendMemo = '';
+    this.amountInSats.set(0);
+    this.amountInBrl.set(0);
+    this.selectedQuickAmount.set(0);
+    this.sendMode.set('brl');
     this.sendError.set('');
     this.isSending.set(false);
   }
 
-  sendBitcoin() {
-    if (!this.recipientAddress || !this.sendAmount) {
-      this.sendError.set('Por favor, preencha todos os campos obrigatórios.');
+  /** Opens the confirmation bottom sheet after basic validation */
+  reviewSend() {
+    if (!this.recipientAddress) {
+      this.sendError.set('Por favor, informe o endereço do destinatário.');
       return;
     }
 
-    if (this.sendAmount <= 0) {
-      this.sendError.set('A quantidade deve ser maior que zero.');
+    if (this.amountInSats() <= 0) {
+      this.sendError.set('Por favor, informe um valor válido.');
       return;
     }
 
     this.sendError.set('');
-    this.showConfirmation.set(true);
+    this.showConfirmationSheet.set(true);
   }
 
   cancelConfirmation() {
-    this.showConfirmation.set(false);
+    this.showConfirmationSheet.set(false);
     this.sendError.set('');
   }
 
   confirmSend() {
-    if (!this.recipientAddress || !this.sendAmount) {
+    const amountSats = this.sendAmountSats();
+    if (!this.recipientAddress || amountSats <= 0) {
       return;
     }
 
@@ -149,13 +233,13 @@ export class SendSBTCComponent implements OnInit {
     this.sendError.set('');
 
     this.boltContractSBTCService.transferStacksToStacks(
-      this.sendAmount,
+      amountSats,
       this.recipientAddress,
       this.sendMemo
     ).subscribe({
       next: (response) => {
         this.isSending.set(false);
-        this.showConfirmation.set(false);
+        this.showConfirmationSheet.set(false);
         this.transactionSuccess.set(true);
 
         if (response.txid) {
@@ -178,26 +262,7 @@ export class SendSBTCComponent implements OnInit {
     });
   }
 
-  formatBtcPriceBRL(): string {
-    const priceInReais = this.btcPriceInBRL() / 100;
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(priceInReais);
-  }
-
-  formatTransactionId(txId: string): string {
-    if (!txId || txId.length <= 16) return txId;
-    return `${txId.substring(0, 12)}...${txId.substring(txId.length - 8)}`;
-  }
-
-  getBlockchainExplorerUrl(txId: string): string {
-    if (!txId) return '';
-    // Add 0x prefix if not present and generate Hiro explorer link
-    const transactionId = txId.startsWith('0x') ? txId : `0x${txId}`;
-    const chain = environment.network === 'mainnet' ? 'mainnet' : 'testnet';
-    return `https://explorer.hiro.so/txid/${transactionId}?chain=${chain}`;
-  }
+  getBlockchainExplorerUrl = getExplorerUrl;
 
   copyTransactionId() {
     const txId = this.transactionId();
@@ -211,43 +276,20 @@ export class SendSBTCComponent implements OnInit {
     }
   }
 
-  formatSats(amount: string): string {
-    return new Intl.NumberFormat('pt-BR').format(Number(amount));
+  formatSats(sats: number): string {
+    return formatSatsUtil(sats);
   }
 
-  /**
-   * Convert satoshis to BRL
-   * @param sats Amount in satoshis
-   * @returns BRL value formatted as string (e.g., "R$ 1.234,56")
-   */
-  convertSatsToBRL(sats: number): string {
-    if (this.btcPriceInBRL() === 0 || this.isLoadingPrice()) {
-      return 'Carregando...';
-    }
-
-    // 1 BTC = 100,000,000 sats
-    // btcPriceInBRL is in cents (e.g., 9534562 = R$95,345.62)
-    const btcPriceInReais = this.btcPriceInBRL() / 100;
-    const btcAmount = sats / 100000000;
-    const brlValue = btcAmount * btcPriceInReais;
-
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(brlValue);
+  formatBRL(cents: number): string {
+    return formatBrlCents(cents);
   }
 
-  /**
-   * Get the total amount including fee
-   */
-  getTotalAmount(): number {
-    return (this.sendAmount || 0) + this.fee();
+  formatTxId(txId: string): string {
+    return formatTruncated(txId, 8, 6);
   }
 
-  /**
-   * Get the total amount in BRL including fee
-   */
-  getTotalAmountInBRL(): string {
-    return this.convertSatsToBRL(this.getTotalAmount());
+  truncateAddress(address: string): string {
+    if (!address || address.length <= 16) return address;
+    return `${address.substring(0, 8)}...${address.substring(address.length - 6)}`;
   }
 }

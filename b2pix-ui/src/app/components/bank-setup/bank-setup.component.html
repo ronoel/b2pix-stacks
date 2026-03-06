@@ -1,0 +1,423 @@
+<div class="bank-setup">
+  <!-- Step Indicator -->
+  <div class="steps-indicator">
+    <div class="step" [class.active]="currentStep === 1" [class.completed]="currentStep > 1">
+      <div class="step-circle">1</div>
+      <span>Configurar Credenciais</span>
+    </div>
+    <div class="step-line" [class.completed]="currentStep > 1"></div>
+    <div class="step" [class.active]="currentStep === 2" [class.completed]="currentStep > 2">
+      <div class="step-circle">2</div>
+      <span>Certificado</span>
+    </div>
+    <div class="step-line" [class.completed]="currentStep > 2"></div>
+    <div class="step" [class.active]="currentStep === 3" [class.completed]="currentStep > 3">
+      <div class="step-circle">3</div>
+      <span>Finalizar</span>
+    </div>
+    <div class="step-line" [class.completed]="currentStep > 3"></div>
+    <div class="step" [class.active]="currentStep === 4">
+      <div class="step-circle">4</div>
+      <span>Resultado</span>
+    </div>
+  </div>
+
+  <!-- Step 1: API Configuration -->
+  @if (currentStep === 1) {
+    <div class="step-content">
+      <div class="step-header">
+        <div class="step-icon api-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+            <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h2>Configurar Credenciais da API PIX</h2>
+        <p>Configure a API PIX no aplicativo web do Banco EFI</p>
+      </div>
+
+      <div class="warning-box">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M10.29 3.86L1.82 18C1.64 18.37 1.9 18.8 2.32 18.8H21.68C22.1 18.8 22.36 18.37 22.18 18L13.71 3.86C13.53 3.49 13.07 3.49 12.89 3.86L10.29 3.86Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12 17H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div>
+          <strong>Importante:</strong> Acesse o aplicativo do banco pelo computador, não pelo celular.
+        </div>
+      </div>
+
+      <div class="instructions-list">
+        <div class="instruction-item">
+          <div class="instruction-number">1</div>
+          <div class="instruction-content">
+            <h4>Acesse o app pelo navegador</h4>
+            <p>Entre na sua conta EFI usando o navegador do computador</p>
+            <button class="btn btn-primary btn-large" (click)="openBankApp()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M18 13V6C18 5.46957 17.7893 4.96086 17.4142 4.58579C17.0391 4.21071 16.5304 4 16 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V18C2 18.5304 2.21071 19.0391 2.58579 19.4142C2.96086 19.7893 3.46957 20 4 20H16C16.5304 20 17.0391 19.7893 17.4142 19.4142C17.7893 19.0391 18 18.5304 18 18V13Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M22 10V6C22 5.46957 21.7893 4.96086 21.4142 4.58579C21.0391 4.21071 20.5304 4 20 4H18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Abrir App EFI
+            </button>
+          </div>
+        </div>
+
+        <div class="instruction-item">
+          <div class="instruction-number">2</div>
+          <div class="instruction-content">
+            <h4>Vá para o menu "API"</h4>
+            <p>No menu principal, clique em "API"</p>
+          </div>
+        </div>
+
+        <div class="instruction-item">
+          <div class="instruction-number">3</div>
+          <div class="instruction-content">
+            <h4>Criar nova aplicação</h4>
+            <p>Vá em <strong>Aplicações → Criar Aplicação</strong></p>
+            <p>Escolha um nome para a aplicação</p>
+          </div>
+        </div>
+
+        <div class="instruction-item">
+          <div class="instruction-number">4</div>
+          <div class="instruction-content">
+            <h4>Selecione o escopo "API PIX"</h4>
+            <p>Selecione os itens nas colunas "Produção" e "Homologação":</p>
+            <ul class="permissions-list">
+              <li>✓ Consultar PIX</li>
+              <li>✓ Consultar pix enviado</li>
+              <li>✓ Alterar Chaves aleatórias</li>
+              <li>✓ Consultar Chaves aleatórias</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="instruction-item">
+          <div class="instruction-number">5</div>
+          <div class="instruction-content">
+            <h4>Autorizar e obter credenciais</h4>
+            <p>Clique em "Continuar" e confirme com sua assinatura eletrônica</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="credentials-section">
+        <h3>Credenciais Geradas</h3>
+        <p>Após seguir os passos acima, copie e cole as credenciais abaixo:</p>
+
+        <form>
+          <div class="form-group">
+            <label for="clientId">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M16 4H18C18.5304 4 19.0391 4.21071 19.4142 4.58579C19.7893 4.96086 20 5.46957 20 6V20C20 20.5304 19.7893 21.0391 19.4142 21.4142C19.0391 21.7893 18.5304 22 18 22H6C5.46957 22 4.96086 21.7893 4.58579 21.4142C4.21071 21.0391 4 20.5304 4 20V6C4 5.46957 4.21071 4.96086 4.58579 4.58579C4.96086 4.21071 5.46957 4 6 4H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <rect x="8" y="2" width="8" height="4" rx="1" ry="1" stroke="currentColor" stroke-width="2"/>
+              </svg>
+              Chave Client ID
+            </label>
+            <textarea
+              id="clientId"
+              [(ngModel)]="credentials.clientId"
+              name="clientId"
+              placeholder="Cole aqui sua Chave Client ID"
+              class="form-input credential-input"
+              rows="3"
+              required></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="clientSecret">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>
+                <circle cx="12" cy="16" r="1" stroke="currentColor" stroke-width="2"/>
+                <path d="M7 11V7C7 5.67392 7.52678 4.40215 8.46447 3.46447C9.40215 2.52678 10.6739 2 12 2C13.3261 2 14.5979 2.52678 15.5355 3.46447C16.4732 4.40215 17 5.67392 17 7V11" stroke="currentColor" stroke-width="2"/>
+              </svg>
+              Chave Secret
+            </label>
+            <textarea
+              id="clientSecret"
+              [(ngModel)]="credentials.clientSecret"
+              name="clientSecret"
+              placeholder="Cole aqui sua Chave Secret"
+              class="form-input credential-input"
+              rows="3"
+              required></textarea>
+          </div>
+        </form>
+      </div>
+
+      <div class="step-actions">
+        <button class="btn btn-outline" (click)="previousStep()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 19L5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Voltar
+        </button>
+        <button
+          class="btn btn-primary"
+          (click)="nextStep()"
+          [disabled]="!credentials.clientId || !credentials.clientSecret">
+          Continuar
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 5L19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Step 2: Certificate -->
+  @if (currentStep === 2) {
+    <div class="step-content">
+      <div class="step-header">
+        <div class="step-icon cert-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+            <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M16 13V8H8V18H13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h2>Criar e Baixar Certificado</h2>
+        <p>Agora você precisa criar um certificado para autenticação segura</p>
+      </div>
+
+      <div class="instructions-list">
+        <div class="instruction-item">
+          <div class="instruction-number">1</div>
+          <div class="instruction-content">
+            <h4>Criar certificado no app web</h4>
+            <p>No app EFI, clique em <strong>"Criar Certificado"</strong></p>
+          </div>
+        </div>
+
+        <div class="instruction-item">
+          <div class="instruction-number">2</div>
+          <div class="instruction-content">
+            <h4>Novo certificado</h4>
+            <p>Clique em <strong>"Criar Novo Certificado"</strong></p>
+            <p>Escolha um nome para o certificado</p>
+            <p>Clique em <strong>"CRIAR"</strong></p>
+          </div>
+        </div>
+
+        <div class="instruction-item">
+          <div class="instruction-number">3</div>
+          <div class="instruction-content">
+            <h4>Autenticar no celular</h4>
+            <p>No aplicativo do seu <strong>celular</strong>, vá no menu (ícone superior esquerdo)</p>
+            <p>Selecione o primeiro ícone <strong>"Autenticador"</strong></p>
+          </div>
+        </div>
+
+        <div class="instruction-item">
+          <div class="instruction-number">4</div>
+          <div class="instruction-content">
+            <h4>Baixar certificado</h4>
+            <p>Após autenticar pelo celular, baixe o arquivo do certificado</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="upload-section">
+        <h3>Upload do Certificado</h3>
+        <p>Faça upload do arquivo de certificado que você baixou:</p>
+
+        <div class="file-upload-area" [class.has-file]="credentials.certificateFile">
+          <input
+            type="file"
+            id="certificate"
+            accept=".p12,.pem,.crt"
+            (change)="onCertificateSelected($event)"
+            hidden>
+          <label for="certificate" class="upload-zone">
+            @if (credentials.certificateFile) {
+              <div class="file-info">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                  <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <div class="file-details">
+                  <div class="file-name">{{ credentials.certificateFile.name }}</div>
+                  <div class="file-size">{{ formatFileSize(credentials.certificateFile.size) }}</div>
+                </div>
+              </div>
+              <button type="button" class="change-file-btn" (click)="triggerFileInput($event)">Alterar arquivo</button>
+            } @else {
+              <div class="upload-prompt">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                  <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <polyline points="7,10 12,15 17,10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <h4>Clique para selecionar o certificado</h4>
+                <p>Arquivos aceitos: .p12, .pem, .crt</p>
+              </div>
+            }
+          </label>
+        </div>
+      </div>
+
+      <div class="step-actions">
+        <button class="btn btn-outline" (click)="previousStep()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 19L5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Voltar
+        </button>
+        <button
+          class="btn btn-primary"
+          (click)="nextStep()"
+          [disabled]="!credentials.certificateFile">
+          Continuar
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 5L19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Step 3: Review and Submit -->
+  @if (currentStep === 3) {
+    <div class="step-content">
+      <div class="step-header">
+        <div class="step-icon success-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+            <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 20.5304 3 20V9C3 8.46957 3.21071 7.96086 3.58579 7.58579C3.96086 7.21071 4.46957 7 5 7H13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h2>Revisar Configuração</h2>
+        <p>Confirme se todos os dados estão corretos antes de finalizar</p>
+      </div>
+
+      <div class="review-section">
+        <div class="review-item">
+          <div class="review-label">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M16 4H18C18.5304 4 19.0391 4.21071 19.4142 4.58579C19.7893 4.96086 20 5.46957 20 6V20C20 20.5304 19.7893 21.0391 19.4142 21.4142C19.0391 21.7893 18.5304 22 18 22H6C5.46957 22 4.96086 21.7893 4.58579 21.4142C4.21071 21.0391 4 20.5304 4 20V6C4 5.46957 4.21071 4.96086 4.58579 4.58579C4.96086 4.21071 5.46957 4 6 4H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <rect x="8" y="2" width="8" height="4" rx="1" ry="1" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            Client ID
+          </div>
+          <div class="review-value">{{ maskCredential(credentials.clientId) }}</div>
+        </div>
+
+        <div class="review-item">
+          <div class="review-label">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>
+              <circle cx="12" cy="16" r="1" stroke="currentColor" stroke-width="2"/>
+              <path d="M7 11V7C7 5.67392 7.52678 4.40215 8.46447 3.46447C9.40215 2.52678 10.6739 2 12 2C13.3261 2 14.5979 2.52678 15.5355 3.46447C16.4732 4.40215 17 5.67392 17 7V11" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            Client Secret
+          </div>
+          <div class="review-value">{{ maskCredential(credentials.clientSecret) }}</div>
+        </div>
+
+        <div class="review-item">
+          <div class="review-label">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Certificado
+          </div>
+          <div class="review-value">{{ credentials.certificateFile?.name }}</div>
+        </div>
+      </div>
+
+      <div class="final-actions">
+        <button class="btn btn-outline" (click)="previousStep()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 19L5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Voltar
+        </button>
+        <button
+          class="btn btn-primary btn-large"
+          (click)="submitCredentials()"
+          [disabled]="loadingService.getIsLoading()()">
+          @if (loadingService.getIsLoading()()) {
+            <div class="btn-loading"></div>
+            Configurando Sistema Bancário...
+          } @else {
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 20.5304 3 20V9C3 8.46957 3.21071 7.96086 3.58579 7.58579C3.96086 7.21071 4.46957 7 5 7H13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Finalizar Configuração
+          }
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Step 4: Result -->
+  @if (currentStep === 4) {
+    <div class="step-content result-page">
+      @if (setupResult) {
+        <div class="step-header">
+          <div class="step-icon" [class]="setupResult.type + '-icon'">
+            @if (setupResult.type === 'success') {
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none">
+                <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 20.5304 3 20V9C3 8.46957 3.21071 7.96086 3.58579 7.58579C3.96086 7.21071 4.46957 7 5 7H13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            } @else if (setupResult.type === 'warning') {
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none">
+                <path d="M10.29 3.86L1.82 18C1.64 18.37 1.9 18.8 2.32 18.8H21.68C22.1 18.8 22.36 18.37 22.18 18L13.71 3.86C13.53 3.49 13.07 3.49 12.89 3.86L10.29 3.86Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12 17H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            } @else {
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/>
+                <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
+              </svg>
+            }
+          </div>
+          <h2>
+            @if (setupResult.type === 'success') {
+              Configuração Concluída!
+            } @else if (setupResult.type === 'warning') {
+              Atenção Necessária
+            } @else {
+              Erro na Configuração
+            }
+          </h2>
+        </div>
+
+        <div class="result-content-page" [class]="'result-' + setupResult.type">
+          <div class="result-message-page" [innerHTML]="setupResult.message"></div>
+        </div>
+
+        <div class="result-actions-page">
+          @if (setupResult.type === 'success') {
+            <button class="btn btn-primary btn-large" (click)="closeSetup()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Continuar para o Dashboard
+            </button>
+          } @else {
+            <button class="btn btn-outline btn-large" (click)="restartSetup()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M1 4V10H7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M3.51 15C4.15 16.65 5.18 18.08 6.85 19C8.85 20.22 11.43 20.49 13.34 19.5C15.38 18.42 16.81 16.19 17.08 13.66" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Tentar Novamente
+            </button>
+            <button class="btn btn-outline" (click)="closeSetup()">Fechar</button>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

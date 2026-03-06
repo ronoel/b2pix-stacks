@@ -1,5 +1,6 @@
 import { Component, input, output, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { formatSats, formatSatsToBtc } from '../../../shared/utils/format.util';
+import { TechnicalDetailsComponent } from '../../../components/technical-details/technical-details.component';
 
 export interface PixQrData {
   payload: string;
@@ -10,83 +11,87 @@ export interface PixQrData {
 @Component({
   selector: 'app-payment-confirmation',
   standalone: true,
-  imports: [CommonModule],
+  imports: [TechnicalDetailsComponent],
   template: `
     <div class="confirmation">
-      <div class="confirmation-header">
-        <div class="confirmation-icon">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-            <path d="M12 2V22" stroke="currentColor" stroke-width="2"/>
-            <path d="M17 5H9.5C8.11929 5 7 6.11929 7 7.5V7.5C7 8.88071 8.11929 10 9.5 10H14.5C15.8807 10 17 11.1193 17 12.5V12.5C17 13.8807 15.8807 15 14.5 15H7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </div>
-        <h2>Confirmar Pagamento</h2>
-        <p>Revise os detalhes antes de confirmar</p>
-      </div>
 
-      <div class="details-card">
-        <div class="detail-row highlight">
-          <span class="label">Valor PIX</span>
-          <span class="value brl">R$ {{ formatCurrency(pixValueInBrl()) }}</span>
-        </div>
-
-        @if (qrData().recipientName) {
-          <div class="detail-row">
-            <span class="label">Destinatario</span>
-            <span class="value">{{ qrData().recipientName }}</span>
-          </div>
-        }
-
-        <div class="divider"></div>
-
-        <div class="detail-row">
-          <span class="label">Valor em sats</span>
-          <span class="value mono">{{ formatSats(amountInSats()) }} sats</span>
-        </div>
-
-        <div class="detail-row">
-          <span class="label">Em BTC</span>
-          <span class="value mono">{{ formatSatsToBtc(amountInSats()) }} BTC</span>
-        </div>
-
-        <div class="detail-row">
-          <span class="label">Taxa de rede</span>
-          <span class="value mono">{{ formatSats(fee()) }} sats</span>
-        </div>
-
-        <div class="divider"></div>
-
-        <div class="detail-row total">
-          <span class="label">Total debitado</span>
-          <span class="value mono">{{ formatSats(amountInSats() + fee()) }} sats</span>
-        </div>
-      </div>
-
-      @if (insufficientBalance()) {
-        <div class="error-banner">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-            <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/>
-            <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
-          </svg>
-          <p>Saldo insuficiente. Voce precisa de {{ formatSats(amountInSats() + fee()) }} sats mas possui {{ formatSats(balance()) }} sats.</p>
+      <!-- Recipient name (from EMV tag 59) — shown only when present -->
+      @if (qrData().recipientName) {
+        <div class="recipient-block">
+          <span class="recipient-label">Destinatário</span>
+          <span class="recipient-name">{{ qrData().recipientName }}</span>
         </div>
       }
 
+      <!-- PIX value — BRL primary, BTC secondary -->
+      <div class="amount-block">
+        <span class="amount-label">Valor do PIX</span>
+        <span class="amount-brl">{{ formatBrl(pixValueInBrl()) }}</span>
+        <span class="amount-btc">≈ {{ formatSatsToBtc(amountInSats()) }} BTC</span>
+      </div>
+
+      <!-- Breakdown -->
+      <div class="details-card">
+        <div class="detail-row">
+          <span class="detail-label">Taxa de processamento</span>
+          <span class="detail-value">{{ formatBrl(feeInBrl()) }}</span>
+        </div>
+        <div class="divider"></div>
+        <div class="detail-row total-row">
+          <span class="detail-label">Total</span>
+          <span class="detail-value total-value">{{ formatBrl(totalInBrl()) }}</span>
+        </div>
+      </div>
+
+      <!-- Balance after payment -->
+      <div class="balance-card" [class.balance-danger]="insufficientBalance()">
+        <div class="balance-row">
+          <span class="balance-label">Saldo atual</span>
+          <span class="balance-value" [class.text-success]="!insufficientBalance()">
+            {{ formatBrl(balanceInBrl()) }}
+          </span>
+        </div>
+        <div class="balance-row">
+          <span class="balance-label">Saldo após</span>
+          <span class="balance-value" [class.text-danger]="insufficientBalance()">
+            {{ formatBrl(balanceAfterBrl()) }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Insufficient balance warning -->
+      @if (insufficientBalance()) {
+        <div class="alert-box alert-warning" role="alert">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span>Saldo insuficiente. Você precisa de {{ formatBrl(totalInBrl()) }} mas possui {{ formatBrl(balanceInBrl()) }}.</span>
+        </div>
+      }
+
+      <!-- Technical details — collapsed by default -->
+      <app-technical-details
+        [satoshis]="amountInSats()"
+      />
+
+      <!-- Action buttons -->
       <div class="actions">
-        <button class="btn btn-outline" (click)="cancelled.emit()">
-          Voltar
-        </button>
         <button
-          class="btn btn-primary btn-lg"
+          class="btn btn-primary btn-lg full-width"
           [disabled]="insufficientBalance() || isProcessing()"
+          [attr.aria-disabled]="insufficientBalance() || isProcessing()"
           (click)="confirmed.emit()">
           @if (isProcessing()) {
             <div class="btn-spinner"></div>
             Processando...
           } @else {
-            Confirmar Pagamento
+            Confirmar pagamento
           }
+        </button>
+        <button class="btn btn-ghost full-width" (click)="cancelled.emit()">
+          Cancelar
         </button>
       </div>
     </div>
@@ -96,131 +101,154 @@ export interface PixQrData {
       width: 100%;
     }
 
-    .confirmation-header {
-      text-align: center;
-      margin-bottom: 24px;
-
-      h2 {
-        font-size: 22px;
-        font-weight: 700;
-        color: #1F2937;
-        margin: 12px 0 6px;
-      }
-
-      p {
-        font-size: 14px;
-        color: #6B7280;
-        margin: 0;
-      }
-    }
-
-    .confirmation-icon {
-      width: 64px;
-      height: 64px;
+    // Recipient
+    .recipient-block {
       display: flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
-      border: 2px solid #F59E0B;
-      border-radius: 50%;
-      color: #D97706;
-      margin: 0 auto;
+      flex-direction: column;
+      gap: 4px;
+      padding: 14px 16px;
+      background: var(--bg-secondary);
+      border-radius: var(--r-md);
+      margin-bottom: 16px;
     }
 
+    .recipient-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .recipient-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      word-break: break-word;
+    }
+
+    // Amount
+    .amount-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 16px 0;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .amount-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .amount-brl {
+      font-family: var(--font-display);
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--success);
+      line-height: 1.1;
+    }
+
+    .amount-btc {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    // Breakdown card
     .details-card {
-      background: #FFFFFF;
-      border: 1px solid #E5E7EB;
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 20px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 16px;
+      margin-bottom: 12px;
     }
 
     .detail-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 10px 0;
-
-      &.highlight {
-        background: #F0FDF4;
-        margin: -10px -12px 0;
-        padding: 14px 12px;
-        border-radius: 12px;
-        border: 1px solid #BBF7D0;
-        margin-bottom: 4px;
-      }
-
-      &.total {
-        padding-top: 12px;
-
-        .label {
-          font-weight: 700;
-          color: #1F2937;
-          font-size: 14px;
-        }
-
-        .value {
-          font-weight: 700;
-          color: #1F2937;
-          font-size: 15px;
-        }
-      }
+      padding: 6px 0;
     }
 
-    .label {
-      font-size: 13px;
-      color: #6B7280;
+    .detail-label {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    .detail-value {
+      font-size: 14px;
+      color: var(--text-primary);
       font-weight: 500;
     }
 
-    .value {
-      font-size: 14px;
-      color: #1F2937;
-      font-weight: 600;
+    .total-row {
+      padding-top: 10px;
+    }
 
-      &.brl {
-        font-size: 20px;
-        font-weight: 700;
-        color: #16A34A;
-      }
-
-      &.mono {
-        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-      }
+    .total-value {
+      font-weight: 700;
+      font-size: 15px;
     }
 
     .divider {
       height: 1px;
-      background: #E5E7EB;
-      margin: 4px 0;
+      background: var(--border);
+      margin: 6px 0;
     }
 
-    .error-banner {
-      display: flex;
-      gap: 12px;
-      padding: 16px;
-      background: #FEE2E2;
-      border: 1px solid #FCA5A5;
-      border-radius: 8px;
-      color: #991B1B;
-      margin-bottom: 20px;
+    // Balance card
+    .balance-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 12px 16px;
+      margin-bottom: 16px;
 
-      svg { flex-shrink: 0; margin-top: 2px; }
-
-      p {
-        margin: 0;
-        font-size: 14px;
-        line-height: 1.5;
+      &.balance-danger {
+        border-color: var(--danger);
+        background: var(--danger-bg);
       }
     }
 
-    .actions {
+    .balance-row {
       display: flex;
-      gap: 12px;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 0;
     }
 
-    .actions .btn {
-      flex: 1;
+    .balance-label {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .balance-value {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .text-success {
+      color: var(--success);
+    }
+
+    .text-danger {
+      color: var(--danger);
+    }
+
+    // Actions
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .full-width {
+      width: 100%;
     }
 
     .btn-spinner {
@@ -237,19 +265,16 @@ export interface PixQrData {
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
-
-    @media (max-width: 480px) {
-      .actions {
-        flex-direction: column;
-      }
-    }
   `]
 })
 export class PaymentConfirmationComponent {
   qrData = input.required<PixQrData>();
   amountInSats = input.required<number>();
   fee = input.required<number>();
-  balance = input.required<number>();
+  feeInBrl = input<number>(0);
+  totalInBrl = input<number>(0);
+  balanceInBrl = input<number>(0);
+  balanceAfterBrl = input<number>(0);
   isProcessing = input<boolean>(false);
 
   confirmed = output<void>();
@@ -258,21 +283,19 @@ export class PaymentConfirmationComponent {
   pixValueInBrl = computed(() => this.qrData().valueInCents / 100);
 
   insufficientBalance = computed(() => {
-    return this.balance() < (this.amountInSats() + this.fee());
+    // Compare balance (in BRL) vs total (in BRL)
+    return this.balanceInBrl() < this.totalInBrl();
   });
 
-  formatCurrency(value: number): string {
+  formatBrl(value: number): string {
     return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     }).format(value);
   }
 
-  formatSats(amount: number): string {
-    return new Intl.NumberFormat('pt-BR').format(amount);
-  }
-
-  formatSatsToBtc(sats: number): string {
-    return (sats / 100000000).toFixed(8);
-  }
+  formatSats = formatSats;
+  formatSatsToBtc = formatSatsToBtc;
 }

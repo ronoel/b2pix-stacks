@@ -1,20 +1,22 @@
 import { Component, computed, inject, OnInit, OnDestroy, signal } from '@angular/core';
-import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { LoadingService } from '../../services/loading.service';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import { BuyOrderService } from '../../shared/api/buy-order.service';
-import { CommonModule } from '@angular/common';
-import { BuyHistoryComponent } from './components/buy-history.component';
+import { Router } from '@angular/router';
 
+import { formatSats } from '../../shared/utils/format.util';
+import { BuyHistoryComponent } from './components/buy-history.component';
+import { PageHeaderComponent } from '../../components/page-header/page-header.component';
+import { StatusSheetComponent } from '../../components/status-sheet/status-sheet.component';
+import { QuickAmountChipsComponent } from '../../components/quick-amount-chips/quick-amount-chips.component';
 @Component({
   selector: 'app-buy',
   standalone: true,
-  imports: [CommonModule, BuyHistoryComponent],
+  imports: [BuyHistoryComponent, PageHeaderComponent, StatusSheetComponent, QuickAmountChipsComponent],
   templateUrl: './buy.component.html',
   styleUrl: './buy.component.scss'
 })
-
 export class BuyComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private loadingService = inject(LoadingService);
@@ -24,26 +26,55 @@ export class BuyComponent implements OnInit, OnDestroy {
   // Core signals
   selectedQuickAmount = signal<number>(0);
   customAmount = signal<number>(0);
-  showConfirmationModal = signal<boolean>(false);
+  showConfirmSheet = signal<boolean>(false);
   isProcessingPurchase = signal<boolean>(false);
 
-  // Step-by-step modal state
-  currentModalStep = signal<number>(1);
-  step1Confirmed = signal<boolean>(false);
-  step2Confirmed = signal<boolean>(false);
-  step3Confirmed = signal<boolean>(false);
+  // Multi-step preparation state
+  currentStep = signal(1);
+  step1Confirmed = signal(false);
+  step2Confirmed = signal(false);
+  step3Confirmed = signal(false);
+
+  // Single checkbox state for confirmation sheet (legacy, kept for step 3 confirm flow)
+  termsConfirmed = signal<boolean>(false);
 
   // Quote signals
   currentQuotePrice = signal<number | null>(null);
   isLoadingQuote = signal(true);
   private quoteSubscription?: Subscription;
 
-  // Amount limit
-  private readonly MAX_BUY_AMOUNT = 1050;
+  // Amount limits
+  private readonly MIN_BUY_AMOUNT = 50;
+  private readonly MAX_BUY_AMOUNT = 1000;
+
   exceedsMaxAmount = computed(() => this.customAmount() > this.MAX_BUY_AMOUNT);
+  belowMinAmount = computed(() => this.customAmount() > 0 && this.customAmount() < this.MIN_BUY_AMOUNT);
+
+  // Computed: estimated sats for the current BRL amount
+  estimatedSats = computed(() => {
+    const amountBrl = this.customAmount();
+    const quote = this.currentQuotePrice();
+    if (!quote || amountBrl <= 0) return 0;
+    const amountInCents = amountBrl * 100;
+    const btcAmount = amountInCents / quote;
+    return Math.floor(btcAmount * 100_000_000);
+  });
+
+  // Computed: amount in cents for display components
+  amountInCents = computed(() => Math.round(this.customAmount() * 100));
+
+  // Computed: whether buy button can be activated
+  canBuy = computed(() =>
+    this.customAmount() > 0 &&
+    !this.exceedsMaxAmount() &&
+    !this.belowMinAmount() &&
+    !!this.currentQuotePrice() &&
+    !this.isProcessingPurchase()
+  );
+
+  readonly quickAmounts = [50, 250, 500, 1000];
 
   ngOnInit() {
-    // Start quote polling
     this.quoteSubscription = this.buyOrderService.getBtcPrice().subscribe({
       next: (quote) => {
         const priceInCents = parseInt(quote.price, 10);
@@ -56,19 +87,13 @@ export class BuyComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Check for active order
     this.checkForActiveOrder();
   }
 
   ngOnDestroy() {
-    if (this.quoteSubscription) {
-      this.quoteSubscription.unsubscribe();
-    }
+    this.quoteSubscription?.unsubscribe();
   }
 
-  /**
-   * Check if user has an active buy order and redirect to it
-   */
   private checkForActiveOrder() {
     const address = this.walletManagerService.getSTXAddress();
     if (address) {
@@ -76,7 +101,6 @@ export class BuyComponent implements OnInit, OnDestroy {
         next: (response) => {
           if (response.buy_orders.length > 0) {
             const order = response.buy_orders[0];
-            // Check if order is active (not final)
             if (!order.is_final) {
               this.router.navigate(['/buy', order.id]);
             }
@@ -94,109 +118,82 @@ export class BuyComponent implements OnInit, OnDestroy {
     this.customAmount.set(amount);
   }
 
-  onCustomAmountChange(amount: number) {
-    this.customAmount.set(amount);
-    this.selectedQuickAmount.set(0); // Clear quick amount selection
-  }
-
-  getCurrentAmount(): number {
-    return this.customAmount();
-  }
-
-  /**
-   * Calculate estimated Bitcoin amount in satoshis (single source of truth)
-   */
-  getEstimatedBitcoinAmountInSats(): number {
-    const amountBrl = this.getCurrentAmount();
-    const quote = this.currentQuotePrice();
-
-    if (!quote || amountBrl <= 0) return 0;
-
-    // Convert BRL to cents
-    const amountInCents = amountBrl * 100;
-    const pricePerBtcInCents = quote;
-
-    // Calculate BTC amount
-    const btcAmount = amountInCents / pricePerBtcInCents;
-    
-    // Convert to satoshis (1 BTC = 100,000,000 sats)
-    return Math.floor(btcAmount * 100000000);
-  }
-
-  /**
-   * Format satoshis as BTC with 8 decimal places
-   */
-  formatBitcoinAmount(sats: number): string {
-    const btc = sats / 100000000;
-    return btc.toFixed(8);
-  }
-
-  formatCurrency(value: number): string {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'decimal',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(value);
-  }
-
-  formatSats(amount: number): string {
-    return new Intl.NumberFormat('pt-BR').format(amount);
+  onCustomAmountChange(value: number) {
+    this.customAmount.set(value);
+    this.selectedQuickAmount.set(0);
   }
 
   startBuyProcess() {
-    this.showConfirmationModal.set(true);
-  }
-
-  closeConfirmationModal() {
-    this.showConfirmationModal.set(false);
-    this.resetModalState();
-  }
-
-  resetModalState() {
-    this.currentModalStep.set(1);
+    this.currentStep.set(1);
     this.step1Confirmed.set(false);
     this.step2Confirmed.set(false);
     this.step3Confirmed.set(false);
+    this.termsConfirmed.set(false);
+    this.showConfirmSheet.set(true);
   }
 
-  canProceedToNextStep(): boolean {
-    const step = this.currentModalStep();
-    if (step === 1) return this.step1Confirmed();
-    if (step === 2) return this.step2Confirmed();
-    if (step === 3) return this.step3Confirmed();
-    return false;
-  }
-
-  allStepsCompleted(): boolean {
-    return this.step1Confirmed() && this.step2Confirmed() && this.step3Confirmed();
+  closeConfirmSheet() {
+    this.showConfirmSheet.set(false);
+    this.currentStep.set(1);
+    this.step1Confirmed.set(false);
+    this.step2Confirmed.set(false);
+    this.step3Confirmed.set(false);
+    this.termsConfirmed.set(false);
   }
 
   nextStep() {
-    if (this.canProceedToNextStep() && this.currentModalStep() < 3) {
-      this.currentModalStep.set(this.currentModalStep() + 1);
+    if (this.canProceedToNextStep()) {
+      this.currentStep.update(s => Math.min(s + 1, 3));
     }
   }
 
   previousStep() {
-    if (this.currentModalStep() > 1) {
-      this.currentModalStep.set(this.currentModalStep() - 1);
+    this.currentStep.update(s => Math.max(s - 1, 1));
+  }
+
+  canProceedToNextStep(): boolean {
+    switch (this.currentStep()) {
+      case 1: return this.step1Confirmed();
+      case 2: return this.step2Confirmed();
+      case 3: return this.step3Confirmed();
+      default: return false;
     }
   }
 
-  toggleStep1(checked: boolean) {
-    this.step1Confirmed.set(checked);
+  toggleStep(step: number, value: boolean) {
+    switch (step) {
+      case 1: this.step1Confirmed.set(value); break;
+      case 2: this.step2Confirmed.set(value); break;
+      case 3: this.step3Confirmed.set(value); break;
+    }
   }
 
-  toggleStep2(checked: boolean) {
-    this.step2Confirmed.set(checked);
+  formatCurrency(value: number): string {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
   }
 
-  toggleStep3(checked: boolean) {
-    this.step3Confirmed.set(checked);
+  formatBtcFromSats(sats: number): string {
+    return (sats / 100_000_000).toFixed(8);
+  }
+
+  formatSatsValue(sats: number): string {
+    return formatSats(sats);
+  }
+
+  formatQuickAmount(amount: number): string {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
   }
 
   confirmPurchase() {
-    const amount = this.getCurrentAmount();
+    const amount = this.customAmount();
 
     if (amount <= 0) {
       alert('Por favor, selecione um valor válido.');
@@ -204,23 +201,20 @@ export class BuyComponent implements OnInit, OnDestroy {
     }
 
     if (amount > this.MAX_BUY_AMOUNT) {
-      alert('O valor máximo permitido por compra é de R$ 1.050,00.');
+      alert('O valor máximo permitido por compra é de R$ 1.000,00.');
       return;
     }
 
     this.isProcessingPurchase.set(true);
-    this.loadingService.show('Criando ordem de compra...');
+    this.loadingService.show('Criando ordem...');
 
-    // Convert BRL to cents
     const buyValueInCents = Math.round(amount * 100);
 
     this.buyOrderService.createBuyOrder(buyValueInCents).subscribe({
       next: (buyOrder) => {
         this.isProcessingPurchase.set(false);
         this.loadingService.hide();
-        this.showConfirmationModal.set(false);
-
-        // Navigate to buy-details page
+        this.showConfirmSheet.set(false);
         this.router.navigate(['/buy', buyOrder.id]);
       },
       error: (error: any) => {
@@ -228,22 +222,16 @@ export class BuyComponent implements OnInit, OnDestroy {
         this.isProcessingPurchase.set(false);
         this.loadingService.hide();
 
-        // Handle specific error cases
         if (error.message && error.message.includes('cancelada')) {
-          // User cancelled signature - don't show error
-          this.showConfirmationModal.set(false);
+          this.showConfirmSheet.set(false);
         } else if (error.message && error.message.includes('Active order already exists')) {
           alert('Você já possui uma ordem ativa. Complete ou cancele a ordem anterior antes de criar uma nova.');
-          this.showConfirmationModal.set(false);
-          this.checkForActiveOrder(); // Redirect to active order
+          this.showConfirmSheet.set(false);
+          this.checkForActiveOrder();
         } else {
           alert(error.message || 'Erro ao criar a ordem de compra. Tente novamente.');
         }
       }
     });
-  }
-
-  goBack() {
-    this.router.navigate(['/dashboard']);
   }
 }

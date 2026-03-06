@@ -1,140 +1,172 @@
 <div class="email-validation-page">
   <div class="container">
-    <div class="validation-card">
-      <!-- Header -->
-      <div class="card-header">
-        <h2>Validação de Email</h2>
-        <p class="subtitle">Confirme seu email para continuar</p>
-      </div>
 
-      <!-- Enter Email Step -->
-      @if (step() === 'enter-email') {
-        <div class="card-body">
-          <form (ngSubmit)="sendCode()">
-            <div class="form-group">
-              <label for="email">Endereço de Email</label>
-              <input
-                type="email"
-                id="email"
-                class="form-control"
-                placeholder="seu@email.com"
-                [(ngModel)]="email"
-                [ngModelOptions]="{standalone: true}"
-                [disabled]="loading()"
-                required
-              />
-            </div>
+    <app-page-header
+      title="Verificar email"
+      subtitle="Passo 1 de 2"
+      backRoute="/account-validation-required"
+    ></app-page-header>
 
-            @if (error()) {
-              <div class="alert alert-danger">
-                {{ error() }}
-              </div>
-            }
+    <!-- View 1: Enter Email -->
+    @if (step() === 'enter-email') {
+      <div class="card">
 
-            <button
-              type="submit"
-              class="btn btn-primary btn-lg w-100"
-              [disabled]="loading() || !email()"
-            >
-              @if (loading()) {
-                <span class="spinner-border spinner-border-sm me-2"></span>
-              }
-              Enviar Código
-            </button>
-          </form>
-
-          <div class="info-box mt-4">
-            <i class="bi bi-info-circle"></i>
-            <div class="info-text">
-              <strong>Por que precisamos do seu email?</strong>
-              <p>Usaremos para enviar notificações importantes sobre suas transações e atualizações da plataforma.</p>
-            </div>
+        <div class="icon-row">
+          <div class="icon-box icon-box-md" style="background: var(--primary-bg);">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="20" height="16" x="2" y="4" rx="2"/>
+              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+            </svg>
           </div>
         </div>
-      }
 
-      <!-- Enter Code Step -->
-      @if (step() === 'enter-code') {
-        <div class="card-body">
-          <div class="code-sent-message">
-            <i class="bi bi-envelope-check"></i>
-            <p>Código enviado para</p>
-            <strong>{{ email() }}</strong>
+        <p class="card-desc">Informe seu email para receber o código de verificação.</p>
+
+        <form (ngSubmit)="sendCode()">
+          <div class="field">
+            <label for="email" class="field-label">Endereço de email</label>
+            <input
+              type="email"
+              id="email"
+              class="input"
+              placeholder="seu@email.com"
+              [(ngModel)]="email"
+              [ngModelOptions]="{standalone: true}"
+              [disabled]="loading()"
+              autocomplete="email"
+              required
+            />
+          </div>
+
+          @if (error()) {
+            <div class="alert-box alert-warning">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              <span>{{ error() }}</span>
+            </div>
+          }
+
+          <button
+            type="submit"
+            class="btn btn-primary btn-full"
+            [disabled]="loading() || !email()"
+          >
+            @if (loading()) {
+              <span class="loading-spinner-sm"></span>
+            }
+            Enviar código
+          </button>
+        </form>
+
+        <div class="alert-box alert-info" style="margin-top: 16px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span>Usaremos para enviar notificações sobre suas transações.</span>
+        </div>
+
+      </div>
+    }
+
+    <!-- View 2: Enter Code -->
+    @if (step() === 'enter-code') {
+      <div class="card">
+
+        <p class="code-sent-label">Código enviado para</p>
+        <p class="code-sent-email">{{ maskedEmail() }}</p>
+
+        <button
+          type="button"
+          class="btn-text"
+          (click)="changeEmail()"
+          [disabled]="loading()"
+        >
+          Alterar email
+        </button>
+
+        <form (ngSubmit)="verifyCode()" style="margin-top: 20px;">
+          <div class="field">
+            <label class="field-label">Digite o código de 6 dígitos</label>
+            <app-code-input
+              (codeComplete)="onCodeComplete($event)"
+              (codeChange)="onCodeChange($event)"
+            ></app-code-input>
+          </div>
+
+          @if (error()) {
+            <div class="alert-box alert-warning">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              <span>{{ error() }}</span>
+            </div>
+          }
+
+          <button
+            type="submit"
+            class="btn btn-primary btn-full"
+            [disabled]="loading() || code().length !== 6"
+          >
+            @if (loading()) {
+              <span class="loading-spinner-sm"></span>
+            }
+            Verificar código
+          </button>
+        </form>
+
+        <div class="resend-section">
+          @if (resendCountdown() > 0) {
+            <p class="resend-countdown">
+              Reenviar código em <app-countdown-timer [seconds]="resendCountdown()"></app-countdown-timer>
+            </p>
+          } @else {
             <button
               type="button"
-              class="btn-change-email"
-              (click)="changeEmail()"
+              class="btn-text"
+              (click)="resend()"
               [disabled]="loading()"
             >
-              Alterar email
+              Reenviar código
             </button>
-          </div>
-
-          <form (ngSubmit)="verifyCode()">
-            <div class="form-group">
-              <label>Digite o código de 6 dígitos</label>
-              <app-code-input
-                (codeComplete)="onCodeComplete($event)"
-                (codeChange)="onCodeChange($event)"
-              ></app-code-input>
-            </div>
-
-            @if (error()) {
-              <div class="alert alert-danger">
-                {{ error() }}
-              </div>
-            }
-
-            <button
-              type="submit"
-              class="btn btn-primary btn-lg w-100"
-              [disabled]="loading() || code().length !== 6"
-            >
-              @if (loading()) {
-                <span class="spinner-border spinner-border-sm me-2"></span>
-              }
-              Verificar Código
-            </button>
-          </form>
-
-          <div class="resend-section">
-            @if (resendCountdown() > 0) {
-              <p class="text-muted">
-                Reenviar código em
-                <app-countdown-timer [seconds]="resendCountdown()"></app-countdown-timer>
-              </p>
-            } @else {
-              <button
-                type="button"
-                class="btn btn-link"
-                (click)="resend()"
-                [disabled]="loading()"
-              >
-                Reenviar código
-              </button>
-            }
-          </div>
-
-          <div class="info-box mt-4">
-            <i class="bi bi-info-circle"></i>
-            <div class="info-text">
-              <p>Não recebeu o código? Verifique sua caixa de spam ou aguarde alguns minutos.</p>
-              <p class="mb-0">Você pode tentar quantas vezes precisar.</p>
-            </div>
-          </div>
+          }
         </div>
-      }
 
-      <!-- Success Step -->
-      @if (step() === 'success') {
-        <div class="card-body text-center">
-          <div class="success-animation">
-            <i class="bi bi-check-circle-fill"></i>
-          </div>
-          <h3>Email Verificado!</h3>
-          <p class="text-muted">Redirecionando para validação de PIX...</p>
+        <div class="alert-box alert-info" style="margin-top: 16px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span>Não recebeu? Verifique sua caixa de spam.</span>
         </div>
-      }
-    </div>
+
+      </div>
+    }
+
+    <!-- View 3: Success -->
+    @if (step() === 'success') {
+      <div class="card card--center">
+
+        <div class="icon-box icon-box-lg success-icon" style="background: var(--success-bg); margin: 0 auto 20px;">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="scale-in">
+            <path d="M20 6L9 17l-5-5"/>
+          </svg>
+        </div>
+
+        <h2 class="success-title">Email verificado!</h2>
+        <p class="success-desc">Próximo passo: verificar sua conta bancária.</p>
+
+        <button
+          type="button"
+          class="btn btn-primary btn-full"
+          (click)="navigateNext()"
+        >
+          Continuar
+        </button>
+
+      </div>
+    }
+
   </div>
 </div>

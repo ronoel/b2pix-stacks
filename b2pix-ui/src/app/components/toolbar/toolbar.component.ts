@@ -1,5 +1,5 @@
 import { Component, inject, ViewEncapsulation, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { SlicePipe } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import { WalletSelectionModalComponent, WalletSelectionType } from '../wallet-selection-modal/wallet-selection-modal.component';
@@ -11,7 +11,7 @@ import { EmbeddedWalletImportComponent } from '../embedded-wallet-import/embedde
   selector: 'app-toolbar',
   standalone: true,
   imports: [
-    CommonModule,
+    SlicePipe,
     RouterModule,
     WalletSelectionModalComponent,
     EmbeddedWalletCreateComponent,

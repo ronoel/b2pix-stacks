@@ -1,13 +1,14 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router, ActivatedRoute } from '@angular/router';
 import { AccountValidationService } from '../../shared/api/account-validation.service';
 import { AccountInfo } from '../../shared/models/account-validation.model';
+import { PageHeaderComponent } from '../../components/page-header/page-header.component';
 
 @Component({
   selector: 'app-account-validation-required',
   standalone: true,
-  imports: [CommonModule],
+  imports: [PageHeaderComponent],
   templateUrl: './account-validation-required.component.html',
   styleUrl: './account-validation-required.component.scss'
 })
@@ -20,11 +21,20 @@ export class AccountValidationRequiredComponent implements OnInit {
   isLoading = signal(true);
   returnUrl = signal<string>('/dashboard');
 
+  // Failure state — set when returning from /pix-validation with status=failed
+  pixFailed = signal(false);
+  pixFailedMessage = signal('');
+
   ngOnInit() {
-    // Get return URL from query params
     this.route.queryParams.subscribe(params => {
       if (params['returnUrl']) {
         this.returnUrl.set(params['returnUrl']);
+      }
+      if (params['pixFailed'] === 'true') {
+        this.pixFailed.set(true);
+        this.pixFailedMessage.set(
+          params['message'] || 'Código de confirmação incorreto ou depósito não encontrado.'
+        );
       }
     });
 
@@ -49,45 +59,24 @@ export class AccountValidationRequiredComponent implements OnInit {
     });
   }
 
-  getValidationMessage(): string {
+  getStepText(): string {
     const account = this.accountInfo();
-    if (!account) {
-      return 'Para acessar esta área, você precisa validar seu email e sua conta bancária.';
-    }
-
-    if (!account.email_verified) {
-      return 'Para acessar esta área, você precisa validar seu email primeiro.';
-    }
-
-    if (!account.pix_verified) {
-      return 'Para acessar esta área, você precisa validar sua conta bancária (chave PIX).';
-    }
-
-    return 'Sua conta está totalmente validada.';
+    if (!account || !account.email_verified) return 'Passo 1 de 2';
+    return 'Passo 2 de 2';
   }
 
-  getNextStep(): string {
+  getNextStep(): 'email' | 'pix' {
     const account = this.accountInfo();
-    if (!account || !account.email_verified) {
-      return 'email';
-    }
+    if (!account || !account.email_verified) return 'email';
     return 'pix';
-  }
-
-  getStepLabel(): string {
-    return this.getNextStep() === 'email' ? 'Validar Email' : 'Validar Conta Bancária';
   }
 
   startValidation() {
     const returnUrl = this.returnUrl();
     if (this.getNextStep() === 'email') {
-      this.router.navigate(['/email-validation'], {
-        queryParams: { returnUrl }
-      });
+      this.router.navigate(['/email-validation'], { queryParams: { returnUrl } });
     } else {
-      this.router.navigate(['/pix-validation'], {
-        queryParams: { returnUrl }
-      });
+      this.router.navigate(['/pix-validation'], { queryParams: { returnUrl } });
     }
   }
 

@@ -1,16 +1,17 @@
 import { Component, OnInit, OnDestroy, inject, signal, ViewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { AccountValidationService } from '../../shared/api/account-validation.service';
 import { EmailVerificationStep } from '../../shared/models/account-validation.model';
 import { CountdownTimerComponent } from './components/countdown-timer.component';
 import { CodeInputComponent } from './components/code-input.component';
+import { PageHeaderComponent } from '../../components/page-header/page-header.component';
 
 @Component({
   selector: 'app-email-validation',
   standalone: true,
-  imports: [CommonModule, FormsModule, CountdownTimerComponent, CodeInputComponent],
+  imports: [FormsModule, CountdownTimerComponent, CodeInputComponent, PageHeaderComponent],
   templateUrl: './email-validation.component.html',
   styleUrl: './email-validation.component.scss'
 })
@@ -38,14 +39,12 @@ export class EmailValidationComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/pix-validation';
 
-    // Verificar se já está validado
+    // Check if already validated or has pending code
     this.validationService.getEmailVerification().subscribe({
       next: (verification) => {
         if (verification.status === 'verified') {
-          // Já verificado, redirecionar
           this.router.navigateByUrl(this.returnUrl);
         } else if ((verification.status === 'awaiting' || verification.status === 'processing') && verification.email) {
-          // Já tem código enviado e aguardando entrada do usuário
           this.email.set(verification.email);
           this.step.set('enter-code');
           this.calculateResendTime(verification.created_at);
@@ -67,7 +66,7 @@ export class EmailValidationComponent implements OnInit, OnDestroy {
       next: () => {
         this.loading.set(false);
         this.step.set('enter-code');
-        this.startResendCountdown(180); // 3 minutos
+        this.startResendCountdown(180);
       },
       error: (err) => {
         this.loading.set(false);
@@ -92,31 +91,27 @@ export class EmailValidationComponent implements OnInit, OnDestroy {
         this.loading.set(false);
         this.step.set('success');
 
-        // Refresh account data before redirecting
+        // Refresh account data then auto-navigate after 2s
         this.validationService.getAccount().subscribe({
           next: () => {
-            // Account data refreshed, now redirect after 1.5 segundos
-            setTimeout(() => {
-              this.router.navigateByUrl(this.returnUrl);
-            }, 1500);
+            setTimeout(() => this.navigateNext(), 2000);
           },
           error: () => {
-            // Even if refresh fails, still redirect
-            setTimeout(() => {
-              this.router.navigateByUrl(this.returnUrl);
-            }, 1500);
+            setTimeout(() => this.navigateNext(), 2000);
           }
         });
       },
       error: (err) => {
         this.loading.set(false);
         this.error.set(err.message || 'Código inválido');
-
-        // Limpar código para tentar novamente
         this.code.set('');
         this.codeInput?.clear();
       }
     });
+  }
+
+  navigateNext(): void {
+    this.router.navigateByUrl(this.returnUrl);
   }
 
   resend(): void {
@@ -140,13 +135,23 @@ export class EmailValidationComponent implements OnInit, OnDestroy {
 
   onCodeComplete(code: string): void {
     this.code.set(code);
-    // Auto-verificar quando completar os 6 dígitos
     setTimeout(() => this.verifyCode(), 100);
   }
 
   onCodeChange(code: string): void {
     this.code.set(code);
-    this.error.set(''); // Limpar erro ao digitar
+    this.error.set('');
+  }
+
+  /**
+   * Mask email for privacy: first char + *** + @domain
+   * Example: maria@example.com → m***@example.com
+   */
+  maskedEmail(): string {
+    const e = this.email();
+    const atIndex = e.indexOf('@');
+    if (atIndex <= 0) return e;
+    return e.charAt(0) + '***' + e.slice(atIndex);
   }
 
   private isValidEmail(email: string): boolean {
@@ -177,7 +182,7 @@ export class EmailValidationComponent implements OnInit, OnDestroy {
     const created = new Date(createdAt);
     const now = new Date();
     const elapsed = Math.floor((now.getTime() - created.getTime()) / 1000);
-    const remaining = Math.max(0, 180 - elapsed); // 3 minutos
+    const remaining = Math.max(0, 180 - elapsed);
 
     if (remaining > 0) {
       this.startResendCountdown(remaining);

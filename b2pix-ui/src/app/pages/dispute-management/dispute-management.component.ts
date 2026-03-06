@@ -1,14 +1,15 @@
-import { Component, inject, OnInit, ViewEncapsulation, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 
 import { Router } from '@angular/router';
 import { BuyOrderService } from '../../shared/api/buy-order.service';
 import { BuyOrder, BuyOrderStatus } from '../../shared/models/buy-order.model';
+import { formatBrlCents } from '../../shared/utils/format.util';
+import { PageHeaderComponent } from '../../components/page-header/page-header.component';
 
 @Component({
   selector: 'app-order-analysis',
   standalone: true,
-  imports: [],
-  encapsulation: ViewEncapsulation.None,
+  imports: [PageHeaderComponent],
   templateUrl: './dispute-management.component.html',
   styleUrl: './dispute-management.component.scss'
 })
@@ -26,7 +27,7 @@ export class OrderAnalysisComponent implements OnInit {
   }
 
   goBack() {
-    this.router.navigate(['/dashboard']);
+    this.router.navigate(['/manager-dashboard']);
   }
 
   loadAnalyzingOrders() {
@@ -56,12 +57,7 @@ export class OrderAnalysisComponent implements OnInit {
 
   formatCurrency(value: string | number): string {
     const numValue = typeof value === 'string' ? parseFloat(value) : value;
-    // Value is already in cents, convert to BRL by dividing by 100
-    const valueInBRL = numValue / 100;
-    return new Intl.NumberFormat('pt-BR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(valueInBRL);
+    return formatBrlCents(numValue);
   }
 
   formatBitcoin(value: string | number | null | undefined): string {

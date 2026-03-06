@@ -7,73 +7,101 @@ import {
   ViewChild,
   AfterViewInit
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Html5Qrcode } from 'html5-qrcode';
+
+type CameraErrorType = 'denied' | 'not-found' | 'generic' | null;
 
 @Component({
   selector: 'app-qr-scanner',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   template: `
     <div class="qr-scanner">
-      <div class="scanner-tabs">
+      <div class="scanner-tabs" role="tablist" aria-label="Modo de leitura do QR Code">
         <button
           class="tab"
+          role="tab"
           [class.active]="mode() === 'camera'"
+          [attr.aria-selected]="mode() === 'camera'"
           (click)="switchMode('camera')">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
             <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             <circle cx="12" cy="13" r="4" stroke="currentColor" stroke-width="2"/>
           </svg>
-          Camera
+          Câmera
         </button>
         <button
           class="tab"
+          role="tab"
           [class.active]="mode() === 'manual'"
+          [attr.aria-selected]="mode() === 'manual'"
           (click)="switchMode('manual')">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
             <path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             <rect x="8" y="2" width="8" height="4" rx="1" ry="1" stroke="currentColor" stroke-width="2"/>
           </svg>
-          Colar Codigo
+          Colar código
         </button>
       </div>
 
       @if (mode() === 'camera') {
         <div class="camera-section">
-          @if (cameraError()) {
+          @if (cameraErrorType()) {
             <div class="camera-error">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/>
-                <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" class="camera-error__icon">
+                <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
               </svg>
-              <p>{{ cameraError() }}</p>
+
+              @if (cameraErrorType() === 'denied') {
+                <h3 class="camera-error__title">Acesso à câmera negado</h3>
+                <p class="camera-error__body">Para escanear QR Codes, permita o acesso à câmera nas configurações do seu navegador.</p>
+              } @else if (cameraErrorType() === 'not-found') {
+                <h3 class="camera-error__title">Câmera não encontrada</h3>
+                <p class="camera-error__body">Nenhuma câmera disponível neste dispositivo.</p>
+              } @else {
+                <h3 class="camera-error__title">Erro ao acessar câmera</h3>
+                <p class="camera-error__body">Não foi possível iniciar a câmera.</p>
+              }
+
               <button class="btn btn-outline btn-sm" (click)="startCamera()">
                 Tentar novamente
               </button>
+
+              <div class="camera-error__divider">
+                <span>ou</span>
+              </div>
+
+              <p class="camera-error__fallback">
+                Use a aba
+                <button class="link-btn" (click)="switchMode('manual')">"Colar código"</button>
+                para colar o código PIX diretamente.
+              </p>
             </div>
           } @else {
-            <div class="camera-container">
+            <div
+              class="camera-container"
+              aria-label="Área de escaneamento de QR Code">
               <div id="qr-reader" #qrReader></div>
               @if (isStartingCamera()) {
                 <div class="camera-loading">
                   <div class="loading-spinner"></div>
-                  <p>Iniciando camera...</p>
+                  <p>Iniciando câmera...</p>
                 </div>
               }
             </div>
-            <p class="camera-hint">Aponte a camera para o QR Code do PIX</p>
+            <p class="camera-hint">Aponte para o QR Code PIX</p>
           }
         </div>
       } @else {
         <div class="manual-section">
-          <label class="form-label">Codigo PIX (Copia e Cola)</label>
+          <label class="form-label">Código PIX (Copia e Cola)</label>
           <textarea
             class="form-input pix-input"
             rows="4"
-            placeholder="Cole aqui o codigo PIX do pagamento..."
+            placeholder="Cole aqui o código PIX que recebeu por WhatsApp, e-mail ou app do banco..."
             [ngModel]="manualCode()"
             (ngModelChange)="manualCode.set($event)"
           ></textarea>
@@ -81,7 +109,7 @@ import { Html5Qrcode } from 'html5-qrcode';
             class="btn btn-primary btn-lg full-width"
             [disabled]="!manualCode().trim()"
             (click)="submitManualCode()">
-            Continuar
+            Usar código colado
           </button>
         </div>
       }
@@ -95,8 +123,8 @@ import { Html5Qrcode } from 'html5-qrcode';
     .scanner-tabs {
       display: flex;
       gap: 4px;
-      background: #F3F4F6;
-      border-radius: 12px;
+      background: var(--bg-elevated);
+      border-radius: var(--r-md);
       padding: 4px;
       margin-bottom: 20px;
     }
@@ -111,15 +139,15 @@ import { Html5Qrcode } from 'html5-qrcode';
       border: none;
       border-radius: 10px;
       background: transparent;
-      color: #6B7280;
+      color: var(--text-muted);
       font-size: 14px;
       font-weight: 500;
       cursor: pointer;
       transition: all 0.2s ease;
 
       &.active {
-        background: #FFFFFF;
-        color: #1F2937;
+        background: var(--bg-primary);
+        color: var(--text-primary);
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
       }
     }
@@ -134,7 +162,7 @@ import { Html5Qrcode } from 'html5-qrcode';
       position: relative;
       width: 100%;
       max-width: 400px;
-      border-radius: 16px;
+      border-radius: var(--r-lg);
       overflow: hidden;
       background: #000;
       min-height: 300px;
@@ -145,7 +173,7 @@ import { Html5Qrcode } from 'html5-qrcode';
     }
 
     :host ::ng-deep #qr-reader video {
-      border-radius: 16px;
+      border-radius: var(--r-lg);
     }
 
     :host ::ng-deep #qr-reader__scan_region {
@@ -191,27 +219,82 @@ import { Html5Qrcode } from 'html5-qrcode';
 
     .camera-hint {
       font-size: 13px;
-      color: #6B7280;
+      color: var(--text-muted);
       margin-top: 12px;
       text-align: center;
     }
 
+    // Camera error state
     .camera-error {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 16px;
-      padding: 48px 24px;
+      gap: 12px;
+      padding: 40px 24px;
       text-align: center;
-      color: #DC2626;
+      width: 100%;
+    }
 
-      p {
-        color: #6B7280;
-        font-size: 14px;
-        margin: 0;
+    .camera-error__icon {
+      color: var(--text-muted);
+    }
+
+    .camera-error__title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0;
+    }
+
+    .camera-error__body {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin: 0;
+      max-width: 280px;
+      line-height: 1.5;
+    }
+
+    .camera-error__divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      max-width: 200px;
+      color: var(--text-muted);
+      font-size: 13px;
+
+      &::before,
+      &::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: var(--border);
       }
     }
 
+    .camera-error__fallback {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin: 0;
+      line-height: 1.6;
+    }
+
+    .link-btn {
+      background: none;
+      border: none;
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0;
+      text-decoration: underline;
+
+      &:hover {
+        opacity: 0.8;
+      }
+    }
+
+    // Manual / paste section
     .manual-section {
       display: flex;
       flex-direction: column;
@@ -221,24 +304,31 @@ import { Html5Qrcode } from 'html5-qrcode';
     .form-label {
       font-size: 14px;
       font-weight: 600;
-      color: #374151;
+      color: var(--text-secondary);
     }
 
     .pix-input {
       width: 100%;
       padding: 12px;
-      border: 1px solid #D1D5DB;
-      border-radius: 8px;
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
       font-size: 14px;
-      color: #1F2937;
+      color: var(--text-primary);
+      background: var(--bg-primary);
       resize: vertical;
-      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-family: var(--font-mono);
       box-sizing: border-box;
 
       &:focus {
         outline: none;
-        border-color: #F59E0B;
-        box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px var(--primary-glow);
+      }
+
+      &::placeholder {
+        color: var(--text-muted);
+        font-family: var(--font-body);
+        font-size: 13px;
       }
     }
 
@@ -254,12 +344,19 @@ export class QrScannerComponent implements AfterViewInit, OnDestroy {
 
   mode = signal<'camera' | 'manual'>('camera');
   manualCode = signal('');
-  cameraError = signal<string | null>(null);
+  cameraErrorType = signal<CameraErrorType>(null);
   isStartingCamera = signal(false);
 
   private html5QrCode: Html5Qrcode | null = null;
 
-  ngAfterViewInit() {
+  async ngAfterViewInit() {
+    // Check if any camera device is available — if not, auto-switch to paste mode
+    const hasCamera = await this.detectCamera();
+    if (!hasCamera) {
+      this.mode.set('manual');
+      return;
+    }
+
     if (this.mode() === 'camera') {
       setTimeout(() => this.startCamera(), 100);
     }
@@ -267,6 +364,16 @@ export class QrScannerComponent implements AfterViewInit, OnDestroy {
 
   ngOnDestroy() {
     this.stopCamera();
+  }
+
+  private async detectCamera(): Promise<boolean> {
+    try {
+      if (!navigator.mediaDevices?.enumerateDevices) return false;
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      return devices.some(d => d.kind === 'videoinput');
+    } catch {
+      return false;
+    }
   }
 
   switchMode(newMode: 'camera' | 'manual') {
@@ -279,12 +386,13 @@ export class QrScannerComponent implements AfterViewInit, OnDestroy {
     this.mode.set(newMode);
 
     if (newMode === 'camera') {
+      this.cameraErrorType.set(null);
       setTimeout(() => this.startCamera(), 100);
     }
   }
 
   async startCamera() {
-    this.cameraError.set(null);
+    this.cameraErrorType.set(null);
     this.isStartingCamera.set(true);
 
     try {
@@ -301,7 +409,7 @@ export class QrScannerComponent implements AfterViewInit, OnDestroy {
           this.onQrCodeDetected(decodedText);
         },
         () => {
-          // QR code not found in frame - ignore
+          // QR code not found in frame — ignore
         }
       );
 
@@ -310,12 +418,13 @@ export class QrScannerComponent implements AfterViewInit, OnDestroy {
       this.isStartingCamera.set(false);
       console.error('Camera error:', err);
 
-      if (err?.toString().includes('NotAllowedError') || err?.toString().includes('Permission')) {
-        this.cameraError.set('Permissao de camera negada. Habilite nas configuracoes do navegador.');
-      } else if (err?.toString().includes('NotFoundError')) {
-        this.cameraError.set('Camera nao encontrada. Use a opcao "Colar Codigo".');
+      const errStr = err?.toString() ?? '';
+      if (errStr.includes('NotAllowedError') || errStr.includes('Permission')) {
+        this.cameraErrorType.set('denied');
+      } else if (errStr.includes('NotFoundError')) {
+        this.cameraErrorType.set('not-found');
       } else {
-        this.cameraError.set('Erro ao acessar a camera. Use a opcao "Colar Codigo".');
+        this.cameraErrorType.set('generic');
       }
     }
   }

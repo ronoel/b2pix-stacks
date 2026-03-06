@@ -1,16 +1,18 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
-import { WalletType } from '../../libs/wallet/wallet.types';
+import { WalletType, EncryptionMethod } from '../../libs/wallet/wallet.types';
 import { AccountValidationService } from '../../shared/api/account-validation.service';
 import { AccountInfo } from '../../shared/models/account-validation.model';
+import { PageHeaderComponent } from '../../components/page-header/page-header.component';
+import { StatusSheetComponent } from '../../components/status-sheet/status-sheet.component';
 
 @Component({
   selector: 'app-wallet-management',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule, PageHeaderComponent, StatusSheetComponent],
   templateUrl: './wallet-management.component.html',
   styleUrl: './wallet-management.component.scss'
 })
@@ -22,16 +24,32 @@ export class WalletManagementComponent implements OnInit {
   walletType = signal<WalletType | null>(null);
   walletAddress = signal<string>('');
   addressCopied = signal<boolean>(false);
+  encryptionMethod = signal<EncryptionMethod | null>(null);
+  isPasskeyWallet = computed(() => this.encryptionMethod() === EncryptionMethod.WEBAUTHN);
 
+  // Seed phrase state
   password = '';
-  seedPhraseVisible = signal<boolean>(false);
+  seedPhraseUnlocked = signal<boolean>(false);
+  seedWordsRevealed = signal<boolean>(false);
   seedPhrase = signal<string>('');
   seedWords = signal<string[]>([]);
   seedCopied = signal<boolean>(false);
   isUnlocking = signal<boolean>(false);
   errorMessage = signal<string | null>(null);
 
-  showDeleteConfirmation = signal<boolean>(false);
+  // Bottom sheet visibility
+  showSeedSheet = signal<boolean>(false);
+  showDeleteSheet = signal<boolean>(false);
+
+  // Advanced settings section
+  showAdvancedSettings = signal<boolean>(false);
+
+  // Delete confirmation
+  deleteConfirmText = signal<string>('');
+  isDeleteConfirmed = computed(() => this.deleteConfirmText() === 'EXCLUIR');
+
+  // External wallet technical details
+  showExternalTechDetails = signal<boolean>(false);
 
   // Account verification status
   accountInfo = signal<AccountInfo | null>(null);
@@ -41,15 +59,14 @@ export class WalletManagementComponent implements OnInit {
     const type = this.walletManager.getWalletType();
     this.walletType.set(type);
     this.walletAddress.set(this.walletManager.getSTXAddress() || '');
+    this.encryptionMethod.set(this.walletManager.getWalletEncryptionMethod());
     this.loadAccountInfo();
   }
 
   loadAccountInfo() {
     this.isLoadingAccountInfo.set(true);
-    console.log('Loading account info...');
     this.accountValidationService.getAccount().subscribe({
       next: (accountInfo) => {
-        console.log('Account info loaded:', accountInfo);
         this.accountInfo.set(accountInfo);
         this.isLoadingAccountInfo.set(false);
       },
@@ -80,10 +97,31 @@ export class WalletManagementComponent implements OnInit {
     }
   }
 
+  openSeedSheet() {
+    this.errorMessage.set(null);
+    this.password = '';
+    this.seedPhraseUnlocked.set(false);
+    this.seedWordsRevealed.set(false);
+    this.seedPhrase.set('');
+    this.seedWords.set([]);
+    this.showSeedSheet.set(true);
+  }
+
+  closeSeedSheet() {
+    this.showSeedSheet.set(false);
+    this.seedPhraseUnlocked.set(false);
+    this.seedWordsRevealed.set(false);
+    this.seedPhrase.set('');
+    this.seedWords.set([]);
+    this.password = '';
+    this.errorMessage.set(null);
+    this.seedCopied.set(false);
+  }
+
   async unlockAndViewSeed() {
     this.errorMessage.set(null);
 
-    if (!this.password) {
+    if (!this.isPasskeyWallet() && !this.password) {
       this.errorMessage.set('Por favor, digite sua senha');
       return;
     }
@@ -91,13 +129,22 @@ export class WalletManagementComponent implements OnInit {
     this.isUnlocking.set(true);
 
     try {
-      // Create a temporary adapter instance to unlock and get the mnemonic
       const { EmbeddedWalletAdapter } = await import('../../libs/wallet/embedded-wallet.adapter');
       const tempAdapter = new EmbeddedWalletAdapter();
-      const unlocked = await tempAdapter.unlock(this.password);
+
+      let unlocked: boolean;
+      if (this.isPasskeyWallet()) {
+        unlocked = await tempAdapter.unlockWithPasskey();
+      } else {
+        unlocked = await tempAdapter.unlock(this.password);
+      }
 
       if (!unlocked) {
-        this.errorMessage.set('Senha incorreta. Tente novamente.');
+        this.errorMessage.set(
+          this.isPasskeyWallet()
+            ? 'Falha na autenticação com passkey. Tente novamente.'
+            : 'Senha incorreta. Tente novamente.'
+        );
         this.isUnlocking.set(false);
         return;
       }
@@ -106,8 +153,9 @@ export class WalletManagementComponent implements OnInit {
       if (mnemonic) {
         this.seedPhrase.set(mnemonic);
         this.seedWords.set(mnemonic.split(' '));
-        this.seedPhraseVisible.set(true);
-        this.password = ''; // Clear password
+        this.seedPhraseUnlocked.set(true);
+        this.seedWordsRevealed.set(false);
+        this.password = '';
       } else {
         this.errorMessage.set('Não foi possível recuperar a frase de recuperação');
       }
@@ -119,11 +167,8 @@ export class WalletManagementComponent implements OnInit {
     }
   }
 
-  hideSeedPhrase() {
-    this.seedPhraseVisible.set(false);
-    this.seedPhrase.set('');
-    this.seedWords.set([]);
-    this.password = '';
+  toggleSeedReveal() {
+    this.seedWordsRevealed.update(v => !v);
   }
 
   copySeedPhrase() {
@@ -138,23 +183,34 @@ export class WalletManagementComponent implements OnInit {
     }
   }
 
+  openDeleteSheet() {
+    this.deleteConfirmText.set('');
+    this.showDeleteSheet.set(true);
+  }
+
+  closeDeleteSheet() {
+    this.showDeleteSheet.set(false);
+    this.deleteConfirmText.set('');
+  }
+
   confirmDeleteWallet() {
-    this.showDeleteConfirmation.set(false);
+    if (!this.isDeleteConfirmed()) return;
 
-    // Delete the wallet using the wallet manager service
+    this.showDeleteSheet.set(false);
     this.walletManager.deleteEmbeddedWallet();
-
-    // Navigate to the landing page
     this.router.navigate(['/']);
   }
 
   navigateToEmailVerification() {
-    // TODO: Implementar navegação para página de verificação de email
-    console.log('Navigate to email verification');
+    this.router.navigate(['/email-validation']);
   }
 
   navigateToPixVerification() {
-    // TODO: Implementar navegação para página de verificação de PIX
-    console.log('Navigate to PIX verification');
+    this.router.navigate(['/pix-validation']);
+  }
+
+  truncateAddress(address: string): string {
+    if (!address || address.length <= 16) return address;
+    return `${address.substring(0, 8)}...${address.substring(address.length - 6)}`;
   }
 }

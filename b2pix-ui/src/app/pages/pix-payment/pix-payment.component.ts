@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, OnDestroy, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { PixPaymentService } from '../../shared/api/pix-payment.service';
@@ -8,18 +8,21 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import { LoadingService } from '../../services/loading.service';
 import { QrScannerComponent } from './components/qr-scanner.component';
 import { PaymentConfirmationComponent, PixQrData } from './components/payment-confirmation.component';
-import { PaymentStatusComponent } from './components/payment-status.component';
+import { OrderStatusComponent } from '../../components/order-status/order-status.component';
 import { PixPaymentHistoryComponent } from './components/pix-payment-history.component';
+import { PageHeaderComponent } from '../../components/page-header/page-header.component';
+import { StatusSheetComponent } from '../../components/status-sheet/status-sheet.component';
 
 @Component({
   selector: 'app-pix-payment',
   standalone: true,
   imports: [
-    CommonModule,
     QrScannerComponent,
     PaymentConfirmationComponent,
-    PaymentStatusComponent,
-    PixPaymentHistoryComponent
+    OrderStatusComponent,
+    PixPaymentHistoryComponent,
+    PageHeaderComponent,
+    StatusSheetComponent
   ],
   templateUrl: './pix-payment.component.html',
   styleUrls: ['./pix-payment.component.scss']
@@ -32,11 +35,15 @@ export class PixPaymentComponent implements OnInit, OnDestroy {
   protected loadingService = inject(LoadingService);
 
   // Constants
+  readonly MIN_PIX_VALUE_CENTS = 5000; // R$ 50,00
   readonly MAX_PIX_VALUE_CENTS = 100000; // R$ 1.000,00
   readonly SATS_PER_BTC = 100000000;
 
   // View state
   currentView = signal<'scanner' | 'confirmation' | 'processing' | 'status'>('scanner');
+
+  // P2P warning acknowledgment
+  p2pWarningAccepted = signal(sessionStorage.getItem('p2p_warning_accepted') === 'true');
 
   // QR data
   qrData = signal<PixQrData | null>(null);
@@ -50,13 +57,39 @@ export class PixPaymentComponent implements OnInit, OnDestroy {
   sBtcBalance = signal(0);
   isLoadingBalance = signal(false);
 
-  // Network fee
+  // Network fee (in sats)
   fee = computed(() => this.pixPaymentService.getFee());
+
+  // BRL-converted values
+  feeInBrl = computed(() => {
+    const price = this.currentBtcPrice();
+    if (price <= 0) return 0;
+    return (this.fee() / this.SATS_PER_BTC) * price;
+  });
+
+  totalInBrl = computed(() => {
+    const pixValue = (this.qrData()?.valueInCents ?? 0) / 100;
+    return pixValue + this.feeInBrl();
+  });
+
+  balanceInBrl = computed(() => {
+    const price = this.currentBtcPrice();
+    if (price <= 0) return 0;
+    return (this.sBtcBalance() / this.SATS_PER_BTC) * price;
+  });
+
+  balanceAfterPaymentBrl = computed(() => {
+    return this.balanceInBrl() - this.totalInBrl();
+  });
+
+  showConfirmation = computed(() =>
+    this.currentView() === 'confirmation' && this.qrData() !== null
+  );
 
   // Processing
   isProcessing = signal(false);
   errorMessage = signal('');
-  showErrorModal = signal(false);
+  private errorDismissTimer?: ReturnType<typeof setTimeout>;
 
   // Order tracking
   createdOrderId = signal<string | null>(null);
@@ -69,6 +102,9 @@ export class PixPaymentComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     if (this.priceSubscription) {
       this.priceSubscription.unsubscribe();
+    }
+    if (this.errorDismissTimer) {
+      clearTimeout(this.errorDismissTimer);
     }
   }
 
@@ -103,26 +139,41 @@ export class PixPaymentComponent implements OnInit, OnDestroy {
     });
   }
 
+  onP2pWarningAccepted(event: Event) {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.p2pWarningAccepted.set(checked);
+    if (checked) {
+      sessionStorage.setItem('p2p_warning_accepted', 'true');
+    } else {
+      sessionStorage.removeItem('p2p_warning_accepted');
+    }
+  }
+
   // QR Code scanned
   onQrCodeScanned(payload: string) {
     const parsed = this.parsePixPayload(payload);
 
     if (!parsed) {
-      this.errorMessage.set('QR Code invalido. Este nao parece ser um QR Code PIX valido.');
-      this.showErrorModal.set(true);
+      this.showError('QR Code inválido. Este não parece ser um QR Code PIX válido. Verifique e tente novamente.');
       return;
     }
 
     if (parsed.valueInCents <= 0) {
-      this.errorMessage.set('Este QR Code nao possui um valor definido. Apenas QR Codes com valor sao aceitos.');
-      this.showErrorModal.set(true);
+      this.showError('QR Code sem valor definido. Apenas QR Codes PIX com valor são aceitos.');
+      return;
+    }
+
+    if (parsed.valueInCents < this.MIN_PIX_VALUE_CENTS) {
+      const minBrl = this.formatCurrency(this.MIN_PIX_VALUE_CENTS / 100);
+      const valBrl = this.formatCurrency(parsed.valueInCents / 100);
+      this.showError(`Valor abaixo do mínimo. O valor de R$ ${valBrl} é menor que o mínimo de R$ ${minBrl} por operação.`);
       return;
     }
 
     if (parsed.valueInCents > this.MAX_PIX_VALUE_CENTS) {
-      const maxBrl = (this.MAX_PIX_VALUE_CENTS / 100).toFixed(2);
-      this.errorMessage.set(`O valor de R$ ${this.formatCurrency(parsed.valueInCents / 100)} excede o limite de R$ ${maxBrl} por operacao.`);
-      this.showErrorModal.set(true);
+      const maxBrl = this.formatCurrency(this.MAX_PIX_VALUE_CENTS / 100);
+      const valBrl = this.formatCurrency(parsed.valueInCents / 100);
+      this.showError(`Valor acima do limite. O valor de R$ ${valBrl} excede o limite de R$ ${maxBrl} por operação.`);
       return;
     }
 
@@ -146,7 +197,7 @@ export class PixPaymentComponent implements OnInit, OnDestroy {
 
     this.isProcessing.set(true);
     this.currentView.set('processing');
-    this.loadingService.show('Criando transacao de pagamento...');
+    this.loadingService.show('Criando transação de pagamento...');
 
     this.pixPaymentService.createPixPayment(data.payload, this.amountInSats()).subscribe({
       next: (order) => {
@@ -165,9 +216,8 @@ export class PixPaymentComponent implements OnInit, OnDestroy {
           return;
         }
 
-        this.errorMessage.set(this.getErrorMessage(error));
-        this.showErrorModal.set(true);
         this.currentView.set('confirmation');
+        this.showError(this.getErrorMessage(error));
       }
     });
   }
@@ -177,6 +227,33 @@ export class PixPaymentComponent implements OnInit, OnDestroy {
     this.qrData.set(null);
     this.amountInSats.set(0);
     this.currentView.set('scanner');
+  }
+
+  // Reset to scanner for "Fazer outro pagamento"
+  resetToScanner() {
+    this.qrData.set(null);
+    this.amountInSats.set(0);
+    this.createdOrderId.set(null);
+    this.errorMessage.set('');
+    this.currentView.set('scanner');
+  }
+
+  // Error handling — inline banner with auto-dismiss
+  showError(message: string) {
+    if (this.errorDismissTimer) {
+      clearTimeout(this.errorDismissTimer);
+    }
+    this.errorMessage.set(message);
+    this.errorDismissTimer = setTimeout(() => {
+      this.errorMessage.set('');
+    }, 8000);
+  }
+
+  dismissError() {
+    if (this.errorDismissTimer) {
+      clearTimeout(this.errorDismissTimer);
+    }
+    this.errorMessage.set('');
   }
 
   // Parse PIX QR Code (EMV/BR Code format)
@@ -252,21 +329,7 @@ export class PixPaymentComponent implements OnInit, OnDestroy {
     return 'Ocorreu um erro ao processar o pagamento. Tente novamente.';
   }
 
-  // Modal
-  closeErrorModal() {
-    this.showErrorModal.set(false);
-    this.errorMessage.set('');
-  }
-
   // Navigation
-  goBack() {
-    if (this.currentView() === 'confirmation') {
-      this.onConfirmationCancelled();
-    } else {
-      this.router.navigate(['/dashboard']);
-    }
-  }
-
   goToDashboard() {
     this.router.navigate(['/dashboard']);
   }
@@ -279,6 +342,15 @@ export class PixPaymentComponent implements OnInit, OnDestroy {
   // Formatting
   formatCurrency(value: number): string {
     return new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(value);
+  }
+
+  formatBrl(value: number): string {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     }).format(value);

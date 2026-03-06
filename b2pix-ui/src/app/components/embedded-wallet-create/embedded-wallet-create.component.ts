@@ -66,9 +66,9 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 
       @if (currentStep() === 'password') {
         <div class="step-content">
-          <h2 class="step-title">Criar Carteira</h2>
+          <h2 class="step-title">Crie uma senha</h2>
           <p class="step-description">
-            Crie uma senha segura para proteger sua carteira. Você precisará dessa senha toda vez que quiser acessar sua carteira.
+            Esta senha protege sua carteira. Você vai usá-la toda vez que entrar.
           </p>
 
           <div class="form-group">
@@ -174,8 +174,8 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
                 <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
               </svg>
               <div>
-                <h3>IMPORTANTE: Guarde sua Frase de Recuperação</h3>
-                <p>Esta é a única maneira de recuperar sua carteira se você esquecer a senha.</p>
+                <h3>IMPORTANTE</h3>
+                <p>Guarde sua frase de recuperação. Esta é a única forma de recuperar sua carteira se você esquecer a senha.</p>
               </div>
             </div>
           </div>
@@ -183,23 +183,40 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
           <div class="step-body">
             <div class="mnemonic-container">
               <div class="mnemonic-header">
-                <h4 class="mnemonic-title">Suas 24 palavras de recuperação</h4>
-                <button class="btn-copy" (click)="copyMnemonic()" [class.copied]="isCopied()">
-                  @if (isCopied()) {
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                    Copiado!
-                  } @else {
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
-                      <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" stroke-width="2"/>
-                    </svg>
-                    Copiar
-                  }
-                </button>
+                <h4 class="mnemonic-title">Sua frase de recuperação</h4>
+                <div class="mnemonic-actions">
+                  <button class="btn-reveal" (click)="mnemonicRevealed.set(!mnemonicRevealed())" type="button">
+                    @if (mnemonicRevealed()) {
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                      Ocultar
+                    } @else {
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                      </svg>
+                      Mostrar
+                    }
+                  </button>
+                  <button class="btn-copy" (click)="copyMnemonic()" [class.copied]="isCopied()" type="button">
+                    @if (isCopied()) {
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                      </svg>
+                      Copiado!
+                    } @else {
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
+                        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" stroke-width="2"/>
+                      </svg>
+                      Copiar
+                    }
+                  </button>
+                </div>
               </div>
-              <div class="mnemonic-grid">
+              <div class="mnemonic-grid" [class.mnemonic-blurred]="!mnemonicRevealed()">
                 @for (word of mnemonicWords(); track $index) {
                   <div class="mnemonic-word">
                     <span class="word-number">{{ $index + 1 }}</span>
@@ -235,7 +252,7 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
             <div class="checkbox-group">
               <label class="checkbox-label">
                 <input type="checkbox" [(ngModel)]="confirmedBackup" />
-                <span>Eu entendo que se eu perder esta frase, perderei acesso permanente à minha carteira e fundos</span>
+                <span>Guardei minha frase de recuperação em local seguro</span>
               </label>
             </div>
           </div>
@@ -477,10 +494,44 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
       flex-shrink: 0;
     }
 
+    .mnemonic-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-reveal {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      background: #FFFFFF;
+      border: 1.5px solid #D1D5DB;
+      border-radius: 6px;
+      color: #374151;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn-reveal:hover {
+      background: #F9FAFB;
+      border-color: var(--primary, #072954);
+      color: var(--primary, #072954);
+    }
+
     .mnemonic-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       gap: 12px;
+      transition: filter 0.3s ease;
+    }
+
+    .mnemonic-blurred {
+      filter: blur(6px);
+      user-select: none;
+      pointer-events: none;
     }
 
     .mnemonic-word {
@@ -824,6 +875,7 @@ export class EmbeddedWalletCreateComponent {
   isLoading = signal(false);
   errorMessage = signal<string | null>(null);
   isCopied = signal(false);
+  mnemonicRevealed = signal(false);
   isPasskeyAvailable = signal(false);
 
   async ngOnInit() {

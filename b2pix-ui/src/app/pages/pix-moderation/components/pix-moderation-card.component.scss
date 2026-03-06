@@ -1,0 +1,166 @@
+.verification-card {
+  overflow: hidden;
+  transition: all 0.2s ease;
+  padding: 0;
+
+  &:hover {
+    box-shadow: 0 10px 25px -3px rgb(0 0 0 / 0.1);
+  }
+
+  &.is-processing {
+    opacity: 0.7;
+    pointer-events: none;
+  }
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+}
+
+.card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.address-badge {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.address-badge .label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.address-badge .value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.card-date {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: right;
+}
+
+.card-date .label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.card-date .value {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.card-body {
+  padding: 20px;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.detail-item .label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-item .value {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+.detail-item .value.highlight {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--success);
+}
+
+.detail-item .value.code {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--warning);
+}
+
+.detail-item .value.empty {
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+.card-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 20px;
+  background: var(--bg-elevated);
+  border-top: 1px solid var(--border);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .card-header {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .card-date {
+    text-align: left;
+  }
+
+  .details-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .card-footer {
+    flex-direction: column;
+  }
+
+  .card-footer .btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .card-header,
+  .card-body,
+  .card-footer {
+    padding: 16px;
+  }
+
+  .detail-item .value.highlight {
+    font-size: 16px;
+  }
+
+  .detail-item .value.code {
+    font-size: 14px;
+  }
+}

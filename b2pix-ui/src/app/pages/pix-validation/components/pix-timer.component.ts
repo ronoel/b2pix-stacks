@@ -1,10 +1,10 @@
 import { Component, Input, Output, EventEmitter, signal, OnDestroy, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 @Component({
   selector: 'app-pix-timer',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './pix-timer.component.html',
   styleUrl: './pix-timer.component.scss'
 })

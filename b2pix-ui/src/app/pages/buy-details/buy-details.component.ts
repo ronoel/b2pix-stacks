@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, OnDestroy, signal, ViewEncapsulation, effect, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { interval, Subject } from 'rxjs';
@@ -9,13 +9,23 @@ import { BuyOrderService } from '../../shared/api/buy-order.service';
 import { PaymentRequestService } from '../../shared/api/payment-request.service';
 import { BuyOrder, BuyOrderStatus } from '../../shared/models/buy-order.model';
 import { PaymentRequest, PaymentRequestStatus, PaymentSourceType } from '../../shared/models/payment-request.model';
-import { environment } from '../../../environments/environment';
+import {
+  formatBrlCents,
+  formatSats,
+  formatSatsToBtc,
+  formatDateTime as formatDateTimeUtil,
+  formatTruncated,
+  getExplorerUrl
+} from '../../shared/utils/format.util';
 import { PaymentFormComponent } from './payment-form.component';
+import { PageHeaderComponent } from '../../components/page-header/page-header.component';
+import { StatusSheetComponent } from '../../components/status-sheet/status-sheet.component';
+import { TechnicalDetailsComponent } from '../../components/technical-details/technical-details.component';
 
 @Component({
   selector: 'app-buy-details',
   standalone: true,
-  imports: [CommonModule, PaymentFormComponent],
+  imports: [NgClass, PaymentFormComponent, PageHeaderComponent, StatusSheetComponent, TechnicalDetailsComponent],
   encapsulation: ViewEncapsulation.None,
   templateUrl: './buy-details.component.html',
   styleUrl: './buy-details.component.scss'
@@ -36,9 +46,8 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   transactionId = signal('');
   noTransactionId = signal(false);
 
-  // Timer warning modal state
-  showTimeWarningModal = signal(false);
-  hasReadWarning = signal(false);
+  // Time warning sheet state (bottom sheet, triggers at 3 minutes)
+  showTimeWarningSheet = signal(false);
   private hasShownTimeWarning = false;
   private hasShownTimeoutAlert = false;
 
@@ -79,44 +88,18 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   paymentRequest = signal<PaymentRequest | null>(null);
   isLoadingPaymentRequest = signal(false);
 
-  // BTC amount in sats cache
-  private btcAmountInSats = signal(0);
-  private btcAmountInBtc = computed(() => {
-    const sats = this.btcAmountInSats();
-    return sats / 100000000;
-  });
-
   // Auto-refresh timer
   private refreshTimeout: any = null;
 
   constructor() {
-    // Watch for buyData changes and calculate BTC amount
-    effect(() => {
-      const buy = this.buyData();
-      if (buy?.buy_value) {
-        this.buyOrderService.getSatoshisForPrice(buy.buy_value).subscribe({
-          next: (sats) => {
-            this.btcAmountInSats.set(sats);
-          },
-          error: (error) => {
-            console.error('Error getting sats for price:', error);
-            this.btcAmountInSats.set(0);
-          }
-        });
-      } else {
-        this.btcAmountInSats.set(0);
-      }
-    });
-    
     // Watch for timer changes and handle warnings/timeout
     effect(() => {
       const timeLeft = this.paymentTimeLeft();
       
-      // Show warning modal when less than 1 minute remaining (only once)
-      if (timeLeft > 0 && timeLeft < 60 && !this.hasShownTimeWarning) {
+      // Show warning sheet when less than 3 minutes remaining (only once)
+      if (timeLeft > 0 && timeLeft < 180 && !this.hasShownTimeWarning) {
         this.hasShownTimeWarning = true;
-        this.hasReadWarning.set(false);
-        this.showTimeWarningModal.set(true);
+        this.showTimeWarningSheet.set(true);
       }
       
       // Handle timeout
@@ -273,21 +256,17 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     }).format(value);
   }
 
-  getBtcAmountInSats(): number {
-    return this.btcAmountInSats();
-  }
-
   getBtcAmount(): number {
-    return this.btcAmountInBtc();
+    const buy = this.buyData();
+    if (!buy?.amount) return 0;
+    return buy.amount / 100_000_000;
   }
 
   formatBTC(amount: number): string {
     return amount.toFixed(8);
   }
 
-  formatSats(sats: number): string {
-    return new Intl.NumberFormat('pt-BR').format(sats);
-  }
+  formatSats = formatSats;
 
   onTransactionIdChange(transactionId: string) {
     this.transactionId.set(transactionId.toUpperCase());
@@ -322,20 +301,13 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     }
   }
 
-  closeTimeWarningModal() {
-    this.showTimeWarningModal.set(false);
-    this.hasReadWarning.set(false); // Reset checkbox when closing modal
+  closeTimeWarningSheet() {
+    this.showTimeWarningSheet.set(false);
   }
 
-  cancelFromWarningModal() {
-    this.showTimeWarningModal.set(false);
-    this.hasReadWarning.set(false); // Reset checkbox when closing modal
+  cancelFromWarningSheet() {
+    this.showTimeWarningSheet.set(false);
     this.cancelPurchase();
-  }
-
-  onWarningReadChange(event: Event) {
-    const target = event.target as HTMLInputElement;
-    this.hasReadWarning.set(target.checked);
   }
 
   confirmPayment(event?: Event) {
@@ -452,18 +424,18 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     const status = this.buyData()?.status;
     const statusStr = status?.toString().toLowerCase();
     if (statusStr === 'created') {
-      return 'Pagamento via PIX';
+      return 'Pagamento PIX';
     }
-    return 'Detalhes da Compra';
+    return 'Detalhes da compra';
   }
 
   getPageSubtitle(): string {
     const status = this.buyData()?.status;
     const statusStr = status?.toString().toLowerCase();
     if (statusStr === 'created') {
-      return 'Complete o pagamento para receber seus Bitcoins';
+      return 'Passo 1 de 2';
     }
-    return 'Acompanhe o status da sua compra de Bitcoin';
+    return 'Passo 2 de 2';
   }
 
   getStatusClass(status: BuyOrderStatus): string {
@@ -550,34 +522,26 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     }
   }
 
+  isTimerDanger(): boolean {
+    return this.paymentTimeLeft() < 60 && this.paymentTimeLeft() > 0;
+  }
+
+  isTimerWarning(): boolean {
+    const t = this.paymentTimeLeft();
+    return t >= 60 && t < 180;
+  }
+
   formatBRLCurrency(valueInCents: string | number): string {
     const value = typeof valueInCents === 'string' ? parseInt(valueInCents) : valueInCents;
-    const valueInReais = value / 100;
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(valueInReais);
+    return formatBrlCents(value);
   }
 
   formatSatoshisToBTC(satoshis: string | number): string {
     const sats = typeof satoshis === 'string' ? parseInt(satoshis) : satoshis;
-    const btc = sats / 100000000;
-    return btc.toFixed(8);
+    return formatSatsToBtc(sats);
   }
 
-  formatDateTime(dateString: string): string {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    }).format(date);
-  }
+  formatDateTime = formatDateTimeUtil;
 
   getPaymentRequestStatusClass(status: PaymentRequestStatus): string {
     switch (status) {
@@ -612,15 +576,10 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   }
 
   formatTransactionId(txId: string): string {
-    if (!txId || txId.length <= 12) return txId;
-    return `${txId.substring(0, 8)}...${txId.substring(txId.length - 4)}`;
+    return formatTruncated(txId, 8, 4);
   }
 
-  getBlockchainExplorerUrl(txId: string): string {
-    const transactionId = txId.startsWith('0x') ? txId : `0x${txId}`;
-    const chain = environment.network === 'mainnet' ? 'mainnet' : 'testnet';
-    return `https://explorer.hiro.so/txid/${transactionId}?chain=${chain}`;
-  }
+  getBlockchainExplorerUrl = getExplorerUrl;
 
   goBack() {
     this.router.navigate(['/dashboard']);
@@ -641,6 +600,7 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
 
     // Explicitly monitor these statuses that need auto-refresh
     const statusesNeedingMonitoring = [
+      'created',     // Payment pending, user may still be on page
       'processing',  // User marked as paid, payment being verified
       'analyzing'    // Payment verification failed, manual review needed
     ];
@@ -664,7 +624,7 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     if (this.needsMonitoring()) {
       this.refreshTimeout = setTimeout(() => {
         this.refreshBuyData();
-      }, 5000); // 5 seconds
+      }, 10000); // 10 seconds
     }
   }
 

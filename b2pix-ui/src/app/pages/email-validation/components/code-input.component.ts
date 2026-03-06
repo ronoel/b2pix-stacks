@@ -1,11 +1,11 @@
 import { Component, Output, EventEmitter, signal, ViewChildren, QueryList, ElementRef, AfterViewInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-code-input',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './code-input.component.html',
   styleUrl: './code-input.component.scss'
 })

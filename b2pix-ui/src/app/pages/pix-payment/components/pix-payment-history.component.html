@@ -22,16 +22,13 @@
       @for (payment of pixPayments(); track payment.id) {
         <div class="order-card" (click)="onViewOrder(payment)">
           <div class="order-main">
-            <div class="order-info">
-              <div class="order-amount">R$ {{ formatBrlCents(payment.pix_value) }}</div>
-              <div class="order-date">{{ formatDateTime(payment.created_at) }}</div>
+            <div class="order-left">
+              <p class="order-amount">{{ formatBrlCents(payment.pix_value) }}</p>
+              <p class="order-detail font-mono">
+                {{ formatSats(payment.amount) }} sats · {{ formatDateTime(payment.created_at) }}
+              </p>
             </div>
-            <div class="order-status">
-              <span class="status-badge" [class]="getStatusClass(payment.status)">
-                {{ getStatusLabel(payment.status) }}
-              </span>
-              <div class="order-value">{{ formatSats(payment.amount) }} sats</div>
-            </div>
+            <span class="status-dot" [class]="getStatusClass(payment.status)"></span>
           </div>
         </div>
       }
@@ -39,7 +36,7 @@
 
     @if (hasMoreOrders()) {
       <div class="load-more">
-        <button class="btn btn-outline" (click)="loadMorePayments()" [disabled]="isLoadingMore()">
+        <button class="btn btn-ghost btn-full btn-sm" (click)="loadMorePayments()" [disabled]="isLoadingMore()">
           @if (isLoadingMore()) {
             <div class="loading-spinner-sm"></div>
             Carregando...
@@ -51,14 +48,11 @@
     }
   } @else {
     <div class="empty-state">
-      <div class="empty-icon">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-          <path d="M12 8V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-      <h3>Nenhum pagamento encontrado</h3>
-      <p>Seus pagamentos PIX via QR Code aparecerao aqui.</p>
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M12 8V12L16 14"/>
+      </svg>
+      <p>Nenhum pagamento realizado ainda</p>
     </div>
   }
 </div>

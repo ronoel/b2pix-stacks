@@ -20,7 +20,8 @@ export class BuyOrderService {
    * @param buyValueInCents Amount in BRL cents
    */
   createBuyOrder(buyValueInCents: number): Observable<BuyOrder> {
-    const payload = `B2PIX - Criar Ordem de Compra\n---\n${buyValueInCents}\n---`;
+    const timestamp = new Date().toISOString();
+    const payload = `B2PIX - Criar Ordem de Compra\nb2pix.org\n${buyValueInCents}\n${timestamp}`;
 
     return from(this.walletManager.signMessage(payload)).pipe(
       switchMap(signedMessage => {
@@ -63,7 +64,8 @@ export class BuyOrderService {
    */
   markBuyOrderAsPaid(orderId: string, pixConfirmationCode?: string): Observable<BuyOrder> {
     const pixCode = pixConfirmationCode || 'NONE';
-    const payload = `B2PIX - Marcar Ordem como Paga\n---\n${orderId}\n${pixCode}\n---`;
+    const timestamp = new Date().toISOString();
+    const payload = `B2PIX - Marcar Ordem como Paga\nb2pix.org\n${orderId}\n${pixCode}\n${timestamp}`;
 
     return from(this.walletManager.signMessage(payload)).pipe(
       switchMap(signedMessage => {
@@ -91,7 +93,8 @@ export class BuyOrderService {
    * Cancel a buy order
    */
   cancelBuyOrder(orderId: string): Observable<BuyOrder> {
-    const payload = `B2PIX - Cancelar Ordem\n---\n${orderId}\n---`;
+    const timestamp = new Date().toISOString();
+    const payload = `B2PIX - Cancelar Ordem\nb2pix.org\n${orderId}\n${timestamp}`;
 
     return from(this.walletManager.signMessage(payload)).pipe(
       switchMap(signedMessage => {
@@ -147,7 +150,8 @@ export class BuyOrderService {
    * @param resolution 'confirmed' or 'rejected'
    */
   resolveAnalyzingOrder(orderId: string, resolution: 'confirmed' | 'rejected'): Observable<BuyOrder> {
-    const payload = `B2PIX - Resolver Análise de Ordem\n---\n${orderId}\n${resolution}\n---`;
+    const timestamp = new Date().toISOString();
+    const payload = `B2PIX - Resolver Análise de Ordem\nb2pix.org\n${orderId}\n${resolution}\n${timestamp}`;
 
     return from(this.walletManager.signMessage(payload)).pipe(
       switchMap(signedMessage => {

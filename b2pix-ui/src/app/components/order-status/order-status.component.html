@@ -1,0 +1,311 @@
+<div class="order-status">
+  @if (isLoading() && !order()) {
+    <div class="loading-state">
+      <div class="loading-spinner"></div>
+      <p>Carregando...</p>
+    </div>
+  } @else if (error()) {
+    <div class="error-state">
+      <div class="icon-box icon-box-lg error-icon-box">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+          <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/>
+          <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
+        </svg>
+      </div>
+      <h3>Erro</h3>
+      <p>{{ error() }}</p>
+      <button class="btn btn-primary" (click)="loadOrder()">Tentar novamente</button>
+    </div>
+  } @else if (order()) {
+    <!-- Status Card -->
+    <div class="status-card card" [class]="'status-card--' + getStatusClass(order()!.status)">
+      <div class="status-card__icon">
+        @switch (order()!.status) {
+          @case ('settlement_created') {
+            @if (latestPayoutRequest() && latestPayoutRequest()!.status === 'confirmed') {
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              </svg>
+            } @else {
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            }
+          }
+          @case ('failed') {
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/>
+              <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          }
+          @case ('error') {
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              <path d="M12 8V12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="12" cy="16" r="1" fill="currentColor"/>
+            </svg>
+          }
+          @case ('expired') {
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          }
+          @case ('refunded') {
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+              <path d="M3 12C3 7.02944 7.02944 3 12 3C14.5755 3 16.9 4.15205 18.5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M21 12C21 16.9706 16.9706 21 12 21C9.42446 21 7.09995 19.848 5.5 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M13 2L18 6L14 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M11 22L6 18L10 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          }
+          @default {
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          }
+        }
+      </div>
+      <div class="status-card__content">
+        <span class="status-badge" [class]="getStatusClass(order()!.status)">
+          {{ getStatusLabel(order()!.status) }}
+        </span>
+        <p class="status-card__description">{{ getStatusDescription(order()!.status) }}</p>
+      </div>
+    </div>
+
+    <!-- Order Progress Steps -->
+    <div class="card progress-card">
+      <div class="step-dots">
+        <div class="step-dot" [class.step-done]="isStepCompleted(1)" [class.step-active]="isStepActive(1)"></div>
+        <div class="step-connector" [class.done]="isStepCompleted(2)"></div>
+        <div class="step-dot" [class.step-done]="isStepCompleted(2)" [class.step-active]="isStepActive(2)"></div>
+        <div class="step-connector" [class.done]="isStepCompleted(3)"></div>
+        <div class="step-dot"
+          [class.step-done]="isStepCompleted(3)"
+          [class.step-active]="isStepActive(3)"
+          [class.step-failed]="isErrorStatus(order()!.status)"></div>
+      </div>
+      <div class="step-labels">
+        <span class="step-label" [class.active]="isStepActive(1)" [class.done]="isStepCompleted(1)">
+          {{ getOrderStepLabel(1) }}
+        </span>
+        <span class="step-label" [class.active]="isStepActive(2)" [class.done]="isStepCompleted(2)">
+          {{ getOrderStepLabel(2) }}
+        </span>
+        <span class="step-label"
+          [class.active]="isStepActive(3)"
+          [class.done]="isStepCompleted(3)"
+          [class.failed]="isErrorStatus(order()!.status)">
+          {{ getOrderStepLabel(3) }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Payout Tracking (Phase 2) -->
+    @if (isPayoutPhase()) {
+      <div class="card payout-card">
+        <h3 class="card__title">Pagamento</h3>
+
+        @if (isPayoutLoading() && !latestPayoutRequest()) {
+          <div class="payout-loading">
+            <div class="loading-spinner loading-spinner-sm"></div>
+            <span>Carregando pagamento...</span>
+          </div>
+        } @else if (latestPayoutRequest()) {
+          @if (latestPayoutRequest()!.attempt_number > 1) {
+            <div class="attempt-badge">
+              Tentativa {{ latestPayoutRequest()!.attempt_number }}
+            </div>
+          }
+
+          <div class="step-dots">
+            <div class="step-dot" [class.step-done]="isPayoutStepCompleted(1)" [class.step-active]="isPayoutStepActive(1)"></div>
+            <div class="step-connector" [class.done]="isPayoutStepCompleted(2)"></div>
+            <div class="step-dot" [class.step-done]="isPayoutStepCompleted(2)" [class.step-active]="isPayoutStepActive(2)"></div>
+            <div class="step-connector" [class.done]="isPayoutStepCompleted(3)"></div>
+            <div class="step-dot" [class.step-done]="isPayoutStepCompleted(3)" [class.step-active]="isPayoutStepActive(3)"></div>
+            <div class="step-connector" [class.done]="isPayoutStepCompleted(4)"></div>
+            <div class="step-dot"
+              [class.step-done]="isPayoutStepCompleted(4)"
+              [class.step-active]="isPayoutStepActive(4)"
+              [class.step-failed]="isPayoutErrorState()"></div>
+          </div>
+          <div class="step-labels step-labels--4">
+            <span class="step-label" [class.active]="isPayoutStepActive(1)" [class.done]="isPayoutStepCompleted(1)">
+              {{ getPayoutStepLabel(1) }}
+            </span>
+            <span class="step-label" [class.active]="isPayoutStepActive(2)" [class.done]="isPayoutStepCompleted(2)">
+              {{ getPayoutStepLabel(2) }}
+            </span>
+            <span class="step-label" [class.active]="isPayoutStepActive(3)" [class.done]="isPayoutStepCompleted(3)">
+              {{ getPayoutStepLabel(3) }}
+            </span>
+            <span class="step-label"
+              [class.active]="isPayoutStepActive(4)"
+              [class.done]="isPayoutStepCompleted(4)"
+              [class.failed]="isPayoutErrorState()">
+              {{ getPayoutStepLabel(4) }}
+            </span>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Order Details — BRL first -->
+    <div class="card details-card">
+      <h3 class="card__title">{{ detailsTitle() }}</h3>
+
+      @if (order()!.pix_value) {
+        <div class="detail-row highlight">
+          <span class="detail-label">Valor</span>
+          <span class="detail-value">{{ formatBrlCents(order()!.pix_value!) }}</span>
+        </div>
+      }
+      <div class="detail-row">
+        <span class="detail-label">Bitcoin</span>
+        <span class="detail-value font-mono">&asymp; {{ formatSatsToBtc(order()!.amount) }} BTC</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Criado em</span>
+        <span class="detail-value">{{ formatDateTime(order()!.created_at) }}</span>
+      </div>
+      @if (order()!.confirmed_at) {
+        <div class="detail-row">
+          <span class="detail-label">Confirmado em</span>
+          <span class="detail-value">{{ formatDateTime(order()!.confirmed_at!) }}</span>
+        </div>
+      }
+      @if (order()!.error_message) {
+        <div class="detail-row detail-row--error">
+          <span class="detail-label">Erro</span>
+          <span class="detail-value">{{ order()!.error_message }}</span>
+        </div>
+      }
+
+      <!-- Technical details collapsed -->
+      <app-technical-details
+        [txHash]="order()!.tx_hash ?? ''"
+        [satoshis]="order()!.amount"
+      />
+    </div>
+
+    <!-- Dispute Section: when payout request status is 'paid' or 'disputed' -->
+    @if (isPayoutPaid() || isPayoutDisputed()) {
+      <div class="card dispute-card">
+        <div class="dispute-notice">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="2"/>
+            <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <div>
+            @if (isPayoutDisputed()) {
+              <p>Disputa aberta. Se voc&ecirc; encontrou o pagamento PIX na sua conta, confirme o recebimento abaixo.</p>
+            } @else {
+              <p>O operador PIX informou que efetuou o pagamento. Se voc&ecirc; n&atilde;o recebeu, abra uma disputa.</p>
+              <p class="auto-confirm-notice">Se nenhuma a&ccedil;&atilde;o for tomada, o pagamento ser&aacute; confirmado automaticamente em 24 horas.</p>
+            }
+          </div>
+        </div>
+        <div class="dispute-actions">
+          <button
+            class="btn btn-success btn-full"
+            (click)="onConfirmReceipt()"
+            [disabled]="isConfirmingReceipt()">
+            @if (isConfirmingReceipt()) {
+              Confirmando...
+            } @else {
+              Confirmar PIX recebido
+            }
+          </button>
+          @if (isPayoutPaid()) {
+            <button class="btn btn-outline btn-full" (click)="onOpenDisputeModal()">
+              N&atilde;o recebi o PIX
+            </button>
+          }
+        </div>
+        @if (confirmReceiptError()) {
+          <div class="error-msg">{{ confirmReceiptError() }}</div>
+        }
+        @if (disputeError()) {
+          <div class="error-msg">{{ disputeError() }}</div>
+        }
+      </div>
+    }
+
+    <!-- Message Chat: when payout request status is 'disputed' -->
+    @if (isPayoutDisputed()) {
+      <div class="chat-section">
+        <app-message-chat
+          [sourceType]="sourceType()"
+          [sourceId]="order()!.id"
+          [currentUserRole]="currentUserRole()"
+        />
+      </div>
+    }
+
+    <!-- Payout Error Alert -->
+    @if (isPayoutError()) {
+      <div class="alert-box alert-warning">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="2"/>
+          <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <p>Ocorreu um erro no pagamento. Um novo pagamento ser&aacute; criado automaticamente.</p>
+      </div>
+    }
+
+    <!-- Payout Error Escalated Alert -->
+    @if (isPayoutErrorEscalated()) {
+      <div class="alert-box alert-error">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+          <path d="M12 8V12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="12" cy="16" r="1" fill="currentColor"/>
+        </svg>
+        <p>Ocorreu um erro recorrente no pagamento. Um moderador est&aacute; analisando.</p>
+      </div>
+    }
+
+    <!-- Payout Dispute Rejected Alert -->
+    @if (isPayoutDisputeRejected()) {
+      <div class="alert-box alert-info">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+          <path d="M12 16V12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M12 8H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <p>A disputa foi rejeitada. Um novo pagamento est&aacute; sendo processado.</p>
+      </div>
+    }
+
+    <!-- Auto-refresh notice -->
+    @if (!isFullyComplete()) {
+      <div class="refresh-notice">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M3 12C3 7.02944 7.02944 3 12 3C14.5755 3 16.9 4.15205 18.5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M21 12C21 16.9706 16.9706 21 12 21C9.42446 21 7.09995 19.848 5.5 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M13 2L18 6L14 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M11 22L6 18L10 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Atualizando automaticamente...</span>
+      </div>
+    }
+
+    <!-- Dispute Modal -->
+    @if (showDisputeModal()) {
+      <app-dispute-modal
+        [isProcessing]="isDisputing()"
+        (submitted)="onDisputeSubmitted()"
+        (cancelled)="onCloseDisputeModal()"
+      />
+    }
+  }
+</div>

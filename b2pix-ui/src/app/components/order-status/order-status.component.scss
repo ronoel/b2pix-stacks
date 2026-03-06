@@ -1,0 +1,343 @@
+.order-status {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+// Loading & Error states
+.loading-state,
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 48px 20px;
+  text-align: center;
+
+  p {
+    color: var(--text-muted);
+    margin: 0;
+    font-size: 14px;
+  }
+
+  h3 {
+    font-family: var(--font-display);
+    font-size: 20px;
+    color: var(--text-primary);
+    margin: 0;
+  }
+}
+
+.error-icon-box {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border-radius: 50%;
+}
+
+// Status Card
+.status-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+
+  &--pending {
+    background: var(--primary-bg);
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  &--processing {
+    background: var(--btc-bg);
+    border-color: var(--btc);
+    color: var(--btc);
+  }
+
+  &--completed {
+    background: var(--success-bg);
+    border-color: var(--success);
+    color: var(--success);
+  }
+
+  &--failed {
+    background: var(--danger-bg);
+    border-color: var(--danger);
+    color: var(--danger);
+  }
+
+  &--warning {
+    background: var(--btc-bg);
+    border-color: var(--warning);
+    color: var(--warning);
+  }
+}
+
+.status-card__icon {
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-card__content {
+  flex: 1;
+  min-width: 0;
+
+  .status-badge {
+    margin-bottom: 6px;
+  }
+}
+
+.status-card__description {
+  font-size: 14px;
+  margin: 6px 0 0;
+  opacity: 0.9;
+  line-height: 1.4;
+}
+
+// Progress Card
+.progress-card {
+  padding: 20px;
+
+  .step-dots {
+    margin-bottom: 12px;
+  }
+}
+
+.step-labels {
+  display: flex;
+  justify-content: space-between;
+  text-align: center;
+
+  .step-label {
+    flex: 1;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    max-width: 90px;
+
+    &.active {
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    &.done {
+      color: var(--success);
+    }
+
+    &.failed {
+      color: var(--danger);
+    }
+  }
+}
+
+.step-labels--4 .step-label {
+  max-width: 80px;
+}
+
+.step-dot.step-failed {
+  background: var(--danger) !important;
+}
+
+// Payout Card
+.payout-card {
+  padding: 20px;
+}
+
+.card__title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.attempt-badge {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  padding: 4px 12px;
+  border-radius: var(--r-full);
+  margin-bottom: 16px;
+  display: inline-block;
+}
+
+.payout-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+
+  span {
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+}
+
+// Details Card
+.details-card {
+  padding: 20px;
+
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    font-size: 14px;
+
+    &:not(:last-of-type) {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .detail-label {
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .detail-value {
+      color: var(--text-primary);
+      font-weight: 600;
+      text-align: right;
+    }
+
+    &.highlight {
+      .detail-label {
+        color: var(--text-primary);
+        font-weight: 600;
+      }
+      .detail-value {
+        color: var(--success);
+        font-weight: 700;
+        font-size: 18px;
+        font-family: var(--font-display);
+      }
+    }
+
+    &.detail-row--error {
+      background: var(--danger-bg);
+      padding: 10px 12px;
+      border-radius: var(--r-sm);
+      margin-top: 8px;
+
+      .detail-value {
+        color: var(--danger);
+      }
+    }
+  }
+
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+}
+
+// Dispute Card
+.dispute-card {
+  padding: 20px;
+  background: var(--btc-bg);
+  border-color: var(--warning);
+}
+
+.dispute-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+
+  svg {
+    flex-shrink: 0;
+    color: var(--warning);
+    margin-top: 2px;
+  }
+
+  p {
+    font-size: 14px;
+    color: #92400E;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .auto-confirm-notice {
+    font-size: 12px;
+    color: var(--warning);
+    margin-top: 4px;
+    font-style: italic;
+  }
+}
+
+.dispute-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.error-msg {
+  font-size: 13px;
+  color: var(--danger);
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: var(--danger-bg);
+  border-radius: var(--r-sm);
+}
+
+// Chat section
+.chat-section {
+  // No extra margin needed, gap handles spacing
+}
+
+// Refresh notice
+.refresh-notice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  background: var(--primary-bg);
+  border: 1px solid var(--primary);
+  border-radius: var(--r-md);
+  opacity: 0.8;
+
+  svg {
+    color: var(--primary);
+    animation: spin 2s linear infinite;
+  }
+
+  span {
+    font-size: 13px;
+    color: var(--primary);
+    font-weight: 500;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .status-card {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .step-labels .step-label {
+    font-size: 10px;
+    max-width: 65px;
+  }
+
+  .step-labels--4 .step-label {
+    max-width: 60px;
+  }
+
+  .dispute-actions {
+    flex-direction: column;
+  }
+}

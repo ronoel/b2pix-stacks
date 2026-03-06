@@ -1,0 +1,124 @@
+.payout-disputes {
+  min-height: 100vh;
+  background: var(--bg-secondary);
+  padding: 24px 0;
+}
+
+/* Tab Count */
+.tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--border);
+  color: var(--text-muted);
+}
+
+.seg-btn.active .tab-count {
+  background: var(--primary-bg);
+  color: var(--primary);
+}
+
+/* Content */
+.cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* States */
+.loading-state {
+  p {
+    color: var(--text-muted);
+    margin: 0;
+    font-size: 14px;
+  }
+}
+
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--danger);
+
+  p {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin: 0;
+  }
+}
+
+.empty-state {
+  h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  p {
+    font-size: 14px;
+    color: var(--text-dim);
+    margin: 0;
+    max-width: 360px;
+  }
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-radius: var(--r-md);
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  animation: slideIn 0.3s ease;
+
+  &.success {
+    background: var(--success-bg);
+    color: var(--success);
+    border: 1px solid var(--success);
+  }
+
+  &.error {
+    background: var(--danger-bg);
+    color: var(--danger);
+    border: 1px solid var(--danger);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .payout-disputes { padding: 16px 0; }
+
+  .toast {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+  }
+}

@@ -1,12 +1,12 @@
 import { Component, Input, OnInit, OnChanges, SimpleChanges, signal, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { qrcode } from '@libs/qrcode';
 
 @Component({
   selector: 'app-pix-copia-cola',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './pix-copia-cola.component.html',
   styleUrl: './pix-copia-cola.component.scss'
 })
@@ -14,6 +14,7 @@ export class PixCopiaColaComponent implements OnInit, OnChanges {
   private sanitizer = inject(DomSanitizer);
 
   @Input() pixKey = '';
+  @Input() payload = '';
   @Input() amount?: number;
   @Input() sellerName = 'VENDEDOR';
   @Input() sellerCity = 'BRASILIA';
@@ -27,17 +28,19 @@ export class PixCopiaColaComponent implements OnInit, OnChanges {
   pixPayloadCopied = signal(false);
 
   ngOnInit() {
-    this.generatePayload();
+    this.resolvePayload();
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if (changes['pixKey'] || changes['amount'] || changes['sellerName'] || changes['sellerCity']) {
-      this.generatePayload();
+    if (changes['payload'] || changes['pixKey'] || changes['amount'] || changes['sellerName'] || changes['sellerCity']) {
+      this.resolvePayload();
     }
   }
 
-  private generatePayload() {
-    if (this.pixKey) {
+  private resolvePayload() {
+    if (this.payload) {
+      this.pixPayload.set(this.payload);
+    } else if (this.pixKey) {
       this.pixPayload.set(this.generatePixPayload(this.pixKey, this.amount));
     }
   }

@@ -1,9 +1,9 @@
 <div class="pix-timer" [class.warning]="isWarning()" [class.danger]="isDanger()">
-  <div class="timer-icon">
-    <i class="bi bi-clock"></i>
-  </div>
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="timer-icon">
+    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+  </svg>
   <div class="timer-content">
-    <div class="timer-label">Tempo restante</div>
-    <div class="timer-display">{{ formatTime(timeLeft()) }}</div>
+    <span class="timer-label">Tempo restante</span>
+    <span class="timer-display">{{ formatTime(timeLeft()) }}</span>
   </div>
 </div>

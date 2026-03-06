@@ -1,14 +1,20 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { CommonModule } from '@angular/common';
+
 import { WalletManagerService } from '../../../libs/wallet/wallet-manager.service';
 import { BuyOrderService } from '../../../shared/api/buy-order.service';
-import { BuyOrder, BuyOrderStatus } from '../../../shared/models/buy-order.model';
+import {
+  BuyOrder,
+  BuyOrderStatus,
+  getBuyOrderStatusLabel,
+  getBuyOrderStatusClass
+} from '../../../shared/models/buy-order.model';
+import { formatBrlCents, formatSats, formatDateTime } from '../../../shared/utils/format.util';
 
 @Component({
   selector: 'app-buy-history',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './buy-history.component.html',
   styleUrl: './buy-history.component.scss'
 })
@@ -76,65 +82,10 @@ export class BuyHistoryComponent implements OnInit {
     this.router.navigate(['/buy', order.id]);
   }
 
-  getStatusLabel(status: BuyOrderStatus): string {
-    switch (status) {
-      case BuyOrderStatus.Created:
-        return 'Pendente';
-      case BuyOrderStatus.Processing:
-        return 'Verificando Pagamento';
-      case BuyOrderStatus.Analyzing:
-        return 'Em Análise';
-      case BuyOrderStatus.Confirmed:
-        return 'Confirmado';
-      case BuyOrderStatus.Rejected:
-        return 'Rejeitado';
-      case BuyOrderStatus.Canceled:
-        return 'Cancelado';
-      case BuyOrderStatus.Expired:
-        return 'Expirado';
-      default:
-        return 'Pendente';
-    }
-  }
+  getStatusLabel = getBuyOrderStatusLabel;
+  getStatusClass = getBuyOrderStatusClass;
+  formatBrlCents = formatBrlCents;
+  formatSats = formatSats;
+  formatDateTime = formatDateTime;
 
-  getStatusClass(status: BuyOrderStatus): string {
-    switch (status) {
-      case BuyOrderStatus.Confirmed:
-        return 'completed';
-      case BuyOrderStatus.Created:
-        return 'pending';
-      case BuyOrderStatus.Processing:
-        return 'processing';
-      case BuyOrderStatus.Analyzing:
-        return 'processing';
-      case BuyOrderStatus.Rejected:
-      case BuyOrderStatus.Canceled:
-      case BuyOrderStatus.Expired:
-        return 'warning';
-      default:
-        return 'pending';
-    }
-  }
-
-  formatDateTime(dateString: string): string {
-    return new Intl.DateTimeFormat('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(new Date(dateString));
-  }
-
-  formatBrlCents(cents: number): string {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'decimal',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(cents / 100);
-  }
-
-  formatSats(amount: number): string {
-    return new Intl.NumberFormat('pt-BR').format(amount);
-  }
 }
