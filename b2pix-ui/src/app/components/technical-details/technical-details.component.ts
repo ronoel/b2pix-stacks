@@ -19,7 +19,7 @@ import { formatSats, formatTruncated, getExplorerUrl } from '../../shared/utils/
           }
           @if (txHash()) {
             <div class="tech-details__row">
-              <span class="tech-details__label">C&oacute;digo da transa&ccedil;&atilde;o</span>
+              <span class="tech-details__label">TX ID</span>
               <span class="tech-details__value font-mono">{{ truncatedHash() }}</span>
             </div>
           }
@@ -96,9 +96,9 @@ import { formatSats, formatTruncated, getExplorerUrl } from '../../shared/utils/
     }
 
     .status--confirmed { color: var(--success); font-weight: 600; }
-    .status--processing, .status--analyzing { color: var(--primary); font-weight: 600; }
-    .status--rejected, .status--canceled, .status--expired { color: var(--danger); font-weight: 600; }
-    .status--created { color: var(--warning); font-weight: 600; }
+    .status--processing, .status--analyzing, .status--broadcast { color: var(--primary); font-weight: 600; }
+    .status--rejected, .status--canceled, .status--expired, .status--failed { color: var(--danger); font-weight: 600; }
+    .status--created, .status--waiting { color: var(--warning); font-weight: 600; }
 
     .font-mono {
       font-family: var(--font-mono);
@@ -131,10 +131,13 @@ export class TechnicalDetailsComponent {
   statusLabel = computed(() => {
     const s = this.status().toLowerCase();
     const labels: Record<string, string> = {
+      'waiting': 'Aguardando',
+      'broadcast': 'Transmitido',
       'created': 'Aguardando pagamento',
-      'processing': 'Verificando pagamento',
+      'processing': 'Processando',
       'analyzing': 'Em análise',
       'confirmed': 'Confirmado',
+      'failed': 'Falhou',
       'rejected': 'Rejeitado',
       'canceled': 'Cancelado',
       'expired': 'Expirado',

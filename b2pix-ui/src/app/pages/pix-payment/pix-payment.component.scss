@@ -35,6 +35,60 @@
   }
 }
 
+// P2P Warning Card
+.p2p-warning-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(217, 119, 6, 0.08);
+  border: 1px solid rgba(217, 119, 6, 0.3);
+  border-radius: var(--r-lg);
+  margin-bottom: 16px;
+}
+
+.p2p-warning-icon {
+  color: var(--warning);
+  display: flex;
+  align-items: center;
+}
+
+.p2p-warning-text {
+  font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.6;
+  margin: 0;
+
+  strong {
+    color: var(--warning);
+    font-weight: 700;
+  }
+}
+
+.p2p-warning-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  padding-top: 4px;
+
+  input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    flex-shrink: 0;
+    accent-color: var(--warning);
+    cursor: pointer;
+  }
+
+  span {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+}
+
 // Balance + limit banner
 .balance-banner {
   margin-top: 16px;

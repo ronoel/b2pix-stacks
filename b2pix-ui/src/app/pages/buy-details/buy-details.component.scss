@@ -60,8 +60,9 @@
   align-items: center;
   gap: 16px;
   padding: 12px 16px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
+  background: var(--primary-bg);
+  border: 1px solid rgba(13, 74, 138, 0.25);
+  border-left: 4px solid var(--primary);
   border-radius: var(--r-lg);
   margin-bottom: 4px;
   transition: background 0.2s ease, border-color 0.2s ease;
@@ -70,6 +71,7 @@
 .timer-card--warning {
   background: rgba(217, 119, 6, 0.08);
   border-color: rgba(217, 119, 6, 0.35);
+  border-left: 4px solid var(--warning);
 
   .timer-icon { color: var(--warning); }
   .timer-display { color: var(--warning); }
@@ -79,6 +81,7 @@
 .timer-card--danger {
   background: var(--danger-bg);
   border-color: rgba(220, 38, 38, 0.4);
+  border-left: 4px solid var(--danger);
 
   .timer-icon { color: var(--danger); }
   .timer-display { color: var(--danger); }
@@ -87,7 +90,7 @@
 
 .timer-icon {
   flex-shrink: 0;
-  color: var(--text-muted);
+  color: var(--primary);
   display: flex;
   align-items: center;
 }
@@ -102,15 +105,22 @@
   font-family: var(--font-mono);
   font-size: 28px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--primary);
   line-height: 1;
   letter-spacing: 2px;
+  animation: timer-pulse 2s ease-in-out infinite;
+}
+
+@keyframes timer-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
 
 .timer-label {
   font-size: 12px;
-  color: var(--text-muted);
+  color: var(--primary);
   font-weight: 500;
+  opacity: 0.8;
 }
 
 /* ---------------------------------------------------------- */

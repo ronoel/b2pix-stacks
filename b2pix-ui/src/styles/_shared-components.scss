@@ -331,6 +331,23 @@
   color: var(--warning);
 }
 
+/* Status Dots — compact indicators for history lists */
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+
+  &.completed { background: var(--success); }
+  &.processing { background: var(--btc); }
+  &.pending { background: var(--primary); }
+  &.failed { background: var(--danger); }
+  &.warning,
+  &.expired,
+  &.cancelled { background: var(--danger); }
+  &.escalated { background: var(--warning); }
+}
+
 /* Badge variants */
 .badge-success {
   background: var(--success-bg);

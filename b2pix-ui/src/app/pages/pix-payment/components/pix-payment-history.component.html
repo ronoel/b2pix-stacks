@@ -28,9 +28,7 @@
                 {{ formatSats(payment.amount) }} sats · {{ formatDateTime(payment.created_at) }}
               </p>
             </div>
-            <span class="status-badge" [class]="getStatusClass(payment.status)">
-              {{ getStatusLabel(payment.status) }}
-            </span>
+            <span class="status-dot" [class]="getStatusClass(payment.status)"></span>
           </div>
         </div>
       }

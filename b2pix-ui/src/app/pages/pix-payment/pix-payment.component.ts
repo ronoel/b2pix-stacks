@@ -41,6 +41,9 @@ export class PixPaymentComponent implements OnInit, OnDestroy {
   // View state
   currentView = signal<'scanner' | 'confirmation' | 'processing' | 'status'>('scanner');
 
+  // P2P warning acknowledgment
+  p2pWarningAccepted = signal(sessionStorage.getItem('p2p_warning_accepted') === 'true');
+
   // QR data
   qrData = signal<PixQrData | null>(null);
 
@@ -133,6 +136,16 @@ export class PixPaymentComponent implements OnInit, OnDestroy {
         console.error('Error fetching BTC price:', error);
       }
     });
+  }
+
+  onP2pWarningAccepted(event: Event) {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.p2pWarningAccepted.set(checked);
+    if (checked) {
+      sessionStorage.setItem('p2p_warning_accepted', 'true');
+    } else {
+      sessionStorage.removeItem('p2p_warning_accepted');
+    }
   }
 
   // QR Code scanned

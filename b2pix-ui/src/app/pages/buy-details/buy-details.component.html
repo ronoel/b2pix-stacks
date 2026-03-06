@@ -121,7 +121,7 @@
                 <app-technical-details
                   [txHash]="paymentRequest()!.blockchain_tx_id || ''"
                   [satoshis]="paymentRequest()!.amount"
-                  [status]="buyData()!.status + ''"
+                  [status]="paymentRequest()!.status + ''"
                 />
               } @else if (isLoadingPaymentRequest()) {
                 <div class="loading-inline">
@@ -136,7 +136,6 @@
                 [status]="buyData()!.status + ''"
               />
             }
-
           </div>
 
           <!-- Actions -->
