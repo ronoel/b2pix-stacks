@@ -44,8 +44,8 @@ export class BuyComponent implements OnInit, OnDestroy {
   private quoteSubscription?: Subscription;
 
   // Amount limits
-  private readonly MIN_BUY_AMOUNT = 10;
-  private readonly MAX_BUY_AMOUNT = 1050;
+  private readonly MIN_BUY_AMOUNT = 50;
+  private readonly MAX_BUY_AMOUNT = 1000;
 
   exceedsMaxAmount = computed(() => this.customAmount() > this.MAX_BUY_AMOUNT);
   belowMinAmount = computed(() => this.customAmount() > 0 && this.customAmount() < this.MIN_BUY_AMOUNT);
@@ -201,7 +201,7 @@ export class BuyComponent implements OnInit, OnDestroy {
     }
 
     if (amount > this.MAX_BUY_AMOUNT) {
-      alert('O valor máximo permitido por compra é de R$ 1.050,00.');
+      alert('O valor máximo permitido por compra é de R$ 1.000,00.');
       return;
     }
 

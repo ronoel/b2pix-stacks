@@ -42,9 +42,9 @@ export class SellComponent implements OnInit, OnDestroy {
   // Constants
   readonly SATS_PER_BTC = 100000000;
   readonly MIN_SELL_BRL = 50;
-  readonly MAX_SELL_BRL = 1050;
+  readonly MAX_SELL_BRL = 1000;
   readonly MIN_SELL_BRL_VALIDATION = 45;
-  readonly MAX_SELL_BRL_VALIDATION = 1060;
+  readonly MAX_SELL_BRL_VALIDATION = 1010;
   readonly QUICK_AMOUNTS_BRL = [50, 250, 500, 1000];
 
   // Balance and pricing

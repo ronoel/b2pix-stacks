@@ -540,6 +540,9 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
     if (error?.message?.includes('cancelada') || error?.message?.includes('cancelled') || error?.message?.includes('User denied')) {
       return 'Assinatura cancelada pelo usuário.';
     }
+    if (error?.status === 409) {
+      return 'Seu crédito está temporariamente bloqueado enquanto um pagamento está sendo processado. Tente novamente em alguns minutos.';
+    }
     if (error?.error?.error) return error.error.error;
     if (error?.message) return error.message;
     return 'Ocorreu um erro. Tente novamente.';

@@ -37,11 +37,11 @@
         </div>
         <p class="input-hint">
           @if (exceedsMaxAmount()) {
-            <span class="input-hint--error">O valor máximo é R$ 1.050,00</span>
+            <span class="input-hint--error">O valor máximo é R$ 1.000,00</span>
           } @else if (belowMinAmount()) {
-            <span class="input-hint--error">O valor mínimo é R$ 10,00</span>
+            <span class="input-hint--error">O valor mínimo é R$ 50,00</span>
           } @else {
-            <span>Mín: R$ 10 &middot; Máx: R$ 1.050</span>
+            <span>Mín: R$ 50 &middot; Máx: R$ 1.000</span>
           }
         </p>
       </div>

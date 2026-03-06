@@ -35,6 +35,7 @@ export class PixPaymentComponent implements OnInit, OnDestroy {
   protected loadingService = inject(LoadingService);
 
   // Constants
+  readonly MIN_PIX_VALUE_CENTS = 5000; // R$ 50,00
   readonly MAX_PIX_VALUE_CENTS = 100000; // R$ 1.000,00
   readonly SATS_PER_BTC = 100000000;
 
@@ -159,6 +160,13 @@ export class PixPaymentComponent implements OnInit, OnDestroy {
 
     if (parsed.valueInCents <= 0) {
       this.showError('QR Code sem valor definido. Apenas QR Codes PIX com valor são aceitos.');
+      return;
+    }
+
+    if (parsed.valueInCents < this.MIN_PIX_VALUE_CENTS) {
+      const minBrl = this.formatCurrency(this.MIN_PIX_VALUE_CENTS / 100);
+      const valBrl = this.formatCurrency(parsed.valueInCents / 100);
+      this.showError(`Valor abaixo do mínimo. O valor de R$ ${valBrl} é menor que o mínimo de R$ ${minBrl} por operação.`);
       return;
     }
 
