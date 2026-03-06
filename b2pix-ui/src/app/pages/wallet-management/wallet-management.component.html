@@ -211,22 +211,29 @@
   (close)="closeSeedSheet()"
 >
   @if (!seedPhraseUnlocked()) {
-    <!-- Password Form — body content -->
     <ng-container>
-      <p class="sheet-desc">Digite sua senha para visualizar a frase de recuperação.</p>
+      @if (isPasskeyWallet()) {
+        <!-- Passkey unlock -->
+        <div class="passkey-unlock-area">
+          <p class="sheet-desc">Use seu passkey para visualizar a frase de recuperação.</p>
+        </div>
+      } @else {
+        <!-- Password Form -->
+        <p class="sheet-desc">Digite sua senha para visualizar a frase de recuperação.</p>
 
-      <div class="form-group">
-        <label class="form-label" for="seedPassword">Senha</label>
-        <input
-          id="seedPassword"
-          type="password"
-          class="input"
-          [(ngModel)]="password"
-          placeholder="Digite sua senha"
-          [disabled]="isUnlocking()"
-          (keyup.enter)="unlockAndViewSeed()"
-        />
-      </div>
+        <div class="form-group">
+          <label class="form-label" for="seedPassword">Senha</label>
+          <input
+            id="seedPassword"
+            type="password"
+            class="input"
+            [(ngModel)]="password"
+            placeholder="Digite sua senha"
+            [disabled]="isUnlocking()"
+            (keyup.enter)="unlockAndViewSeed()"
+          />
+        </div>
+      }
 
       @if (errorMessage()) {
         <div class="error-msg">
@@ -270,14 +277,29 @@
   <!-- Actions slot — single root element required -->
   <ng-container actions>
     @if (!seedPhraseUnlocked()) {
-      <button class="btn-primary" (click)="unlockAndViewSeed()" [disabled]="isUnlocking() || !password">
-        @if (isUnlocking()) {
-          <div class="spinner-sm"></div>
-          Desbloqueando...
-        } @else {
-          Desbloquear
-        }
-      </button>
+      @if (isPasskeyWallet()) {
+        <button class="btn-passkey" (click)="unlockAndViewSeed()" [disabled]="isUnlocking()">
+          @if (isUnlocking()) {
+            <div class="spinner-sm"></div>
+            Autenticando...
+          } @else {
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="currentColor"/>
+              <circle cx="12" cy="12" r="3" fill="currentColor"/>
+            </svg>
+            Autenticar com Passkey
+          }
+        </button>
+      } @else {
+        <button class="btn-primary" (click)="unlockAndViewSeed()" [disabled]="isUnlocking() || !password">
+          @if (isUnlocking()) {
+            <div class="spinner-sm"></div>
+            Desbloqueando...
+          } @else {
+            Desbloquear
+          }
+        </button>
+      }
     } @else {
       <button
         class="btn-outline"

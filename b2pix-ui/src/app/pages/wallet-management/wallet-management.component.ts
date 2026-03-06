@@ -3,7 +3,7 @@ import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
-import { WalletType } from '../../libs/wallet/wallet.types';
+import { WalletType, EncryptionMethod } from '../../libs/wallet/wallet.types';
 import { AccountValidationService } from '../../shared/api/account-validation.service';
 import { AccountInfo } from '../../shared/models/account-validation.model';
 import { PageHeaderComponent } from '../../components/page-header/page-header.component';
@@ -24,6 +24,8 @@ export class WalletManagementComponent implements OnInit {
   walletType = signal<WalletType | null>(null);
   walletAddress = signal<string>('');
   addressCopied = signal<boolean>(false);
+  encryptionMethod = signal<EncryptionMethod | null>(null);
+  isPasskeyWallet = computed(() => this.encryptionMethod() === EncryptionMethod.WEBAUTHN);
 
   // Seed phrase state
   password = '';
@@ -57,6 +59,7 @@ export class WalletManagementComponent implements OnInit {
     const type = this.walletManager.getWalletType();
     this.walletType.set(type);
     this.walletAddress.set(this.walletManager.getSTXAddress() || '');
+    this.encryptionMethod.set(this.walletManager.getWalletEncryptionMethod());
     this.loadAccountInfo();
   }
 
@@ -118,7 +121,7 @@ export class WalletManagementComponent implements OnInit {
   async unlockAndViewSeed() {
     this.errorMessage.set(null);
 
-    if (!this.password) {
+    if (!this.isPasskeyWallet() && !this.password) {
       this.errorMessage.set('Por favor, digite sua senha');
       return;
     }
@@ -128,10 +131,20 @@ export class WalletManagementComponent implements OnInit {
     try {
       const { EmbeddedWalletAdapter } = await import('../../libs/wallet/embedded-wallet.adapter');
       const tempAdapter = new EmbeddedWalletAdapter();
-      const unlocked = await tempAdapter.unlock(this.password);
+
+      let unlocked: boolean;
+      if (this.isPasskeyWallet()) {
+        unlocked = await tempAdapter.unlockWithPasskey();
+      } else {
+        unlocked = await tempAdapter.unlock(this.password);
+      }
 
       if (!unlocked) {
-        this.errorMessage.set('Senha incorreta. Tente novamente.');
+        this.errorMessage.set(
+          this.isPasskeyWallet()
+            ? 'Falha na autenticação com passkey. Tente novamente.'
+            : 'Senha incorreta. Tente novamente.'
+        );
         this.isUnlocking.set(false);
         return;
       }
@@ -141,7 +154,7 @@ export class WalletManagementComponent implements OnInit {
         this.seedPhrase.set(mnemonic);
         this.seedWords.set(mnemonic.split(' '));
         this.seedPhraseUnlocked.set(true);
-        this.seedWordsRevealed.set(false); // Blurred by default after unlock
+        this.seedWordsRevealed.set(false);
         this.password = '';
       } else {
         this.errorMessage.set('Não foi possível recuperar a frase de recuperação');
