@@ -23,7 +23,7 @@
 
   <!-- Confirmation Code Section -->
   <app-confirmation-code-input
-    [disabled]="!canConfirm"
+    [disabled]="false"
     (codeChange)="transactionIdChanged.emit($event)"
     (noCodeChange)="noTransactionIdChanged.emit($event)"
   />
