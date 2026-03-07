@@ -9,7 +9,6 @@
     </div>
   }
   <div class="pix-copy-paste-container">
-    <textarea readonly class="pix-copy-paste-input" [value]="pixPayload()" rows="3"></textarea>
     <div class="pix-action-buttons">
       <button type="button" class="btn-copy" [class.copied]="pixPayloadCopied()" (click)="copyPixPayload()">
         @if (pixPayloadCopied()) {

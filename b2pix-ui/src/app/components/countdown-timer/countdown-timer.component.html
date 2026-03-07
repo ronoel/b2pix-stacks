@@ -1,0 +1,13 @@
+<div #sentinel class="sentinel"></div>
+<div class="countdown-timer" [class.warning]="isWarning()" [class.danger]="isDanger()" [class.stuck]="isStuck()">
+  <div class="timer-icon">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+      <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+  <div class="timer-body">
+    <span class="timer-display">{{ formatTime(timeLeft()) }}</span>
+    <span class="timer-label">Pague antes do tempo acabar</span>
+  </div>
+</div>
