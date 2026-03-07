@@ -33,8 +33,8 @@
 
 // Warning state
 .countdown-timer.warning {
-  background: rgba(217, 119, 6, 0.12);
-  border-color: rgba(217, 119, 6, 0.35);
+  background: #FEF3C7;
+  border-color: #F59E0B;
   border-left: 4px solid var(--warning);
 
   .timer-icon { color: var(--warning); }
@@ -48,8 +48,8 @@
 
 // Danger state
 .countdown-timer.danger {
-  background: var(--danger-bg);
-  border-color: rgba(220, 38, 38, 0.4);
+  background: #FEE2E2;
+  border-color: #EF4444;
   border-left: 4px solid var(--danger);
   animation: timer-pulse 1s infinite;
 
