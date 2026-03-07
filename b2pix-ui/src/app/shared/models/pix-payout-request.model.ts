@@ -16,8 +16,7 @@ export interface PixPayoutRequest {
   id: string;
   source_type: PayoutSourceType;
   source_id: string;
-  pix_key: string | null;
-  qr_code_payload: string | null;
+  qr_code_payload: string;
   pix_value: number;                // BRL in cents
   status: PayoutRequestStatus;
   is_final: boolean;

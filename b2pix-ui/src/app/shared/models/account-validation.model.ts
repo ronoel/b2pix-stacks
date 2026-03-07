@@ -98,7 +98,7 @@ export interface ApiError {
 // ============================================================================
 
 export type EmailVerificationStep = 'enter-email' | 'enter-code' | 'success';
-export type PixVerificationStep = 'enter-pix' | 'deposit-instructions' | 'processing';
+export type PixVerificationStep = 'enter-pix' | 'deposit-instructions' | 'processing' | 'awaiting-validation' | 'validated' | 'validation-failed';
 
 // ============================================================================
 // PIX Moderation Types (Manager only)
