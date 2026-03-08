@@ -14,9 +14,17 @@
     }
   </script>
 
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.webmanifest">
+
   <!-- Favicons -->
   <link rel="icon" type="image/png" sizes="512x512" href="images/logo-512px-t.png">
-  <link rel="apple-touch-icon" sizes="512x512" href="images/logo-512px-t.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon-180x180.png">
+
+  <!-- Apple PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="B2PIX">
 
   <!-- Primary Meta Tags -->
   <meta name="title" content="B2PIX - P2P Bitcoin com PIX | Compre e Venda Bitcoin com Privacidade">
@@ -64,6 +72,12 @@
 </head>
 
 <body>
+  <script>
+    window.addEventListener('beforeinstallprompt', function(e) {
+      e.preventDefault();
+      window.__pwaInstallEvent = e;
+    });
+  </script>
   <app-root></app-root>
 </body>
 
