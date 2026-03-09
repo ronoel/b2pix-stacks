@@ -1,6 +1,5 @@
 import { Component, input, output, computed } from '@angular/core';
 import { formatSats, formatSatsToBtc } from '../../../shared/utils/format.util';
-import { TechnicalDetailsComponent } from '../../../components/technical-details/technical-details.component';
 
 export interface PixQrData {
   payload: string;
@@ -11,7 +10,7 @@ export interface PixQrData {
 @Component({
   selector: 'app-payment-confirmation',
   standalone: true,
-  imports: [TechnicalDetailsComponent],
+  imports: [],
   template: `
     <div class="confirmation">
 
@@ -23,40 +22,16 @@ export interface PixQrData {
         </div>
       }
 
-      <!-- PIX value — BRL primary, BTC secondary -->
+      <!-- PIX value — BRL -->
       <div class="amount-block">
         <span class="amount-label">Valor do PIX</span>
         <span class="amount-brl">{{ formatBrl(pixValueInBrl()) }}</span>
-        <span class="amount-btc">≈ {{ formatSatsToBtc(amountInSats()) }} BTC</span>
       </div>
 
-      <!-- Breakdown -->
-      <div class="details-card">
-        <div class="detail-row">
-          <span class="detail-label">Taxa de processamento</span>
-          <span class="detail-value">{{ formatBrl(feeInBrl()) }}</span>
-        </div>
-        <div class="divider"></div>
-        <div class="detail-row total-row">
-          <span class="detail-label">Total</span>
-          <span class="detail-value total-value">{{ formatBrl(totalInBrl()) }}</span>
-        </div>
-      </div>
-
-      <!-- Balance after payment -->
-      <div class="balance-card" [class.balance-danger]="insufficientBalance()">
-        <div class="balance-row">
-          <span class="balance-label">Saldo atual</span>
-          <span class="balance-value" [class.text-success]="!insufficientBalance()">
-            {{ formatBrl(balanceInBrl()) }}
-          </span>
-        </div>
-        <div class="balance-row">
-          <span class="balance-label">Saldo após</span>
-          <span class="balance-value" [class.text-danger]="insufficientBalance()">
-            {{ formatBrl(balanceAfterBrl()) }}
-          </span>
-        </div>
+      <!-- BTC cost — the key info for the user -->
+      <div class="btc-cost-card">
+        <span class="btc-cost-sats">≈ {{ formatSats(totalInSats()) }} sats</span>
+        <span class="btc-cost-btc">≈ {{ formatSatsToBtc(totalInSats()) }} BTC</span>
       </div>
 
       <!-- Insufficient balance warning -->
@@ -67,14 +42,9 @@ export interface PixQrData {
             <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
-          <span>Saldo insuficiente. Você precisa de {{ formatBrl(totalInBrl()) }} mas possui {{ formatBrl(balanceInBrl()) }}.</span>
+          <span>Saldo insuficiente. Você precisa de {{ formatSats(totalInSats()) }} sats mas possui {{ formatSats(balanceInSats()) }} sats.</span>
         </div>
       }
-
-      <!-- Technical details — collapsed by default -->
-      <app-technical-details
-        [satoshis]="amountInSats()"
-      />
 
       <!-- Action buttons -->
       <div class="actions">
@@ -152,91 +122,32 @@ export interface PixQrData {
       line-height: 1.1;
     }
 
-    .amount-btc {
-      font-size: 13px;
-      color: var(--text-muted);
-    }
-
-    // Breakdown card
-    .details-card {
-      background: var(--bg-primary);
-      border: 1px solid var(--border);
-      border-radius: var(--r-lg);
-      padding: 16px;
-      margin-bottom: 12px;
-    }
-
-    .detail-row {
+    // BTC cost card — the key info
+    .btc-cost-card {
       display: flex;
-      justify-content: space-between;
+      flex-direction: column;
       align-items: center;
-      padding: 6px 0;
+      gap: 4px;
+      padding: 20px 16px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--btc);
+      border-radius: var(--r-lg);
+      margin-bottom: 16px;
+      text-align: center;
     }
 
-    .detail-label {
+    .btc-cost-sats {
+      font-family: var(--font-mono, 'JetBrains Mono', monospace);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--btc);
+      line-height: 1.2;
+    }
+
+    .btc-cost-btc {
       font-size: 14px;
       color: var(--text-secondary);
-    }
-
-    .detail-value {
-      font-size: 14px;
-      color: var(--text-primary);
       font-weight: 500;
-    }
-
-    .total-row {
-      padding-top: 10px;
-    }
-
-    .total-value {
-      font-weight: 700;
-      font-size: 15px;
-    }
-
-    .divider {
-      height: 1px;
-      background: var(--border);
-      margin: 6px 0;
-    }
-
-    // Balance card
-    .balance-card {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
-      border-radius: var(--r-md);
-      padding: 12px 16px;
-      margin-bottom: 16px;
-
-      &.balance-danger {
-        border-color: var(--danger);
-        background: var(--danger-bg);
-      }
-    }
-
-    .balance-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 4px 0;
-    }
-
-    .balance-label {
-      font-size: 13px;
-      color: var(--text-muted);
-    }
-
-    .balance-value {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-
-    .text-success {
-      color: var(--success);
-    }
-
-    .text-danger {
-      color: var(--danger);
     }
 
     // Actions
@@ -282,8 +193,17 @@ export class PaymentConfirmationComponent {
 
   pixValueInBrl = computed(() => this.qrData().valueInCents / 100);
 
+  totalInSats = computed(() => this.amountInSats() + this.fee());
+
+  balanceInSats = computed(() => {
+    // Convert BRL balance back to sats approximation for display
+    const brlPerSat = this.totalInBrl() > 0 && this.totalInSats() > 0
+      ? this.totalInBrl() / this.totalInSats()
+      : 0;
+    return brlPerSat > 0 ? Math.floor(this.balanceInBrl() / brlPerSat) : 0;
+  });
+
   insufficientBalance = computed(() => {
-    // Compare balance (in BRL) vs total (in BRL)
     return this.balanceInBrl() < this.totalInBrl();
   });
 

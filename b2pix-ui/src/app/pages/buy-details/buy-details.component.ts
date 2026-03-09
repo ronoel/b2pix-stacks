@@ -365,15 +365,6 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     return 'Detalhes da compra';
   }
 
-  getPageSubtitle(): string {
-    const status = this.buyData()?.status;
-    const statusStr = status?.toString().toLowerCase();
-    if (statusStr === 'created') {
-      return 'Passo 1 de 2';
-    }
-    return 'Passo 2 de 2';
-  }
-
   getStatusClass(status: BuyOrderStatus): string {
     const buy = this.buyData();
 
