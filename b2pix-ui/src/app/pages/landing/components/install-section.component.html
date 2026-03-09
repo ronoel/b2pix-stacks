@@ -19,10 +19,15 @@
               <div class="guide-steps">
                 @if (isIosSafari) {
                   <ol>
-                    <li>Toque no botão <strong>Compartilhar</strong> <span class="guide-icon">&#xFEFF;&#x2191;&#xFE0E;</span></li>
-                    <li>Role e toque em <strong>"Adicionar à Tela de Início"</strong></li>
-                    <li>Toque em <strong>"Adicionar"</strong></li>
+                    <li>Toque em <span class="guide-icon-circle">•••</span> no canto inferior direito</li>
+                    <li>Toque em <strong>"Compartilhar"</strong> <span class="guide-icon">↑</span></li>
+                    <li>Toque em <strong>"Ver Mais"</strong> <span class="guide-icon">⌄</span></li>
+                    <li>Toque em <strong>"Adicionar à Tela de Início"</strong> <span class="guide-icon">⊕</span></li>
                   </ol>
+                  <p class="guide-hint">
+                    <span class="guide-hint-icon">ℹ</span>
+                    Verifique se <strong>"Abrir como app web"</strong> está ativado e toque em <strong>"Adicionar"</strong>.
+                  </p>
                 } @else if (isFirefoxAndroid) {
                   <ol>
                     <li>Toque no menu <strong>(três pontos)</strong></li>
