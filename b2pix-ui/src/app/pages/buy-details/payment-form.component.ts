@@ -19,6 +19,8 @@ export class PaymentFormComponent {
   @Input() fiatAmountValue = 0;
   @Input() sellerName = 'VENDEDOR';
   @Input() sellerCity = 'BRASILIA';
+  @Input() showPaymentInfo = true;
+  @Input() confirmLabel = 'Confirmar pagamento';
 
   @Output() copyPix = new EventEmitter<void>();
   @Output() confirm = new EventEmitter<void>();

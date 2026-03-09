@@ -442,8 +442,13 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
         return 'Esta ordem foi rejeitada, o pagamento não foi identificado.';
       case 'canceled':
         return 'Esta compra foi cancelada.';
-      case 'expired':
+      case 'expired': {
+        const expiredBuy = this.buyData();
+        if (expiredBuy && !expiredBuy.is_final) {
+          return 'O prazo para pagamento expirou, mas caso você já tenha pago, envie o comprovante.';
+        }
         return 'O prazo para pagamento expirou.';
+      }
       default:
         return 'Acompanhe o status da sua compra. Em caso de dúvidas, entre em contato com o suporte.';
     }
@@ -504,6 +509,51 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   }
 
   getBlockchainExplorerUrl = getExplorerUrl;
+
+  isExpiredNonFinal(): boolean {
+    const buy = this.buyData();
+    if (!buy) return false;
+    return buy.status?.toString().toLowerCase() === 'expired' && !buy.is_final;
+  }
+
+  resubmitPayment(event?: Event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    if (!this.canConfirmPayment()) {
+      return;
+    }
+
+    const buy = this.buyData();
+    if (!buy) return;
+
+    this.loadingService.show();
+
+    const pixId = this.noTransactionId() ? undefined : this.transactionId();
+
+    this.buyOrderService.resubmitPayment(buy.id, pixId).subscribe({
+      next: (updatedBuy) => {
+        this.loadingService.hide();
+        this.buyData.set(updatedBuy);
+        this.loadBuyData(buy.id, false);
+      },
+      error: (error) => {
+        console.error('Error resubmitting payment:', error);
+        this.loadingService.hide();
+
+        let errorMessage = 'Erro ao reenviar comprovante. Tente novamente.';
+        if (error.error && error.error.message) {
+          errorMessage = error.error.message;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+
+        alert(errorMessage);
+      }
+    });
+  }
 
   goBack() {
     this.router.navigate(['/dashboard']);

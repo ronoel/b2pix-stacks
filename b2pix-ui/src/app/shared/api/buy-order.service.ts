@@ -176,6 +176,36 @@ export class BuyOrderService {
   }
 
   /**
+   * Resubmit payment verification on an expired non-final order
+   */
+  resubmitPayment(orderId: string, pixConfirmationCode?: string): Observable<BuyOrder> {
+    const pixCode = pixConfirmationCode || 'NONE';
+    const timestamp = new Date().toISOString();
+    const payload = `B2PIX - Reenviar Pagamento\nb2pix.org\n${orderId}\n${pixCode}\n${timestamp}`;
+
+    return from(this.walletManager.signMessage(payload)).pipe(
+      switchMap(signedMessage => {
+        const data: SignedRequest = {
+          publicKey: signedMessage.publicKey,
+          signature: signedMessage.signature,
+          payload
+        };
+        return this.http.put<BuyOrder>(`${this.apiUrl}/v1/buy-orders/${orderId}/resubmit`, data);
+      }),
+      catchError((error: any) => {
+        console.error('Error in resubmitPayment:', error);
+        if (error.message && error.message.includes('User denied')) {
+          throw new Error('Assinatura cancelada pelo usuário');
+        }
+        if (error.error?.error) {
+          throw new Error(error.error.error);
+        }
+        throw error;
+      })
+    );
+  }
+
+  /**
    * Get BTC price and add 2.3% markup
    */
   getBtcPrice(): Observable<QuoteResponse> {

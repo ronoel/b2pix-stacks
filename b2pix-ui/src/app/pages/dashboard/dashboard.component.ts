@@ -9,7 +9,7 @@ import { AccountValidationService } from '../../shared/api/account-validation.se
 import { BuyOrderService } from '../../shared/api/buy-order.service';
 import { SellOrderService } from '../../shared/api/sell-order.service';
 import { AccountInfo } from '../../shared/models/account-validation.model';
-import { BuyOrder, BuyOrderStatus, isBuyOrderFinalStatus } from '../../shared/models/buy-order.model';
+import { BuyOrder, BuyOrderStatus } from '../../shared/models/buy-order.model';
 import { SellOrder } from '../../shared/models/sell-order.model';
 import { formatBrlCents, formatSats, formatSatsToBtc, formatTruncated } from '../../shared/utils/format.util';
 import { StatusSheetComponent } from '../../components/status-sheet/status-sheet.component';
@@ -160,7 +160,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     this.buyOrderService.getBuyOrdersByAddress(address, { page: 1, limit: 10 }).subscribe({
       next: (response) => {
-        const activeBuy = response.buy_orders.find(o => !isBuyOrderFinalStatus(o.status));
+        const activeBuy = response.buy_orders.find(o => !o.is_final);
         if (activeBuy) {
           this.activeOrder.set(this.mapBuyOrderToInterrupt(activeBuy));
           return;

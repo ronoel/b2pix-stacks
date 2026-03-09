@@ -59,6 +59,20 @@
       </div>
     }
 
+    <!-- Credentials Warning -->
+    @if (stats() && stats()!.credentials_valid === false) {
+      <div class="alert-box alert-warning">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+          <path d="M12 8V12M12 16H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div class="alert-content">
+          <span>Suas credenciais bancárias estão inválidas ou expiradas. Você não receberá novas ordens até atualizar suas credenciais.</span>
+          <button class="btn btn-sm btn-warning-link" (click)="confirmUpdate()">Atualizar credenciais</button>
+        </div>
+      </div>
+    }
+
     <!-- Feedback Messages -->
     @if (successMessage()) {
       <div class="alert-box alert-success">

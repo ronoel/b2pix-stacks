@@ -49,8 +49,7 @@ export interface PaginatedBuyOrdersResponse {
 export function isBuyOrderFinalStatus(status: BuyOrderStatus): boolean {
   return status === BuyOrderStatus.Confirmed
     || status === BuyOrderStatus.Rejected
-    || status === BuyOrderStatus.Canceled
-    || status === BuyOrderStatus.Expired;
+    || status === BuyOrderStatus.Canceled;
 }
 
 export function getBuyOrderStatusLabel(status: BuyOrderStatus): string {
