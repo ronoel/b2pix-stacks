@@ -7,6 +7,7 @@ import { FooterComponent } from './components/footer/footer.component';
 import { TabBarComponent } from './components/tab-bar/tab-bar.component';
 import { InstallPromptComponent } from './components/install-prompt/install-prompt.component';
 import { WalletManagerService } from './libs/wallet/wallet-manager.service';
+import { AppUpdateService } from './services/app-update.service';
 
 @Component({
   selector: 'app-root',
@@ -17,6 +18,7 @@ import { WalletManagerService } from './libs/wallet/wallet-manager.service';
 export class App {
   private router = inject(Router);
   private walletManager = inject(WalletManagerService);
+  protected appUpdate = inject(AppUpdateService);
 
   private currentUrl = toSignal(
     this.router.events.pipe(
