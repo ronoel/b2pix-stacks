@@ -567,19 +567,9 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
    * Check if buy needs monitoring (is not in a final state and not created payment)
    */
   private needsMonitoring(): boolean {
-    const status = this.buyData()?.status;
-    if (!status) return false;
-
-    const statusStr = status.toString().toLowerCase();
-
-    // Explicitly monitor these statuses that need auto-refresh
-    const statusesNeedingMonitoring = [
-      'created',     // Payment pending, user may still be on page
-      'processing',  // User marked as paid, payment being verified
-      'analyzing'    // Payment verification failed, manual review needed
-    ];
-
-    return statusesNeedingMonitoring.includes(statusStr);
+    const buy = this.buyData();
+    if (!buy) return false;
+    return !buy.is_final;
   }
 
   /**
