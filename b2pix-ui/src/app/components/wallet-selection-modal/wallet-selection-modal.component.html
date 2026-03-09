@@ -2,7 +2,7 @@
   <div class="sheet" (click)="$event.stopPropagation()">
     <div class="sheet-handle"></div>
 
-    <h2 class="sheet-title">Como deseja acessar?</h2>
+    <h2 class="sheet-title">Como deseja começar?</h2>
 
     <div class="wallet-options">
       <!-- Create Wallet - Highlighted -->
@@ -16,27 +16,12 @@
           </div>
           <div class="option-info">
             <div class="option-title-row">
-              <span class="option-title">Criar Carteira Integrada</span>
+              <span class="option-title">Criar Nova Carteira</span>
               <span class="badge badge-created">Recomendado</span>
             </div>
           </div>
         </div>
         <p class="option-description">Crie uma carteira protegida por senha. Simples e rápido.</p>
-      </button>
-
-      <!-- External Wallet -->
-      <button class="wallet-option" (click)="onSelect('external')">
-        <div class="option-header">
-          <div class="icon-box icon-box-neutral">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <div class="option-info">
-            <span class="option-title">Já tenho uma carteira</span>
-          </div>
-        </div>
-        <p class="option-description">Conecte Leather, Xverse ou outra carteira Stacks.</p>
       </button>
 
       <!-- Import Wallet -->
@@ -48,7 +33,7 @@
             </svg>
           </div>
           <div class="option-info">
-            <span class="option-title">Importar Carteira Existente</span>
+            <span class="option-title">Já tenho uma carteira</span>
           </div>
         </div>
         <p class="option-description">Use sua frase de recuperação para restaurar sua carteira.</p>

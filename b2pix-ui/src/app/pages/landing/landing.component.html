@@ -32,9 +32,6 @@
             <button class="btn btn-primary btn-cta" (click)="unlockEmbeddedWallet()">
               Acessar Carteira
             </button>
-            <button class="btn btn-ghost btn-cta" (click)="showWalletSelection()">
-              Usar outra carteira
-            </button>
           } @else {
             <button class="btn btn-primary btn-cta" (click)="showWalletSelection()">
               Começar Agora
@@ -95,9 +92,6 @@
           @if (hasEmbeddedWallet()) {
             <button class="btn btn-primary btn-cta" (click)="unlockEmbeddedWallet()">
               Acessar Carteira
-            </button>
-            <button class="btn btn-ghost btn-cta" (click)="showWalletSelection()">
-              Usar outra carteira
             </button>
           } @else {
             <button class="btn btn-primary btn-cta" (click)="showWalletSelection()">
