@@ -14,20 +14,15 @@ interface Platform {
   browser: Browser;
 }
 
-const STORAGE_KEY = 'pwa-install-dismissed';
-const COOLDOWN_DAYS = 7;
-
 @Injectable({
   providedIn: 'root'
 })
 export class PwaInstallService {
   private _installPromptEvent = signal<BeforeInstallPromptEvent | null>(null);
   private _isInstalled = signal(false);
-  private _showPrompt = signal(false);
   private _platform = signal<Platform>(this.detectPlatform());
 
   readonly isInstalled = this._isInstalled.asReadonly();
-  readonly showPrompt = this._showPrompt.asReadonly();
   readonly platform = this._platform.asReadonly();
 
   readonly installFlow = computed<InstallFlow>(() => {
@@ -38,7 +33,6 @@ export class PwaInstallService {
   constructor() {
     this.checkIfInstalled();
     this.captureInstallEvent();
-    this.scheduleAutoShow();
   }
 
   private detectPlatform(): Platform {
@@ -78,7 +72,6 @@ export class PwaInstallService {
   }
 
   private captureInstallEvent(): void {
-    // Pick up event captured before Angular booted
     const earlyEvent = (window as any).__pwaInstallEvent;
     if (earlyEvent) {
       this._installPromptEvent.set(earlyEvent);
@@ -91,7 +84,6 @@ export class PwaInstallService {
 
     window.addEventListener('appinstalled', () => {
       this._isInstalled.set(true);
-      this._showPrompt.set(false);
       localStorage.setItem('pwa-installed', 'true');
     });
   }
@@ -108,29 +100,6 @@ export class PwaInstallService {
     return 'native';
   }
 
-  private scheduleAutoShow(): void {
-    if (this._isInstalled()) return;
-    if (this.isDismissed()) return;
-
-    setTimeout(() => {
-      if (!this._isInstalled() && !this.isDismissed()) {
-        this._showPrompt.set(true);
-      }
-    }, 3000);
-  }
-
-  private isDismissed(): boolean {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) return false;
-
-    const data = JSON.parse(stored);
-    if (data.forever) return true;
-
-    const dismissedAt = new Date(data.date).getTime();
-    const cooldownMs = COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
-    return Date.now() - dismissedAt < cooldownMs;
-  }
-
   async triggerNativeInstall(): Promise<boolean> {
     const event = this._installPromptEvent();
     if (!event) return false;
@@ -140,25 +109,10 @@ export class PwaInstallService {
 
     if (result.outcome === 'accepted') {
       this._isInstalled.set(true);
-      this._showPrompt.set(false);
       localStorage.setItem('pwa-installed', 'true');
       return true;
     }
 
     return false;
-  }
-
-  dismissPrompt(dontShowAgain: boolean): void {
-    this._showPrompt.set(false);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      forever: dontShowAgain,
-      date: new Date().toISOString()
-    }));
-  }
-
-  showInstallPrompt(): void {
-    if (!this._isInstalled()) {
-      this._showPrompt.set(true);
-    }
   }
 }

@@ -1,9 +1,11 @@
 import { Component, inject, effect, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
+import { PwaInstallService } from '../../services/pwa-install.service';
 import { HowItWorksComponent } from './components/how-it-works.component';
 import { TrustSectionComponent } from './components/trust-section.component';
 import { SocialSectionComponent } from './components/social-section.component';
+import { InstallSectionComponent } from './components/install-section.component';
 import { WalletSelectionModalComponent, WalletSelectionType } from '../../components/wallet-selection-modal/wallet-selection-modal.component';
 import { EmbeddedWalletCreateComponent } from '../../components/embedded-wallet-create/embedded-wallet-create.component';
 import { EmbeddedWalletUnlockComponent } from '../../components/embedded-wallet-unlock/embedded-wallet-unlock.component';
@@ -15,6 +17,7 @@ import { EmbeddedWalletImportComponent } from '../../components/embedded-wallet-
     HowItWorksComponent,
     TrustSectionComponent,
     SocialSectionComponent,
+    InstallSectionComponent,
     WalletSelectionModalComponent,
     EmbeddedWalletCreateComponent,
     EmbeddedWalletUnlockComponent,
@@ -26,6 +29,7 @@ import { EmbeddedWalletImportComponent } from '../../components/embedded-wallet-
 export class LandingComponent {
   private router = inject(Router);
   walletManager = inject(WalletManagerService);
+  pwaService = inject(PwaInstallService);
   private connectWalletClicked = false;
 
   // UI state signals

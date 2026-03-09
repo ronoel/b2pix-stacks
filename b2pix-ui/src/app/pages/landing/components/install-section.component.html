@@ -1,0 +1,61 @@
+@if (!isInstalled()) {
+  <div class="install-card">
+    <div class="install-content">
+      <p class="install-message">Instale o app para acesso rápido e seguro</p>
+
+      <div class="install-action">
+        @switch (installFlow()) {
+          @case ('native') {
+            <button class="btn btn-btc btn-install" (click)="install()">
+              Instalar
+            </button>
+          }
+          @case ('manual-guide') {
+            @if (!showGuide()) {
+              <button class="btn btn-btc btn-install" (click)="install()">
+                Como instalar
+              </button>
+            } @else {
+              <div class="guide-steps">
+                @if (isIosSafari) {
+                  <ol>
+                    <li>Toque no botão <strong>Compartilhar</strong> <span class="guide-icon">&#xFEFF;&#x2191;&#xFE0E;</span></li>
+                    <li>Role e toque em <strong>"Adicionar à Tela de Início"</strong></li>
+                    <li>Toque em <strong>"Adicionar"</strong></li>
+                  </ol>
+                } @else if (isFirefoxAndroid) {
+                  <ol>
+                    <li>Toque no menu <strong>(três pontos)</strong></li>
+                    <li>Toque em <strong>"Instalar"</strong></li>
+                  </ol>
+                } @else if (isDesktopSafari) {
+                  <ol>
+                    <li>Clique em <strong>Arquivo</strong> na barra de menus</li>
+                    <li>Selecione <strong>"Adicionar ao Dock"</strong></li>
+                  </ol>
+                }
+              </div>
+            }
+          }
+          @case ('browser-suggestion') {
+            <p class="browser-hint">
+              @if (platform().os === 'ios') {
+                Abra no <strong>Safari</strong> para instalar o app.
+              } @else if (platform().os !== 'unknown') {
+                Abra no <strong>Chrome ou Edge</strong> para instalar o app.
+              } @else {
+                Abra no <strong>Chrome, Edge ou Safari</strong> para instalar o app.
+              }
+            </p>
+          }
+        }
+      </div>
+
+      <div class="benefit-tags">
+        <span class="benefit-tag">Mais rápido</span>
+        <span class="benefit-tag">Mais seguro</span>
+        <span class="benefit-tag">Acesso direto</span>
+      </div>
+    </div>
+  </div>
+}

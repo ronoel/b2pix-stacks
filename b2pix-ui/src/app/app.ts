@@ -5,13 +5,12 @@ import { filter, map, startWith } from 'rxjs';
 import { LoadingComponent } from './components/loading/loading.component';
 import { FooterComponent } from './components/footer/footer.component';
 import { TabBarComponent } from './components/tab-bar/tab-bar.component';
-import { InstallPromptComponent } from './components/install-prompt/install-prompt.component';
 import { WalletManagerService } from './libs/wallet/wallet-manager.service';
 import { AppUpdateService } from './services/app-update.service';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, LoadingComponent, FooterComponent, TabBarComponent, InstallPromptComponent],
+  imports: [RouterOutlet, LoadingComponent, FooterComponent, TabBarComponent],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })

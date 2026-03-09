@@ -1,30 +1,26 @@
 import { Component, inject, signal } from '@angular/core';
-import { PwaInstallService } from '../../services/pwa-install.service';
+import { PwaInstallService } from '../../../services/pwa-install.service';
 
 @Component({
-  selector: 'app-install-prompt',
+  selector: 'app-install-section',
   standalone: true,
-  templateUrl: './install-prompt.component.html',
-  styleUrl: './install-prompt.component.scss'
+  templateUrl: './install-section.component.html',
+  styleUrl: './install-section.component.scss'
 })
-export class InstallPromptComponent {
+export class InstallSectionComponent {
   private pwaService = inject(PwaInstallService);
 
-  showPrompt = this.pwaService.showPrompt;
   installFlow = this.pwaService.installFlow;
   platform = this.pwaService.platform;
-  dontShowAgain = signal(false);
+  isInstalled = this.pwaService.isInstalled;
+  showGuide = signal(false);
 
   async install(): Promise<void> {
-    await this.pwaService.triggerNativeInstall();
-  }
-
-  dismiss(): void {
-    this.pwaService.dismissPrompt(this.dontShowAgain());
-  }
-
-  toggleDontShow(): void {
-    this.dontShowAgain.update(v => !v);
+    if (this.installFlow() === 'native') {
+      await this.pwaService.triggerNativeInstall();
+    } else {
+      this.showGuide.set(true);
+    }
   }
 
   get isIosSafari(): boolean {
@@ -45,6 +41,7 @@ export class InstallPromptComponent {
   get suggestedBrowser(): string {
     const p = this.platform();
     if (p.os === 'ios') return 'Safari';
-    return 'Chrome ou Edge';
+    if (p.os === 'android' || p.os === 'windows' || p.os === 'macos' || p.os === 'linux') return 'Chrome ou Edge';
+    return 'Chrome, Edge ou Safari';
   }
 }
