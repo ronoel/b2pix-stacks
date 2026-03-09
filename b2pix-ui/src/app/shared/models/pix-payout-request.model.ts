@@ -51,6 +51,7 @@ export interface LpStats {
   cancel_count: number;
   error_count: number;
   dispute_lost_count: number;
+  credentials_valid: boolean;
 }
 
 export function isPayoutRequestFinalStatus(status: PayoutRequestStatus): boolean {

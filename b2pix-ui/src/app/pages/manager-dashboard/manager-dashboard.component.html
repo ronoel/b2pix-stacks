@@ -60,7 +60,7 @@
         </button>
 
         <!-- Pagamentos -->
-        <button class="category-card" [class.category-card--dimmed]="waitingPaymentsCount() + failedPaymentsCount() === 0" (click)="navigate('/payment-requests')">
+        <button class="category-card" [class.category-card--dimmed]="waitingPaymentsCount() === 0" (click)="navigate('/payment-requests')">
           <div class="category-card__icon category-card__icon--primary">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 2V22"/>
@@ -69,18 +69,14 @@
           </div>
           <div class="category-card__content">
             <strong>Pagamentos</strong>
-            @if (waitingPaymentsCount() + failedPaymentsCount() === 0) {
+            @if (waitingPaymentsCount() === 0) {
               <span>Nenhum pagamento pendente</span>
             } @else {
-              <span>
-                @if (waitingPaymentsCount() > 0) { {{ waitingPaymentsCount() }} aguardando }
-                @if (waitingPaymentsCount() > 0 && failedPaymentsCount() > 0) { · }
-                @if (failedPaymentsCount() > 0) { {{ failedPaymentsCount() }} com falha }
-              </span>
+              <span>{{ waitingPaymentsCount() }} aguardando</span>
             }
           </div>
-          <div class="category-card__badge" [class]="failedPaymentsCount() > 0 ? 'count-badge count-badge--danger' : waitingPaymentsCount() > 0 ? 'count-badge count-badge--warning' : 'count-badge count-badge--ok'">
-            {{ waitingPaymentsCount() + failedPaymentsCount() }}
+          <div class="category-card__badge" [class]="waitingPaymentsCount() > 0 ? 'count-badge count-badge--warning' : 'count-badge count-badge--ok'">
+            {{ waitingPaymentsCount() }}
           </div>
           <svg class="category-card__chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M9 18l6-6-6-6"/>

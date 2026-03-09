@@ -24,7 +24,6 @@ export class ManagerDashboardComponent implements OnInit {
 
   analyzingCount = signal(0);
   waitingPaymentsCount = signal(0);
-  failedPaymentsCount = signal(0);
   pixVerificationsCount = signal(0);
   disputedCount = signal(0);
   escalatedCount = signal(0);
@@ -34,7 +33,6 @@ export class ManagerDashboardComponent implements OnInit {
   totalActionable = computed(() =>
     this.analyzingCount() +
     this.waitingPaymentsCount() +
-    this.failedPaymentsCount() +
     this.pixVerificationsCount() +
     this.disputedCount() +
     this.escalatedCount()
@@ -58,10 +56,6 @@ export class ManagerDashboardComponent implements OnInit {
         status: [PaymentRequestStatus.Waiting],
         limit: 100
       }),
-      failedPayments: this.paymentRequestService.getPaymentRequests({
-        status: [PaymentRequestStatus.Failed],
-        limit: 100
-      }),
       pixVerifications: this.accountValidationService.getProcessingPixVerifications(),
       disputed: this.managerPayoutService.getDisputedRequests(),
       escalated: this.managerPayoutService.getErrorEscalatedRequests()
@@ -69,7 +63,6 @@ export class ManagerDashboardComponent implements OnInit {
       next: (results) => {
         this.analyzingCount.set(results.analyzing.length);
         this.waitingPaymentsCount.set(results.waitingPayments.data.length);
-        this.failedPaymentsCount.set(results.failedPayments.data.length);
         this.pixVerificationsCount.set(results.pixVerifications.length);
         this.disputedCount.set(results.disputed.length);
         this.escalatedCount.set(results.escalated.length);

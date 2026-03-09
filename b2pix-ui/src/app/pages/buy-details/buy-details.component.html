@@ -4,8 +4,6 @@
     <!-- Page Header -->
     <app-page-header
       [title]="getPageTitle()"
-      [subtitle]="getPageSubtitle()"
-      backRoute="/buy"
     />
 
     @if (isLoading()) {
@@ -132,9 +130,30 @@
 
           <!-- Actions -->
           <div class="status-actions">
-            <button class="btn btn-primary btn-full" (click)="goToDashboard()">
-              Voltar ao início
-            </button>
+            @if (isExpiredNonFinal()) {
+              <app-payment-form
+                [fiatAmount]="formatCurrency(getTotalFiatAmount())"
+                [fiatAmountValue]="getTotalFiatAmount()"
+                [btcAmount]="formatBTC(getBtcAmount())"
+                [pixKey]="buyData()!.pix_key"
+                [canConfirm]="canConfirmPayment()"
+                [showPaymentInfo]="false"
+                (confirm)="resubmitPayment()"
+                (transactionIdChanged)="onTransactionIdChange($event)"
+                (noTransactionIdChanged)="onNoTransactionIdChange($event)"
+                confirmLabel="Enviar comprovante"
+              />
+              <button class="btn btn-danger btn-full" (click)="cancelPurchase()">
+                Cancelar compra
+              </button>
+              <button class="btn btn-ghost btn-full" (click)="goToDashboard()">
+                Voltar ao início
+              </button>
+            } @else {
+              <button class="btn btn-primary btn-full" (click)="goToDashboard()">
+                Voltar ao início
+              </button>
+            }
           </div>
 
         </div>

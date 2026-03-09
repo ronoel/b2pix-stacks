@@ -1,25 +1,27 @@
 <div class="payment-form">
 
-  <!-- Amount + Instructions compact -->
-  <div class="payment-header-card">
-    <div class="amount-row">
-      <span class="amount-label">Valor do PIX</span>
-      <span class="amount-value">R$&nbsp;{{ fiatAmount }}</span>
+  @if (showPaymentInfo) {
+    <!-- Amount + Instructions compact -->
+    <div class="payment-header-card">
+      <div class="amount-row">
+        <span class="amount-label">Valor do PIX</span>
+        <span class="amount-value">R$&nbsp;{{ fiatAmount }}</span>
+      </div>
+      <p class="instructions-compact">
+        Copie o código ou escaneie o QR Code, pague via PIX e informe o código de confirmação abaixo.
+      </p>
     </div>
-    <p class="instructions-compact">
-      Copie o código ou escaneie o QR Code, pague via PIX e informe o código de confirmação abaixo.
-    </p>
-  </div>
 
-  <!-- PIX Key — compact (no textarea) -->
-  <app-pix-copia-cola
-    [pixKey]="pixKey"
-    [amount]="fiatAmountValue"
-    [sellerName]="sellerName"
-    [sellerCity]="sellerCity"
-    [showLabel]="true"
-    labelText="Pagar PIX"
-  ></app-pix-copia-cola>
+    <!-- PIX Key — compact (no textarea) -->
+    <app-pix-copia-cola
+      [pixKey]="pixKey"
+      [amount]="fiatAmountValue"
+      [sellerName]="sellerName"
+      [sellerCity]="sellerCity"
+      [showLabel]="true"
+      labelText="Pagar PIX"
+    ></app-pix-copia-cola>
+  }
 
   <!-- Confirmation Code Section -->
   <app-confirmation-code-input
@@ -36,15 +38,17 @@
       [disabled]="!canConfirm"
       (click)="confirm.emit()"
     >
-      Confirmar pagamento
+      {{ confirmLabel }}
     </button>
-    <button
-      type="button"
-      class="btn btn-ghost-danger btn-full"
-      (click)="cancel.emit()"
-    >
-      Cancelar compra
-    </button>
+    @if (showPaymentInfo) {
+      <button
+        type="button"
+        class="btn btn-ghost-danger btn-full"
+        (click)="cancel.emit()"
+      >
+        Cancelar compra
+      </button>
+    }
   </div>
 
 </div>
