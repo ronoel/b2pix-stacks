@@ -3,6 +3,7 @@ import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs';
 import { LoadingComponent } from './components/loading/loading.component';
+import { ApiUnavailableComponent } from './components/api-unavailable/api-unavailable.component';
 import { FooterComponent } from './components/footer/footer.component';
 import { TabBarComponent } from './components/tab-bar/tab-bar.component';
 import { WalletManagerService } from './libs/wallet/wallet-manager.service';
@@ -10,7 +11,7 @@ import { AppUpdateService } from './services/app-update.service';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, LoadingComponent, FooterComponent, TabBarComponent],
+  imports: [RouterOutlet, LoadingComponent, ApiUnavailableComponent, FooterComponent, TabBarComponent],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })

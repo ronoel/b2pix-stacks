@@ -3,7 +3,8 @@ import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { provideServiceWorker } from '@angular/service-worker';
 
 import { routes } from './app.routes';
-import { provideHttpClient, withFetch } from '@angular/common/http';
+import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
+import { apiHealthInterceptor } from './interceptors/api-health.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -16,6 +17,7 @@ export const appConfig: ApplicationConfig = {
       })),
     provideHttpClient(
       withFetch(),
+      withInterceptors([apiHealthInterceptor]),
     ),
     provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode(),
