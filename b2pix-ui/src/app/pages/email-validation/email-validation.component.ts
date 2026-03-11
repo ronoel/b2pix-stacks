@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, signal, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, effect, inject, signal, ViewChild } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -21,6 +21,13 @@ export class EmailValidationComponent implements OnInit, OnDestroy {
   private validationService = inject(AccountValidationService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+
+  constructor() {
+    effect(() => {
+      this.step();
+      window.scrollTo({ top: 0 });
+    });
+  }
 
   // State
   email = signal('');

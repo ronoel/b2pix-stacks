@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit, OnDestroy, signal } from '@angular/core';
+import { Component, computed, effect, inject, OnInit, OnDestroy, signal } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { LoadingService } from '../../services/loading.service';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
@@ -22,6 +22,13 @@ export class BuyComponent implements OnInit, OnDestroy {
   private loadingService = inject(LoadingService);
   private walletManagerService = inject(WalletManagerService);
   private buyOrderService = inject(BuyOrderService);
+
+  constructor() {
+    effect(() => {
+      this.currentStep();
+      window.scrollTo({ top: 0 });
+    });
+  }
 
   // Core signals
   selectedQuickAmount = signal<number>(0);

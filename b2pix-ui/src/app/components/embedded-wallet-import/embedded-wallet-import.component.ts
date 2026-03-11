@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, output } from '@angular/core';
+import { Component, OnInit, effect, inject, signal, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
@@ -560,6 +560,13 @@ export class EmbeddedWalletImportComponent implements OnInit {
   readonly cancelled = output<void>();
 
   currentStep = signal(1);
+
+  constructor() {
+    effect(() => {
+      this.currentStep();
+      window.scrollTo({ top: 0 });
+    });
+  }
   seedPhrase = '';
   password = '';
   confirmPassword = '';
