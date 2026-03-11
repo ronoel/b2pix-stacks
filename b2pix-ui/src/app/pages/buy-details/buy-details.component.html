@@ -44,12 +44,10 @@
           [fiatAmountValue]="getTotalFiatAmount()"
           [btcAmount]="formatBTC(getBtcAmount())"
           [pixKey]="buyData()!.pix_key"
-          [canConfirm]="canConfirmPayment()"
+          [canConfirm]="true"
           (copyPix)="copyPixKey()"
           (confirm)="confirmPayment()"
           (cancel)="cancelPurchase()"
-          (transactionIdChanged)="onTransactionIdChange($event)"
-          (noTransactionIdChanged)="onNoTransactionIdChange($event)"
         />
 
       } @else {
@@ -136,11 +134,9 @@
                 [fiatAmountValue]="getTotalFiatAmount()"
                 [btcAmount]="formatBTC(getBtcAmount())"
                 [pixKey]="buyData()!.pix_key"
-                [canConfirm]="canConfirmPayment()"
+                [canConfirm]="true"
                 [showPaymentInfo]="false"
                 (confirm)="resubmitPayment()"
-                (transactionIdChanged)="onTransactionIdChange($event)"
-                (noTransactionIdChanged)="onNoTransactionIdChange($event)"
                 confirmLabel="Enviar comprovante"
               />
               <button class="btn btn-danger btn-full" (click)="cancelPurchase()">

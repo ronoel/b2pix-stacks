@@ -34,10 +34,6 @@
         <span class="value highlight">R$ {{ (verification.pix_confirmation_value / 100).toFixed(2) }}</span>
       </div>
       <div class="detail-item">
-        <span class="label">Código de confirmação</span>
-        <span class="value code font-mono">{{ verification.pix_confirmation_code }}</span>
-      </div>
-      <div class="detail-item">
         <span class="label">End-to-End ID</span>
         <span class="value" [class.empty]="!verification.pix_end_to_end_id">
           {{ verification.pix_end_to_end_id || 'Não informado' }}

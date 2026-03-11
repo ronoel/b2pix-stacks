@@ -60,12 +60,10 @@ export class BuyOrderService {
   /**
    * Mark buy order as paid
    * @param orderId Order ID
-   * @param pixConfirmationCode PIX confirmation code (optional, use undefined for NONE)
    */
-  markBuyOrderAsPaid(orderId: string, pixConfirmationCode?: string): Observable<BuyOrder> {
-    const pixCode = pixConfirmationCode || 'NONE';
+  markBuyOrderAsPaid(orderId: string): Observable<BuyOrder> {
     const timestamp = new Date().toISOString();
-    const payload = `B2PIX - Marcar Ordem como Paga\nb2pix.org\n${orderId}\n${pixCode}\n${timestamp}`;
+    const payload = `B2PIX - Marcar Ordem como Paga\nb2pix.org\n${orderId}\n${timestamp}`;
 
     return from(this.walletManager.signMessage(payload)).pipe(
       switchMap(signedMessage => {
@@ -178,10 +176,9 @@ export class BuyOrderService {
   /**
    * Resubmit payment verification on an expired non-final order
    */
-  resubmitPayment(orderId: string, pixConfirmationCode?: string): Observable<BuyOrder> {
-    const pixCode = pixConfirmationCode || 'NONE';
+  resubmitPayment(orderId: string): Observable<BuyOrder> {
     const timestamp = new Date().toISOString();
-    const payload = `B2PIX - Reenviar Pagamento\nb2pix.org\n${orderId}\n${pixCode}\n${timestamp}`;
+    const payload = `B2PIX - Reenviar Pagamento\nb2pix.org\n${orderId}\n${timestamp}`;
 
     return from(this.walletManager.signMessage(payload)).pipe(
       switchMap(signedMessage => {

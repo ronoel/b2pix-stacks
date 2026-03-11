@@ -20,10 +20,6 @@ export interface CreatePixVerifyPayload {
   user_pix_key: string;
 }
 
-export interface ConfirmPixPayload {
-  pix_confirmation_code?: string;
-}
-
 // ============================================================================
 // Response Types
 // ============================================================================
@@ -109,7 +105,6 @@ export interface AccountPixVerify {
   user_pix_key: string;
   destination_pix_key: string;
   pix_confirmation_value: number;
-  pix_confirmation_code: string;
   pix_end_to_end_id: string | null;
   status: 'processing' | 'verified' | 'failed';
   attempts: number;

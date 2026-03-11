@@ -43,10 +43,6 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   isLoading = signal(true);
   errorMessage = signal('');
 
-  // Payment form state (for pending status)
-  transactionId = signal('');
-  noTransactionId = signal(false);
-
   // Time warning sheet state (bottom sheet, triggers at 3 minutes)
   showTimeWarningSheet = signal(false);
   private hasShownTimeWarning = false;
@@ -206,28 +202,6 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
 
   formatSats = formatSats;
 
-  onTransactionIdChange(transactionId: string) {
-    this.transactionId.set(transactionId.toUpperCase());
-    if (transactionId.length > 0) {
-      this.noTransactionId.set(false);
-    }
-  }
-
-  onNoTransactionIdChange(noTransactionId: boolean) {
-    this.noTransactionId.set(noTransactionId);
-    if (noTransactionId) {
-      this.transactionId.set('');
-    }
-  }
-
-  canConfirmPayment(): boolean {
-    if (this.noTransactionId()) {
-      return true;
-    }
-    const txId = this.transactionId();
-    return txId.length === 3 && /^[A-Z0-9]{3}$/.test(txId);
-  }
-
   copyPixKey() {
     const buy = this.buyData();
     if (buy?.pix_key) {
@@ -254,10 +228,6 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
       event.stopPropagation();
     }
 
-    if (!this.canConfirmPayment()) {
-      return;
-    }
-
     const buy = this.buyData();
 
     if (!buy) {
@@ -266,9 +236,7 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
 
     this.loadingService.show();
 
-    const pixId = this.noTransactionId() ? undefined : this.transactionId();
-
-    this.buyOrderService.markBuyOrderAsPaid(buy.id, pixId).subscribe({
+    this.buyOrderService.markBuyOrderAsPaid(buy.id).subscribe({
       next: (updatedBuy) => {
         this.loadingService.hide();
         this.buyData.set(updatedBuy);
@@ -522,18 +490,12 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
       event.stopPropagation();
     }
 
-    if (!this.canConfirmPayment()) {
-      return;
-    }
-
     const buy = this.buyData();
     if (!buy) return;
 
     this.loadingService.show();
 
-    const pixId = this.noTransactionId() ? undefined : this.transactionId();
-
-    this.buyOrderService.resubmitPayment(buy.id, pixId).subscribe({
+    this.buyOrderService.resubmitPayment(buy.id).subscribe({
       next: (updatedBuy) => {
         this.loadingService.hide();
         this.buyData.set(updatedBuy);

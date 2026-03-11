@@ -125,8 +125,7 @@
 }
 
 // Deposit instructions view spacing
-:host ::ng-deep app-pix-copia-cola,
-:host ::ng-deep app-confirmation-code-input {
+:host ::ng-deep app-pix-copia-cola {
   display: block;
   margin-bottom: 12px;
 }

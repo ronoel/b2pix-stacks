@@ -278,6 +278,26 @@
   }
 }
 
+.step-reminder {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  margin-bottom: 12px;
+
+  svg {
+    flex-shrink: 0;
+    color: var(--primary);
+    margin-top: 1px;
+  }
+}
+
 .sheet-actions {
   display: flex;
   flex-direction: column;

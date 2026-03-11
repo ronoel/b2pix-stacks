@@ -112,13 +112,6 @@
         labelText="Pagar PIX"
       ></app-pix-copia-cola>
 
-      <!-- Confirmation code -->
-      <app-confirmation-code-input
-        [disabled]="loading()"
-        (codeChange)="onConfirmationCodeChange($event)"
-        (noCodeChange)="onNoCodeChange($event)"
-      />
-
       <!-- Attempts warning -->
       @if (isLastAttempt()) {
         <p class="attempt-warning attempt-warning--danger">
@@ -150,7 +143,7 @@
         <button
           type="button"
           class="btn btn-primary btn-full"
-          [disabled]="loading() || (!noConfirmationCode() && confirmationCode().length < 3)"
+          [disabled]="loading()"
           (click)="confirmDeposit()"
         >
           @if (loading()) {

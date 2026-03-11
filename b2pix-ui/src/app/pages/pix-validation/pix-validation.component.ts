@@ -6,7 +6,6 @@ import { forkJoin, interval, Subscription, switchMap } from 'rxjs';
 import { AccountValidationService } from '../../shared/api/account-validation.service';
 import { PixVerificationStep, PixVerificationStatus } from '../../shared/models/account-validation.model';
 import { CountdownTimerComponent } from '../../components/countdown-timer/countdown-timer.component';
-import { ConfirmationCodeInputComponent } from '../../components/confirmation-code-input/confirmation-code-input.component';
 import { PixKeyInputComponent } from './components/pix-key-input.component';
 import { PixCopiaColaComponent } from '../../components/pix-copia-cola/pix-copia-cola.component';
 import { PageHeaderComponent } from '../../components/page-header/page-header.component';
@@ -15,7 +14,7 @@ import { formatBrlCents } from '../../shared/utils/format.util';
 @Component({
   selector: 'app-pix-validation',
   standalone: true,
-  imports: [FormsModule, CountdownTimerComponent, ConfirmationCodeInputComponent, PixKeyInputComponent, PixCopiaColaComponent, PageHeaderComponent],
+  imports: [FormsModule, CountdownTimerComponent, PixKeyInputComponent, PixCopiaColaComponent, PageHeaderComponent],
   templateUrl: './pix-validation.component.html',
   styleUrl: './pix-validation.component.scss'
 })
@@ -32,9 +31,6 @@ export class PixValidationComponent implements OnInit, OnDestroy {
   loading = signal(false);
   error = signal('');
 
-  // Confirmation
-  confirmationCode = signal('');
-  noConfirmationCode = signal(false);
   pixKeyConfirmed = signal(false);
 
   // Deposit amount upfront (fetched on init from pending verification or will be revealed on step 2)
@@ -162,25 +158,11 @@ export class PixValidationComponent implements OnInit, OnDestroy {
     });
   }
 
-  onConfirmationCodeChange(code: string): void {
-    this.confirmationCode.set(code.toUpperCase());
-    if (this.error()) this.error.set('');
-  }
-
-  onNoCodeChange(checked: boolean): void {
-    this.noConfirmationCode.set(checked);
-    if (checked) {
-      this.confirmationCode.set('');
-    }
-  }
-
   confirmDeposit(): void {
     this.loading.set(true);
     this.error.set('');
 
-    const code = this.noConfirmationCode() ? undefined : this.confirmationCode() || undefined;
-
-    this.validationService.confirmPixPayment(code).subscribe({
+    this.validationService.confirmPixPayment().subscribe({
       next: (response) => {
         this.loading.set(false);
 
@@ -205,7 +187,6 @@ export class PixValidationComponent implements OnInit, OnDestroy {
           this.showAwaitingValidation();
         } else if (response.status === 'awaiting') {
           this.error.set(response.message || 'Depósito PIX não encontrado. Verifique se o depósito foi realizado e tente novamente.');
-          this.confirmationCode.set('');
         } else if (response.status === 'expired') {
           this.navigateToFailure('Verificação expirada. Tente novamente.');
         } else {
@@ -224,11 +205,7 @@ export class PixValidationComponent implements OnInit, OnDestroy {
           return;
         }
 
-        if (err.message.includes('Invalid confirmation code') || err.message.includes('incorrect')) {
-          this.error.set('Código de confirmação incorreto. Verifique os 3 últimos caracteres do ID da transação PIX.');
-        } else {
-          this.error.set(err.message || 'Erro ao confirmar depósito');
-        }
+        this.error.set(err.message || 'Erro ao confirmar depósito');
       }
     });
   }

@@ -165,12 +165,11 @@ export class AccountValidationService {
   /**
    * Confirma o pagamento PIX
    */
-  confirmPixPayment(pixConfirmationCode?: string): Observable<PixVerifyResponse> {
+  confirmPixPayment(): Observable<PixVerifyResponse> {
     const timestamp = new Date().toISOString();
     const payloadString = [
       'B2PIX - Confirmar Pagamento PIX',
       'b2pix.org',
-      pixConfirmationCode || 'NONE',
       timestamp
     ].join('\n');
 
