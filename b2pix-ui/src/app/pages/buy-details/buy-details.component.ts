@@ -1,9 +1,6 @@
-import { Component, inject, OnInit, OnDestroy, signal, ViewEncapsulation, effect, computed } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal, ViewEncapsulation, viewChild } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { interval, Subject } from 'rxjs';
-import { takeUntil, startWith } from 'rxjs/operators';
 import { LoadingService } from '../../services/loading.service';
 import { BuyOrderService } from '../../shared/api/buy-order.service';
 import { PaymentRequestService } from '../../shared/api/payment-request.service';
@@ -21,11 +18,12 @@ import { PaymentFormComponent } from './payment-form.component';
 import { PageHeaderComponent } from '../../components/page-header/page-header.component';
 import { StatusSheetComponent } from '../../components/status-sheet/status-sheet.component';
 import { TechnicalDetailsComponent } from '../../components/technical-details/technical-details.component';
+import { CountdownTimerComponent } from '../../components/countdown-timer/countdown-timer.component';
 
 @Component({
   selector: 'app-buy-details',
   standalone: true,
-  imports: [NgClass, PaymentFormComponent, PageHeaderComponent, StatusSheetComponent, TechnicalDetailsComponent],
+  imports: [NgClass, PaymentFormComponent, PageHeaderComponent, StatusSheetComponent, TechnicalDetailsComponent, CountdownTimerComponent],
   encapsulation: ViewEncapsulation.None,
   templateUrl: './buy-details.component.html',
   styleUrl: './buy-details.component.scss'
@@ -36,6 +34,9 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   private loadingService = inject(LoadingService);
   private buyOrderService = inject(BuyOrderService);
   private paymentRequestService = inject(PaymentRequestService);
+
+  // Countdown timer ref
+  countdownTimer = viewChild(CountdownTimerComponent);
 
   // Component state
   buyData = signal<BuyOrder | null>(null);
@@ -51,64 +52,12 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   private hasShownTimeWarning = false;
   private hasShownTimeoutAlert = false;
 
-  // Timer for payment using pure signals
-  private expiresAt = signal<Date | null>(null);
-  private timerActive = signal(false);
-  private destroy$ = new Subject<void>();
-  
-  // Create a tick signal from RxJS interval - updates every second when timer is active
-  private tick = toSignal(
-    interval(1000).pipe(startWith(0)),
-    { initialValue: 0 }
-  );
-  
-  // Computed signal for time left - recalculates on every tick
-  paymentTimeLeft = computed(() => {
-    // Read tick to trigger recalculation every second
-    this.tick();
-    
-    const expires = this.expiresAt();
-    if (!expires || !this.timerActive()) return 0;
-    
-    const now = new Date();
-    const timeLeftMs = expires.getTime() - now.getTime();
-    // Return actual remaining seconds (never negative)
-    return Math.max(0, Math.floor(timeLeftMs / 1000));
-  });
-  
-  // Computed signal for formatted time
-  formattedTime = computed(() => {
-    const time = this.paymentTimeLeft();
-    const minutes = Math.floor(time / 60);
-    const seconds = time % 60;
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-  });
-
   // Payment request state (for completed status)
   paymentRequest = signal<PaymentRequest | null>(null);
   isLoadingPaymentRequest = signal(false);
 
   // Auto-refresh timer
   private refreshTimeout: any = null;
-
-  constructor() {
-    // Watch for timer changes and handle warnings/timeout
-    effect(() => {
-      const timeLeft = this.paymentTimeLeft();
-      
-      // Show warning sheet when less than 3 minutes remaining (only once)
-      if (timeLeft > 0 && timeLeft < 180 && !this.hasShownTimeWarning) {
-        this.hasShownTimeWarning = true;
-        this.showTimeWarningSheet.set(true);
-      }
-      
-      // Handle timeout
-      if (this.timerActive() && timeLeft <= 0) {
-        this.timerActive.set(false);
-        this.handlePaymentTimeout();
-      }
-    });
-  }
 
   ngOnInit() {
     const buyId = this.route.snapshot.paramMap.get('id');
@@ -122,10 +71,7 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    this.clearPaymentTimer();
     this.clearRefreshTimeout();
-    this.destroy$.next();
-    this.destroy$.complete();
   }
 
   loadBuyData(buyId?: string, showLoading: boolean = true) {
@@ -146,11 +92,7 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
       next: (buy) => {
         this.buyData.set(buy);
 
-        // If created, start payment timer
-        const statusStr = buy.status?.toString().toLowerCase();
-        if (statusStr === 'created') {
-          this.startPaymentTimer(buy);
-        }
+        // Timer is handled by the countdown-timer component via getExpiresAt()
 
         // If completed status, load payment request
         if (this.shouldShowPaymentDetails()) {
@@ -214,19 +156,15 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     return statusStr === 'created';
   }
 
-  startPaymentTimer(buy: BuyOrder) {
-    if (!buy.expires_at) {
-      return;
-    }
-
-    // Set expiration time and activate timer
-    this.expiresAt.set(new Date(buy.expires_at));
-    this.timerActive.set(true);
+  getExpiresAt(): string {
+    return this.buyData()?.expires_at || '';
   }
 
-  clearPaymentTimer() {
-    this.timerActive.set(false);
-    this.expiresAt.set(null);
+  onTimerWarning() {
+    if (!this.hasShownTimeWarning) {
+      this.hasShownTimeWarning = true;
+      this.showTimeWarningSheet.set(true);
+    }
   }
 
   handlePaymentTimeout() {
@@ -334,7 +272,6 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
       next: (updatedBuy) => {
         this.loadingService.hide();
         this.buyData.set(updatedBuy);
-        this.clearPaymentTimer();
 
         // Show success message
         // alert('Pagamento confirmado com sucesso! Aguarde a liberação dos bitcoins.');
@@ -374,7 +311,6 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     this.buyOrderService.cancelBuyOrder(buy.id).subscribe({
       next: () => {
         this.loadingService.hide();
-        this.clearPaymentTimer();
 
         alert('Compra cancelada com sucesso!');
         this.router.navigate(['/dashboard']);
@@ -427,15 +363,6 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
       return 'Pagamento PIX';
     }
     return 'Detalhes da compra';
-  }
-
-  getPageSubtitle(): string {
-    const status = this.buyData()?.status;
-    const statusStr = status?.toString().toLowerCase();
-    if (statusStr === 'created') {
-      return 'Passo 1 de 2';
-    }
-    return 'Passo 2 de 2';
   }
 
   getStatusClass(status: BuyOrderStatus): string {
@@ -515,20 +442,22 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
         return 'Esta ordem foi rejeitada, o pagamento não foi identificado.';
       case 'canceled':
         return 'Esta compra foi cancelada.';
-      case 'expired':
+      case 'expired': {
+        const expiredBuy = this.buyData();
+        if (expiredBuy && !expiredBuy.is_final) {
+          return 'O prazo para pagamento expirou, mas caso você já tenha pago, envie o comprovante.';
+        }
         return 'O prazo para pagamento expirou.';
+      }
       default:
         return 'Acompanhe o status da sua compra. Em caso de dúvidas, entre em contato com o suporte.';
     }
   }
 
-  isTimerDanger(): boolean {
-    return this.paymentTimeLeft() < 60 && this.paymentTimeLeft() > 0;
-  }
-
-  isTimerWarning(): boolean {
-    const t = this.paymentTimeLeft();
-    return t >= 60 && t < 180;
+  getFormattedTime(): string {
+    const timer = this.countdownTimer();
+    if (!timer) return '00:00';
+    return timer.formatTime(timer.timeLeft());
   }
 
   formatBRLCurrency(valueInCents: string | number): string {
@@ -581,6 +510,51 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
 
   getBlockchainExplorerUrl = getExplorerUrl;
 
+  isExpiredNonFinal(): boolean {
+    const buy = this.buyData();
+    if (!buy) return false;
+    return buy.status?.toString().toLowerCase() === 'expired' && !buy.is_final;
+  }
+
+  resubmitPayment(event?: Event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    if (!this.canConfirmPayment()) {
+      return;
+    }
+
+    const buy = this.buyData();
+    if (!buy) return;
+
+    this.loadingService.show();
+
+    const pixId = this.noTransactionId() ? undefined : this.transactionId();
+
+    this.buyOrderService.resubmitPayment(buy.id, pixId).subscribe({
+      next: (updatedBuy) => {
+        this.loadingService.hide();
+        this.buyData.set(updatedBuy);
+        this.loadBuyData(buy.id, false);
+      },
+      error: (error) => {
+        console.error('Error resubmitting payment:', error);
+        this.loadingService.hide();
+
+        let errorMessage = 'Erro ao reenviar comprovante. Tente novamente.';
+        if (error.error && error.error.message) {
+          errorMessage = error.error.message;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+
+        alert(errorMessage);
+      }
+    });
+  }
+
   goBack() {
     this.router.navigate(['/dashboard']);
   }
@@ -593,19 +567,9 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
    * Check if buy needs monitoring (is not in a final state and not created payment)
    */
   private needsMonitoring(): boolean {
-    const status = this.buyData()?.status;
-    if (!status) return false;
-
-    const statusStr = status.toString().toLowerCase();
-
-    // Explicitly monitor these statuses that need auto-refresh
-    const statusesNeedingMonitoring = [
-      'created',     // Payment pending, user may still be on page
-      'processing',  // User marked as paid, payment being verified
-      'analyzing'    // Payment verification failed, manual review needed
-    ];
-
-    return statusesNeedingMonitoring.includes(statusStr);
+    const buy = this.buyData();
+    if (!buy) return false;
+    return !buy.is_final;
   }
 
   /**

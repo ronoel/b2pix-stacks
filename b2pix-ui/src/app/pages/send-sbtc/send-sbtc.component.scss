@@ -66,6 +66,77 @@
   margin-top: 6px;
 }
 
+// ── Input with QR scan action ────────────────────────────────────────────────
+
+.input-with-action {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+
+  .input {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.input--valid {
+  border-color: var(--success) !important;
+
+  &:focus {
+    box-shadow: 0 0 0 3px var(--success-bg) !important;
+  }
+}
+
+.input--invalid {
+  border-color: var(--danger) !important;
+
+  &:focus {
+    box-shadow: 0 0 0 3px var(--danger-bg) !important;
+  }
+}
+
+.form-feedback {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 6px;
+
+  &--valid {
+    color: var(--success);
+  }
+
+  &--invalid {
+    color: var(--danger);
+  }
+}
+
+.qr-scan-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  flex-shrink: 0;
+  background: var(--bg-primary);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover:not(:disabled) {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--primary-bg);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
 // ── Segmented Control ─────────────────────────────────────────────────────────
 
 .seg-control {

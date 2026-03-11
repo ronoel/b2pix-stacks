@@ -11,11 +11,13 @@ import { PageHeaderComponent } from '../../components/page-header/page-header.co
 import { StatusSheetComponent } from '../../components/status-sheet/status-sheet.component';
 import { TechnicalDetailsComponent } from '../../components/technical-details/technical-details.component';
 import { QuickAmountChipsComponent } from '../../components/quick-amount-chips/quick-amount-chips.component';
+import { CameraQrReaderComponent } from '../../components/camera-qr-reader/camera-qr-reader.component';
+import { c32addressDecode } from 'c32check';
 
 @Component({
   selector: 'app-send-sbtc',
   standalone: true,
-  imports: [FormsModule, PageHeaderComponent, StatusSheetComponent, TechnicalDetailsComponent, QuickAmountChipsComponent],
+  imports: [FormsModule, PageHeaderComponent, StatusSheetComponent, TechnicalDetailsComponent, QuickAmountChipsComponent, CameraQrReaderComponent],
   templateUrl: './send-sbtc.component.html',
   styleUrl: './send-sbtc.component.scss'
 })
@@ -29,6 +31,13 @@ export class SendSBTCComponent implements OnInit {
   // Form fields
   recipientAddress = '';
   sendMemo = '';
+
+  // QR scanner
+  showQrScanner = signal(false);
+  qrScanTarget = signal<'address' | 'memo'>('address');
+
+  // Address validation
+  addressValidation = signal<'idle' | 'valid' | 'invalid'>('idle');
 
   // Amount signals (dual-mode)
   sendMode = signal<'brl' | 'sats'>('brl');
@@ -191,6 +200,46 @@ export class SendSBTCComponent implements OnInit {
     this.selectedQuickAmount.set(-1);
   }
 
+  // QR Scanner
+  openQrScanner(target: 'address' | 'memo') {
+    this.qrScanTarget.set(target);
+    this.showQrScanner.set(true);
+  }
+
+  closeQrScanner() {
+    this.showQrScanner.set(false);
+  }
+
+  onQrScanned(value: string) {
+    this.showQrScanner.set(false);
+    if (this.qrScanTarget() === 'address') {
+      this.recipientAddress = value;
+      this.validateAddress(value);
+    } else {
+      this.sendMemo = value.substring(0, 34);
+    }
+  }
+
+  // Address validation
+  validateAddress(address: string) {
+    if (!address || address.trim().length === 0) {
+      this.addressValidation.set('idle');
+      return;
+    }
+    try {
+      c32addressDecode(address.trim());
+      this.addressValidation.set('valid');
+    } catch {
+      this.addressValidation.set('invalid');
+    }
+  }
+
+  onAddressInput(event: Event) {
+    const value = (event.target as HTMLInputElement).value;
+    this.recipientAddress = value;
+    this.validateAddress(value);
+  }
+
   resetForm() {
     this.recipientAddress = '';
     this.sendMemo = '';
@@ -200,12 +249,18 @@ export class SendSBTCComponent implements OnInit {
     this.sendMode.set('brl');
     this.sendError.set('');
     this.isSending.set(false);
+    this.addressValidation.set('idle');
   }
 
   /** Opens the confirmation bottom sheet after basic validation */
   reviewSend() {
     if (!this.recipientAddress) {
       this.sendError.set('Por favor, informe o endereço do destinatário.');
+      return;
+    }
+
+    if (this.addressValidation() === 'invalid') {
+      this.sendError.set('Endereço Stacks inválido. Verifique e tente novamente.');
       return;
     }
 

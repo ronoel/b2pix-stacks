@@ -4,8 +4,6 @@
     <!-- Page Header -->
     <app-page-header
       [title]="getPageTitle()"
-      [subtitle]="getPageSubtitle()"
-      backRoute="/buy"
     />
 
     @if (isLoading()) {
@@ -33,23 +31,15 @@
       <!-- ============================================================ -->
       @if (isPendingPayment()) {
 
-        <!-- Countdown Timer — Dominant Element -->
-        <div class="timer-card" [class.timer-card--warning]="isTimerWarning()" [class.timer-card--danger]="isTimerDanger()">
-          <div class="timer-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-              <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <div class="timer-body">
-            <span class="timer-display">{{ formattedTime() }}</span>
-            <span class="timer-label">Pague antes do tempo acabar</span>
-          </div>
-        </div>
+        <!-- Countdown Timer -->
+        <app-countdown-timer
+          [expiresAt]="getExpiresAt()"
+          (expired)="handlePaymentTimeout()"
+          (warning)="onTimerWarning()"
+        />
 
         <!-- Payment Form -->
         <app-payment-form
-          [formattedTime]="formattedTime()"
           [fiatAmount]="formatCurrency(getTotalFiatAmount())"
           [fiatAmountValue]="getTotalFiatAmount()"
           [btcAmount]="formatBTC(getBtcAmount())"
@@ -140,9 +130,30 @@
 
           <!-- Actions -->
           <div class="status-actions">
-            <button class="btn btn-primary btn-full" (click)="goToDashboard()">
-              Voltar ao início
-            </button>
+            @if (isExpiredNonFinal()) {
+              <app-payment-form
+                [fiatAmount]="formatCurrency(getTotalFiatAmount())"
+                [fiatAmountValue]="getTotalFiatAmount()"
+                [btcAmount]="formatBTC(getBtcAmount())"
+                [pixKey]="buyData()!.pix_key"
+                [canConfirm]="canConfirmPayment()"
+                [showPaymentInfo]="false"
+                (confirm)="resubmitPayment()"
+                (transactionIdChanged)="onTransactionIdChange($event)"
+                (noTransactionIdChanged)="onNoTransactionIdChange($event)"
+                confirmLabel="Enviar comprovante"
+              />
+              <button class="btn btn-danger btn-full" (click)="cancelPurchase()">
+                Cancelar compra
+              </button>
+              <button class="btn btn-ghost btn-full" (click)="goToDashboard()">
+                Voltar ao início
+              </button>
+            } @else {
+              <button class="btn btn-primary btn-full" (click)="goToDashboard()">
+                Voltar ao início
+              </button>
+            }
           </div>
 
         </div>
@@ -165,7 +176,7 @@
         <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
         <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-      <span class="warning-sheet-time">{{ formattedTime() }}</span>
+      <span class="warning-sheet-time">{{ getFormattedTime() }}</span>
     </div>
     <p class="warning-sheet-text">
       Restam menos de <strong>3 minutos</strong> para concluir o pagamento.

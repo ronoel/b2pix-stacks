@@ -97,31 +97,94 @@
           Endereço (Stacks) do destinatário
           <span class="required" aria-hidden="true">*</span>
         </label>
-        <input
-          type="text"
-          id="recipientAddress"
-          class="input input--mono"
-          [(ngModel)]="recipientAddress"
-          name="recipientAddress"
-          placeholder="SP2..."
-          required
-          [disabled]="isSending()"
-        />
+        <div class="input-with-action">
+          <input
+            type="text"
+            id="recipientAddress"
+            class="input input--mono"
+            [class.input--valid]="addressValidation() === 'valid'"
+            [class.input--invalid]="addressValidation() === 'invalid'"
+            [ngModel]="recipientAddress"
+            (input)="onAddressInput($event)"
+            name="recipientAddress"
+            placeholder="SP2..."
+            required
+            [disabled]="isSending()"
+          />
+          <button
+            type="button"
+            class="qr-scan-btn"
+            (click)="openQrScanner('address')"
+            [disabled]="isSending()"
+            aria-label="Escanear QR Code para endereço"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="2" width="8" height="8" rx="1"/>
+              <rect x="14" y="2" width="8" height="8" rx="1"/>
+              <rect x="2" y="14" width="8" height="8" rx="1"/>
+              <rect x="14" y="14" width="4" height="4"/>
+              <line x1="22" y1="14" x2="22" y2="18"/>
+              <line x1="18" y1="22" x2="22" y2="22"/>
+              <path d="M5 5h2v2H5z"/>
+              <path d="M17 5h2v2h-2z"/>
+              <path d="M5 17h2v2H5z"/>
+            </svg>
+          </button>
+        </div>
+        @if (addressValidation() === 'valid') {
+          <span class="form-feedback form-feedback--valid">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 6L9 17L4 12"/>
+            </svg>
+            Endereço Stacks válido
+          </span>
+        }
+        @if (addressValidation() === 'invalid') {
+          <span class="form-feedback form-feedback--invalid">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="15" y1="9" x2="9" y2="15"/>
+              <line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+            Endereço Stacks inválido
+          </span>
+        }
       </div>
 
       <!-- Memo -->
       <div class="form-group">
-        <label class="form-label" for="sendMemo">Nota (opcional)</label>
-        <input
-          type="text"
-          id="sendMemo"
-          class="input"
-          [(ngModel)]="sendMemo"
-          name="sendMemo"
-          placeholder="Nota opcional..."
-          maxlength="34"
-          [disabled]="isSending()"
-        />
+        <label class="form-label" for="sendMemo">Memo (opcional)</label>
+        <div class="input-with-action">
+          <input
+            type="text"
+            id="sendMemo"
+            class="input"
+            [(ngModel)]="sendMemo"
+            name="sendMemo"
+            placeholder="Memo opcional..."
+            maxlength="34"
+            [disabled]="isSending()"
+          />
+          <button
+            type="button"
+            class="qr-scan-btn"
+            (click)="openQrScanner('memo')"
+            [disabled]="isSending()"
+            aria-label="Escanear QR Code para memo"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="2" width="8" height="8" rx="1"/>
+              <rect x="14" y="2" width="8" height="8" rx="1"/>
+              <rect x="2" y="14" width="8" height="8" rx="1"/>
+              <rect x="14" y="14" width="4" height="4"/>
+              <line x1="22" y1="14" x2="22" y2="18"/>
+              <line x1="18" y1="22" x2="22" y2="22"/>
+              <path d="M5 5h2v2H5z"/>
+              <path d="M17 5h2v2h-2z"/>
+              <path d="M5 17h2v2H5z"/>
+            </svg>
+          </button>
+        </div>
         <span class="form-hint">Máximo 34 caracteres</span>
       </div>
 
@@ -269,4 +332,16 @@
       Voltar e editar
     </button>
   </div>
+</app-status-sheet>
+
+<!-- QR Scanner Bottom Sheet -->
+<app-status-sheet
+  [isOpen]="showQrScanner()"
+  [title]="qrScanTarget() === 'address' ? 'Escanear endereço' : 'Escanear memo'"
+  type="info"
+  (close)="closeQrScanner()"
+>
+  @if (showQrScanner()) {
+    <app-camera-qr-reader (qrCodeScanned)="onQrScanned($event)" />
+  }
 </app-status-sheet>

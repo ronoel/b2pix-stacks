@@ -1,8 +1,18 @@
-<router-outlet />
+@if (appUpdate.updating()) {
+  <div class="update-overlay">
+    <div class="update-content">
+      <div class="update-spinner"></div>
+      <p class="update-text">Atualizando...</p>
+    </div>
+  </div>
+} @else {
+  <router-outlet />
 
-@if (showTabBar()) {
-  <app-tab-bar />
+  @if (showTabBar()) {
+    <app-tab-bar />
+  }
+
+  <app-footer />
+  <app-loading />
+  <app-api-unavailable />
 }
-
-<app-footer />
-<app-loading />

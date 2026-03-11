@@ -2,10 +2,11 @@ import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { forkJoin, interval, Subscription, switchMap } from 'rxjs';
 import { AccountValidationService } from '../../shared/api/account-validation.service';
 import { PixVerificationStep, PixVerificationStatus } from '../../shared/models/account-validation.model';
-import { PixTimerComponent } from './components/pix-timer.component';
+import { CountdownTimerComponent } from '../../components/countdown-timer/countdown-timer.component';
+import { ConfirmationCodeInputComponent } from '../../components/confirmation-code-input/confirmation-code-input.component';
 import { PixKeyInputComponent } from './components/pix-key-input.component';
 import { PixCopiaColaComponent } from '../../components/pix-copia-cola/pix-copia-cola.component';
 import { PageHeaderComponent } from '../../components/page-header/page-header.component';
@@ -14,7 +15,7 @@ import { formatBrlCents } from '../../shared/utils/format.util';
 @Component({
   selector: 'app-pix-validation',
   standalone: true,
-  imports: [FormsModule, PixTimerComponent, PixKeyInputComponent, PixCopiaColaComponent, PageHeaderComponent],
+  imports: [FormsModule, CountdownTimerComponent, ConfirmationCodeInputComponent, PixKeyInputComponent, PixCopiaColaComponent, PageHeaderComponent],
   templateUrl: './pix-validation.component.html',
   styleUrl: './pix-validation.component.scss'
 })
@@ -39,11 +40,9 @@ export class PixValidationComponent implements OnInit, OnDestroy {
   // Deposit amount upfront (fetched on init from pending verification or will be revealed on step 2)
   depositAmountCents = signal<number | null>(null);
 
-  // Confirmation code individual chars (3 boxes)
-  confirmCodeChars = signal<string[]>(['', '', '']);
-
   // Polling
   private pollInterval: any;
+  private pollSubscription: Subscription | null = null;
 
   // Return URL
   private returnUrl = '/dashboard';
@@ -107,8 +106,7 @@ export class PixValidationComponent implements OnInit, OnDestroy {
         this.step.set('deposit-instructions');
         break;
       case 'processing':
-        // Navigate to dashboard — processing is handled there
-        this.navigateToDashboardWithBanner();
+        this.showAwaitingValidation();
         break;
       case 'verified':
         // Already verified — redirect
@@ -119,15 +117,8 @@ export class PixValidationComponent implements OnInit, OnDestroy {
         break;
       case 'failed':
       case 'expired':
-        // Show failure on account-validation-required
-        this.router.navigate(['/account-validation-required'], {
-          queryParams: {
-            pixFailed: 'true',
-            message: pixVerify.status === 'expired'
-              ? 'Verificação expirada. Tente novamente.'
-              : 'Verificação falhou. Tente novamente.'
-          }
-        });
+        // Previous verification ended — let user start a new one
+        this.step.set('enter-pix');
         break;
     }
   }
@@ -140,10 +131,6 @@ export class PixValidationComponent implements OnInit, OnDestroy {
     this.pixKeyValid.set(isValid);
   }
 
-  /**
-   * View 1 → API call → View 2
-   * The old confirm-pix-key step is now merged here (checkbox in view 1).
-   */
   submitPixKey(): void {
     if (!this.pixKeyValid()) {
       this.error.set('CPF ou CNPJ inválido');
@@ -175,9 +162,16 @@ export class PixValidationComponent implements OnInit, OnDestroy {
     });
   }
 
-  onConfirmationCodeChange(value: string): void {
-    this.confirmationCode.set(value.toUpperCase());
+  onConfirmationCodeChange(code: string): void {
+    this.confirmationCode.set(code.toUpperCase());
     if (this.error()) this.error.set('');
+  }
+
+  onNoCodeChange(checked: boolean): void {
+    this.noConfirmationCode.set(checked);
+    if (checked) {
+      this.confirmationCode.set('');
+    }
   }
 
   confirmDeposit(): void {
@@ -201,7 +195,6 @@ export class PixValidationComponent implements OnInit, OnDestroy {
         }
 
         if (response.status === 'verified') {
-          // Verified immediately
           this.validationService.getAccount().subscribe({
             next: () => this.router.navigateByUrl(this.returnUrl),
             error: () => this.router.navigateByUrl(this.returnUrl)
@@ -209,10 +202,8 @@ export class PixValidationComponent implements OnInit, OnDestroy {
         } else if (response.status === 'failed') {
           this.navigateToFailure('Máximo de tentativas excedido. Você precisará iniciar uma nova verificação.');
         } else if (response.status === 'processing') {
-          // Navigate to dashboard with banner
-          this.navigateToDashboardWithBanner();
+          this.showAwaitingValidation();
         } else if (response.status === 'awaiting') {
-          // Payment not found yet — let user retry
           this.error.set(response.message || 'Depósito PIX não encontrado. Verifique se o depósito foi realizado e tente novamente.');
           this.confirmationCode.set('');
         } else if (response.status === 'expired') {
@@ -242,9 +233,46 @@ export class PixValidationComponent implements OnInit, OnDestroy {
     });
   }
 
-  private navigateToDashboardWithBanner(): void {
+  private showAwaitingValidation(): void {
     this.validationService.pendingVerification.set(true);
-    this.router.navigate(['/dashboard']);
+    this.step.set('awaiting-validation');
+    this.startPolling();
+  }
+
+  private startPolling(): void {
+    this.stopPolling();
+    this.pollSubscription = interval(10000).pipe(
+      switchMap(() => this.validationService.getPixVerification())
+    ).subscribe({
+      next: (pixVerify) => {
+        if (!pixVerify) return;
+        if (pixVerify.status === 'verified') {
+          this.stopPolling();
+          this.validationService.pendingVerification.set(false);
+          this.step.set('validated');
+        } else if (pixVerify.status === 'failed') {
+          this.stopPolling();
+          this.validationService.pendingVerification.set(false);
+          this.step.set('validation-failed');
+        }
+      },
+      error: () => {}
+    });
+  }
+
+  private stopPolling(): void {
+    if (this.pollSubscription) {
+      this.pollSubscription.unsubscribe();
+      this.pollSubscription = null;
+    }
+  }
+
+  retryValidation(): void {
+    this.router.navigate(['/account-validation-required']);
+  }
+
+  goToDashboard(): void {
+    this.router.navigateByUrl(this.returnUrl);
   }
 
   private navigateToFailure(message: string): void {
@@ -283,5 +311,6 @@ export class PixValidationComponent implements OnInit, OnDestroy {
     if (this.pollInterval) {
       clearInterval(this.pollInterval);
     }
+    this.stopPolling();
   }
 }

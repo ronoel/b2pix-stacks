@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy, signal, computed } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal, computed, effect } from '@angular/core';
 
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
@@ -33,6 +33,13 @@ export class PixPaymentComponent implements OnInit, OnDestroy {
   private sBTCTokenService = inject(sBTCTokenService);
   private walletManager = inject(WalletManagerService);
   protected loadingService = inject(LoadingService);
+
+  constructor() {
+    effect(() => {
+      this.currentView();
+      window.scrollTo({ top: 0 });
+    });
+  }
 
   // Constants
   readonly MIN_PIX_VALUE_CENTS = 5000; // R$ 50,00

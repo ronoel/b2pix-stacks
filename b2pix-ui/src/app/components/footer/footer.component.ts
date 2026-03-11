@@ -51,7 +51,7 @@ import { Component, ViewEncapsulation } from '@angular/core';
     .footer-inner {
       max-width: 440px;
       margin: 0 auto;
-      padding: 32px 20px;
+      padding: 32px 20px calc(72px + env(safe-area-inset-bottom, 0px));
       display: flex;
       flex-direction: column;
       align-items: center;

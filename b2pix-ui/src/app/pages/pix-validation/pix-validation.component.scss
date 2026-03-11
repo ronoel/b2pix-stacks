@@ -19,112 +19,42 @@
   }
 }
 
-// Deposit value card
-.deposit-value-card {
-  text-align: center;
-  margin-bottom: 20px;
+// Payment header card (matches payment-form pattern)
+.payment-header-card {
+  padding: 14px 16px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  margin-bottom: 12px;
 }
 
-.deposit-label {
+.amount-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.amount-label {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-muted);
-  margin: 0 0 8px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-.deposit-amount {
+.amount-value {
   font-family: var(--font-display);
-  font-size: 32px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--primary);
-  margin: 0 0 8px;
   font-variant-numeric: tabular-nums;
 }
 
-.deposit-warning {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--warning);
+.instructions-compact {
   margin: 0;
-}
-
-// How-to steps
-.how-to-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  margin: 0 0 12px;
-}
-
-.how-to-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 16px;
-}
-
-.how-to-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.how-to-dot {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: var(--primary);
-  color: white;
-  font-size: 12px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.how-to-item span {
   font-size: 13px;
   color: var(--text-secondary);
-}
-
-// Confirmation code section
-.confirm-code-section {
-  background: var(--success-bg);
-  border: 1.5px solid var(--success);
-  border-radius: var(--r-md);
-  padding: 16px;
-  margin-bottom: 16px;
-}
-
-.confirm-code-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
-
-  svg {
-    color: var(--success);
-    flex-shrink: 0;
-  }
-}
-
-.confirm-code-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--success);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.confirm-code-desc {
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin: 0 0 12px;
   line-height: 1.5;
 
   strong {
@@ -132,36 +62,112 @@
   }
 }
 
-.code-input {
-  text-align: center;
-  text-transform: uppercase;
-  font-family: var(--font-mono);
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: 8px;
-  border-color: var(--success);
+// Compact attempt warning
+.attempt-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
 
-  &:focus {
-    border-color: var(--success);
-    box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.15);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    background: var(--bg-elevated);
-  }
-
-  &::placeholder {
-    font-size: 18px;
-    letter-spacing: 4px;
+  svg {
+    flex-shrink: 0;
     color: var(--text-muted);
-    font-weight: 400;
+  }
+
+  strong {
+    font-weight: 700;
   }
 }
 
-.code-error {
-  font-size: 12px;
+.attempt-warning--danger {
+  color: var(--warning);
+  border-color: rgba(217, 119, 6, 0.25);
+  background: rgba(217, 119, 6, 0.08);
+
+  svg {
+    color: var(--warning);
+  }
+}
+
+// Compact form error
+.form-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 14px;
+  font-size: 13px;
   color: var(--danger);
-  margin: 6px 0 0;
+  line-height: 1.4;
+  background: var(--danger-bg);
+  border: 1px solid rgba(220, 38, 38, 0.25);
+  border-radius: var(--r-sm);
+
+  svg {
+    flex-shrink: 0;
+    color: var(--danger);
+  }
+}
+
+// Form actions
+.form-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+// Deposit instructions view spacing
+:host ::ng-deep app-pix-copia-cola,
+:host ::ng-deep app-confirmation-code-input {
+  display: block;
+  margin-bottom: 12px;
+}
+
+:host ::ng-deep app-countdown-timer {
+  margin-bottom: 12px;
+}
+
+// Awaiting validation view
+.awaiting-validation-view {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 48px 20px 24px;
+}
+
+.awaiting-icon {
+  margin-bottom: 20px;
+
+  &.success {
+    stroke: var(--success);
+  }
+
+  &.error {
+    stroke: var(--danger);
+  }
+}
+
+.awaiting-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 12px;
+}
+
+.awaiting-message {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0 0 24px;
+  max-width: 360px;
 }

@@ -584,6 +584,73 @@
   }
 }
 
+// ── LP CTA Card ──────────────────────────────────────────────────────────────
+
+.lp-cta-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, rgba(247, 147, 26, 0.08) 0%, rgba(247, 147, 26, 0.02) 100%);
+  border: 1px solid rgba(247, 147, 26, 0.25);
+  border-radius: var(--r-lg);
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: linear-gradient(135deg, rgba(247, 147, 26, 0.14) 0%, rgba(247, 147, 26, 0.04) 100%);
+    border-color: rgba(247, 147, 26, 0.4);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.lp-cta-card__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-md);
+  background: rgba(247, 147, 26, 0.15);
+  color: var(--btc, #F7931A);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.lp-cta-card__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lp-cta-card__title {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.lp-cta-card__desc {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.lp-cta-card__arrow {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+
+  .lp-cta-card:hover & {
+    transform: translateX(2px);
+    color: var(--btc, #F7931A);
+  }
+}
+
 // ── Accessibility ─────────────────────────────────────────────────────────────
 
 .visually-hidden {

@@ -1,117 +1,34 @@
 <div class="payment-form">
 
-  <!-- Amount Card -->
-  <div class="amount-card">
-    <span class="amount-label">Valor</span>
-    <span class="amount-value">R$&nbsp;{{ fiatAmount }}</span>
-  </div>
+  @if (showPaymentInfo) {
+    <!-- Amount + Instructions compact -->
+    <div class="payment-header-card">
+      <div class="amount-row">
+        <span class="amount-label">Valor do PIX</span>
+        <span class="amount-value">R$&nbsp;{{ fiatAmount }}</span>
+      </div>
+      <p class="instructions-compact">
+        Copie o código ou escaneie o QR Code, pague via PIX e informe o código de confirmação abaixo.
+      </p>
+    </div>
 
-  <!-- Inline Instructions -->
-  <div class="instructions-block">
-    <p class="instructions-title">Como pagar:</p>
-    <ol class="instructions-list">
-      <li>Copie a chave PIX abaixo</li>
-      <li>Abra o app do seu banco</li>
-      <li>Faça um PIX de <strong>R$&nbsp;{{ fiatAmount }}</strong></li>
-      <li>Volte aqui e informe o código de confirmação</li>
-    </ol>
-  </div>
-
-  <!-- PIX Key -->
-  <app-pix-copia-cola
-    [pixKey]="pixKey"
-    [amount]="fiatAmountValue"
-    [sellerName]="sellerName"
-    [sellerCity]="sellerCity"
-    [showLabel]="true"
-    labelText="Chave PIX"
-  ></app-pix-copia-cola>
+    <!-- PIX Key — compact (no textarea) -->
+    <app-pix-copia-cola
+      [pixKey]="pixKey"
+      [amount]="fiatAmountValue"
+      [sellerName]="sellerName"
+      [sellerCity]="sellerCity"
+      [showLabel]="true"
+      labelText="Pagar PIX"
+    ></app-pix-copia-cola>
+  }
 
   <!-- Confirmation Code Section -->
-  <div class="confirmation-section">
-    <div class="confirmation-header">
-      <span class="confirmation-title">Código de confirmação</span>
-    </div>
-    <p class="confirmation-hint">
-      Últimos 3 caracteres do ID da transação PIX
-    </p>
-
-    @if (!noTransactionId()) {
-      <div class="char-inputs">
-        <input
-          #c0
-          type="text"
-          maxlength="1"
-          class="char-input"
-          [value]="char0()"
-          [disabled]="noTransactionId()"
-          (input)="onCharInput(0, $event, c1)"
-          (keydown)="onCharKeydown(0, $event, null)"
-          autocomplete="off"
-          autocorrect="off"
-          autocapitalize="characters"
-          placeholder="·"
-          aria-label="Primeiro caractere"
-        />
-        <input
-          #c1
-          type="text"
-          maxlength="1"
-          class="char-input"
-          [value]="char1()"
-          [disabled]="noTransactionId()"
-          (input)="onCharInput(1, $event, c2)"
-          (keydown)="onCharKeydown(1, $event, c0)"
-          autocomplete="off"
-          autocorrect="off"
-          autocapitalize="characters"
-          placeholder="·"
-          aria-label="Segundo caractere"
-        />
-        <input
-          #c2
-          type="text"
-          maxlength="1"
-          class="char-input"
-          [value]="char2()"
-          [disabled]="noTransactionId()"
-          (input)="onCharInput(2, $event, null)"
-          (keydown)="onCharKeydown(2, $event, c1)"
-          autocomplete="off"
-          autocorrect="off"
-          autocapitalize="characters"
-          placeholder="·"
-          aria-label="Terceiro caractere"
-        />
-      </div>
-    }
-
-    <p class="confirmation-helper">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-        <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-      </svg>
-      Encontre no comprovante PIX
-    </p>
-
-    <label class="no-code-label">
-      <input
-        type="checkbox"
-        [checked]="noTransactionId()"
-        (change)="onNoTransactionIdChange($any($event.target).checked)"
-      />
-      <span>Não encontrei o código</span>
-    </label>
-
-    @if (noTransactionId()) {
-      <p class="no-code-warning">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-          <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-        Isso pode atrasar a validação do pagamento
-      </p>
-    }
-  </div>
+  <app-confirmation-code-input
+    [disabled]="false"
+    (codeChange)="transactionIdChanged.emit($event)"
+    (noCodeChange)="noTransactionIdChanged.emit($event)"
+  />
 
   <!-- Action Buttons -->
   <div class="form-actions">
@@ -121,15 +38,17 @@
       [disabled]="!canConfirm"
       (click)="confirm.emit()"
     >
-      Confirmar pagamento
+      {{ confirmLabel }}
     </button>
-    <button
-      type="button"
-      class="btn btn-ghost-danger btn-full"
-      (click)="cancel.emit()"
-    >
-      Cancelar compra
-    </button>
+    @if (showPaymentInfo) {
+      <button
+        type="button"
+        class="btn btn-ghost-danger btn-full"
+        (click)="cancel.emit()"
+      >
+        Cancelar compra
+      </button>
+    }
   </div>
 
 </div>

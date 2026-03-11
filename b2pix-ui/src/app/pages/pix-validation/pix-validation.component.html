@@ -10,28 +10,13 @@
         backRoute="/account-validation-required"
       ></app-page-header>
 
-      <!-- Deposit amount upfront -->
-      @if (depositAmountCents() != null) {
-        <div class="alert-box alert-warning" style="margin-bottom: 16px;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-          </svg>
-          <span>
-            Para verificar sua conta, será necessário um depósito de
-            <strong style="font-family: var(--font-display);">{{ depositAmountFormatted() }}</strong>
-            (reembolsável).
-          </span>
-        </div>
-      } @else {
-        <div class="alert-box alert-warning" style="margin-bottom: 16px;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-          </svg>
-          <span>Para verificar sua conta, será necessário um pequeno depósito de verificação (reembolsável).</span>
-        </div>
-      }
+      <div class="alert-box alert-warning" style="margin-bottom: 16px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        <span>Para verificar sua conta, será necessário um pequeno depósito de verificação (não reembolsável).</span>
+      </div>
 
       @if (loading()) {
         <div class="loading-state">
@@ -87,7 +72,7 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
           </svg>
-          <span>Apenas chaves CPF ou CNPJ são aceitas. O depósito será devolvido após a verificação.</span>
+          <span>Apenas chaves CPF ou CNPJ são aceitas.</span>
         </div>
 
       }
@@ -102,152 +87,132 @@
       ></app-page-header>
 
       <!-- Timer -->
-      <app-pix-timer
+      <app-countdown-timer
         [expiresAt]="pixVerification()!.expires_at!"
         (expired)="handleTimeout()"
-      ></app-pix-timer>
+      />
 
-      <!-- Deposit value card -->
-      <div class="card deposit-value-card">
-        <p class="deposit-label">Valor do depósito</p>
-        <p class="deposit-amount">{{ formatBrlCents(pixVerification()!.confirmation_value_cents!) }}</p>
-        <p class="deposit-warning">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-          </svg>
-          Envie exatamente este valor
+      <!-- Amount + Instructions -->
+      <div class="payment-header-card">
+        <div class="amount-row">
+          <span class="amount-label">Valor do depósito</span>
+          <span class="amount-value">{{ formatBrlCents(pixVerification()!.confirmation_value_cents!) }}</span>
+        </div>
+        <p class="instructions-compact">
+          Pague o PIX no valor acima para validar sua conta. Esta é uma taxa administrativa não reembolsável.
+          O pagamento deve ser feito a partir da conta vinculada à chave PIX: <strong>{{ userPixKey() }}</strong>
         </p>
-      </div>
-
-      <!-- How-to steps -->
-      <p class="how-to-label">Como fazer:</p>
-      <div class="how-to-list">
-        <div class="how-to-item">
-          <div class="how-to-dot">1</div>
-          <span>Copie o código PIX abaixo</span>
-        </div>
-        <div class="how-to-item">
-          <div class="how-to-dot">2</div>
-          <span>Abra o app do seu banco</span>
-        </div>
-        <div class="how-to-item">
-          <div class="how-to-dot">3</div>
-          <span>Faça um PIX no valor exato acima</span>
-        </div>
-        <div class="how-to-item">
-          <div class="how-to-dot">4</div>
-          <span>Volte e informe o código de confirmação</span>
-        </div>
       </div>
 
       <!-- PIX copia e cola -->
-      <div class="card" style="margin-bottom: 16px;">
-        <app-pix-copia-cola
-          [pixKey]="pixVerification()!.destination_pix_key || ''"
-          [amount]="depositAmountValue()"
-          [showLabel]="false"
-        ></app-pix-copia-cola>
-      </div>
+      <app-pix-copia-cola
+        [pixKey]="pixVerification()!.destination_pix_key || ''"
+        [amount]="depositAmountValue()"
+        [showLabel]="true"
+        labelText="Pagar PIX"
+      ></app-pix-copia-cola>
 
-      <!-- Confirmation code section -->
-      <div class="confirm-code-section">
-        <div class="confirm-code-header">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 12l2 2 4-4"/>
-            <circle cx="12" cy="12" r="10"/>
-          </svg>
-          <span class="confirm-code-title">Código de confirmação</span>
-        </div>
+      <!-- Confirmation code -->
+      <app-confirmation-code-input
+        [disabled]="loading()"
+        (codeChange)="onConfirmationCodeChange($event)"
+        (noCodeChange)="onNoCodeChange($event)"
+      />
 
-        <p class="confirm-code-desc">
-          Após realizar o depósito, informe os <strong>3 últimos caracteres</strong> do ID da transação do comprovante PIX.
-        </p>
-
-        <input
-          type="text"
-          class="input code-input"
-          maxlength="3"
-          [value]="confirmationCode()"
-          (input)="onConfirmationCodeChange(($any($event.target)).value)"
-          [disabled]="loading() || noConfirmationCode()"
-          placeholder="Ex: 9Z7"
-          autocomplete="off"
-          spellcheck="false"
-        />
-
-        @if (confirmationCode().length > 0 && confirmationCode().length < 3 && !noConfirmationCode()) {
-          <p class="code-error">Informe exatamente 3 caracteres</p>
-        }
-
-        <div class="checkbox-row" style="margin-top: 12px;">
-          <input
-            type="checkbox"
-            id="noCode"
-            [(ngModel)]="noConfirmationCode"
-            [ngModelOptions]="{standalone: true}"
-            [disabled]="loading()"
-          />
-          <label for="noCode">Não encontrei o código de confirmação</label>
-        </div>
-
-        @if (noConfirmationCode()) {
-          <div class="alert-box alert-warning" style="margin-top: 8px;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-              <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-            </svg>
-            <span>Isso pode atrasar a verificação.</span>
-          </div>
-        }
-      </div>
-
-      <!-- Attempts warnings -->
+      <!-- Attempts warning -->
       @if (isLastAttempt()) {
-        <div class="alert-box alert-warning" style="margin-bottom: 16px;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <p class="attempt-warning attempt-warning--danger">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
             <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
           </svg>
-          <span><strong>Última tentativa!</strong> Após esta, será necessário um novo depósito.</span>
-        </div>
+          <strong>Última tentativa!</strong> Após esta, será necessário um novo depósito.
+        </p>
       } @else if (getRemainingAttempts() > 0) {
-        <div class="alert-box alert-info" style="margin-bottom: 16px;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <p class="attempt-warning">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
           </svg>
-          <span>Você tem <strong>{{ getRemainingAttempts() }} tentativas</strong> restantes.</span>
-        </div>
+          Você tem <strong>{{ getRemainingAttempts() }} tentativas</strong> restantes.
+        </p>
       }
 
       @if (error()) {
-        <div class="alert-box alert-error" style="margin-bottom: 16px;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <p class="form-error">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/>
           </svg>
-          <span>{{ error() }}</span>
-        </div>
+          {{ error() }}
+        </p>
       }
 
-      <button
-        type="button"
-        class="btn btn-primary btn-full"
-        [disabled]="loading() || (!noConfirmationCode() && confirmationCode().length < 3)"
-        (click)="confirmDeposit()"
-      >
-        @if (loading()) {
-          <span class="loading-spinner-sm"></span>
-        }
-        Confirmar depósito
-      </button>
+      <div class="form-actions">
+        <button
+          type="button"
+          class="btn btn-primary btn-full"
+          [disabled]="loading() || (!noConfirmationCode() && confirmationCode().length < 3)"
+          (click)="confirmDeposit()"
+        >
+          @if (loading()) {
+            <span class="loading-spinner-sm"></span>
+          }
+          Confirmar depósito
+        </button>
+      </div>
 
     }
 
-    <!-- View 3: Processing transition (brief, then redirects to dashboard) -->
-    @if (step() === 'processing') {
-      <div class="loading-state" style="padding-top: 80px;">
+    <!-- View 3: Awaiting validation -->
+    @if (step() === 'awaiting-validation') {
+      <div class="awaiting-validation-view">
+        <svg class="awaiting-icon" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+        </svg>
+        <h2 class="awaiting-title">Verificação em andamento</h2>
+        <p class="awaiting-message">Estamos analisando seu depósito. Este processo pode levar alguns minutos.</p>
+        <div class="alert-box alert-success" style="margin-bottom: 24px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          <span>Você receberá uma notificação por e-mail quando a verificação for concluída.</span>
+        </div>
         <div class="loading-spinner"></div>
-        <p>Verificando...</p>
+      </div>
+    }
+
+    <!-- View 4: Validated -->
+    @if (step() === 'validated') {
+      <div class="awaiting-validation-view">
+        <svg class="awaiting-icon success" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <h2 class="awaiting-title">Conta verificada!</h2>
+        <p class="awaiting-message">Sua conta bancária foi verificada com sucesso. Agora você pode operar normalmente na plataforma.</p>
+        <button
+          type="button"
+          class="btn btn-primary btn-full"
+          (click)="goToDashboard()"
+        >
+          Ir para o painel
+        </button>
+      </div>
+    }
+
+    <!-- View 5: Validation failed -->
+    @if (step() === 'validation-failed') {
+      <div class="awaiting-validation-view">
+        <svg class="awaiting-icon error" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/>
+        </svg>
+        <h2 class="awaiting-title">Verificação não aprovada</h2>
+        <p class="awaiting-message">Não foi possível verificar sua conta. Isso pode ocorrer se o depósito não foi identificado ou se a chave PIX não corresponde.</p>
+        <button
+          type="button"
+          class="btn btn-primary btn-full"
+          (click)="retryValidation()"
+        >
+          Tentar novamente
+        </button>
       </div>
     }
 

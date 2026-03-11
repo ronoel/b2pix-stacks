@@ -28,11 +28,6 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
                 <div class="method-content">
                   <h3>Passkey (Recomendado)</h3>
                   <p>Use biometria ou PIN do dispositivo. Mais rápido e seguro.</p>
-                  <ul class="method-benefits">
-                    <li>Face ID, Touch ID ou Windows Hello</li>
-                    <li>Não precisa lembrar senha</li>
-                    <li>Proteção contra phishing</li>
-                  </ul>
                 </div>
               </button>
             }
@@ -47,11 +42,6 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
               <div class="method-content">
                 <h3>Senha</h3>
                 <p>Método tradicional com senha mestre.</p>
-                <ul class="method-benefits">
-                  <li>Funciona em qualquer dispositivo</li>
-                  <li>Fácil de usar</li>
-                  <li>Compatível com todos navegadores</li>
-                </ul>
               </div>
             </button>
           </div>
@@ -272,23 +262,18 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
     .wallet-create-container {
       max-width: 600px;
       margin: 0 auto;
-      max-height: 90vh;
       display: flex;
       flex-direction: column;
     }
 
     .step-content {
-      background: #FFFFFF;
-      border-radius: 16px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
       display: flex;
       flex-direction: column;
-      max-height: 90vh;
       overflow: hidden;
     }
 
     .step-content:not(.mnemonic-step) {
-      padding: 32px;
+      padding: 0;
     }
 
     .mnemonic-step {
@@ -298,42 +283,41 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
     }
 
     .step-header {
-      padding: 24px 32px 0;
+      padding: 0;
       flex-shrink: 0;
     }
 
     .step-body {
-      padding: 0 32px;
+      padding: 0;
       overflow-y: auto;
       flex: 1;
       min-height: 0;
     }
 
     .step-footer {
-      padding: 0 32px 24px;
+      padding: 16px 0 0;
       flex-shrink: 0;
       background: #FFFFFF;
       border-top: 1px solid #F3F4F6;
-      padding-top: 20px;
       margin-top: 20px;
     }
 
     .step-title {
-      font-size: 24px;
+      font-size: 18px;
       font-weight: 700;
       color: #1F2937;
-      margin: 0 0 8px 0;
+      margin: 0 0 4px 0;
     }
 
     .step-description {
-      font-size: 14px;
+      font-size: 13px;
       color: #6B7280;
-      margin: 0 0 24px 0;
+      margin: 0 0 16px 0;
       line-height: 1.6;
     }
 
     .form-group {
-      margin-bottom: 20px;
+      margin-bottom: 14px;
     }
 
     .form-label {
@@ -691,15 +675,15 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
     .method-options {
       display: flex;
       flex-direction: column;
-      gap: 16px;
-      margin-bottom: 24px;
+      gap: 12px;
+      margin-bottom: 16px;
     }
 
     .method-card {
       display: flex;
       align-items: start;
-      gap: 16px;
-      padding: 20px;
+      gap: 12px;
+      padding: 14px;
       background: #FFFFFF;
       border: 2px solid #E5E7EB;
       border-radius: 12px;
@@ -718,12 +702,17 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 
     .method-icon {
       flex-shrink: 0;
-      width: 48px;
-      height: 48px;
+      width: 40px;
+      height: 40px;
       border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
+    }
+
+    .method-icon svg {
+      width: 24px;
+      height: 24px;
     }
 
     .passkey-icon {
@@ -741,70 +730,19 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
     }
 
     .method-content h3 {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
       color: #1F2937;
-      margin: 0 0 6px 0;
+      margin: 0 0 4px 0;
     }
 
     .method-content > p {
-      font-size: 13px;
-      color: #6B7280;
-      margin: 0 0 12px 0;
-    }
-
-    .method-benefits {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .method-benefits li {
       font-size: 12px;
-      color: #9CA3AF;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .method-benefits li::before {
-      content: '✓';
-      color: #10B981;
-      font-weight: bold;
+      color: #6B7280;
+      margin: 0;
     }
 
     @media (max-width: 640px) {
-      .wallet-create-container {
-        max-height: 95vh;
-      }
-
-      .step-content {
-        max-height: 95vh;
-      }
-
-      .step-content:not(.mnemonic-step) {
-        padding: 24px;
-      }
-
-      .step-header {
-        padding: 20px 24px 0;
-      }
-
-      .step-body {
-        padding: 0 24px;
-      }
-
-      .step-footer {
-        padding: 0 24px 20px;
-      }
-
-      .step-title {
-        font-size: 20px;
-      }
-
       .warning-banner {
         flex-direction: column;
         gap: 12px;

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, output } from '@angular/core';
+import { Component, OnInit, effect, inject, signal, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
@@ -8,16 +8,7 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
   standalone: true,
   imports: [FormsModule],
   template: `
-    <div class="import-container">
-      <div class="import-card">
-        <div class="import-icon">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <polyline points="7 10 12 15 17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </div>
-
+    <div class="import-content">
         <h2 class="import-title">Importar Carteira Existente</h2>
         <p class="import-description">
           Use sua frase de recuperação para restaurar sua carteira.
@@ -33,7 +24,7 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
                 class="form-textarea"
                 [(ngModel)]="seedPhrase"
                 placeholder="Cole aqui sua frase de recuperação de 24 palavras separadas por espaços"
-                rows="4"
+                rows="3"
                 [disabled]="isImporting()"
               ></textarea>
               <span class="form-hint">
@@ -80,8 +71,7 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
               <button
                 type="button"
                 class="method-option"
-                [class.selected]="securityMethod() === 'passkey'"
-                (click)="securityMethod.set('passkey')"
+                (click)="selectPasskey()"
                 [disabled]="isImporting()"
               >
                 <div class="method-icon">
@@ -100,8 +90,7 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
               <button
                 type="button"
                 class="method-option"
-                [class.selected]="securityMethod() === 'password'"
-                (click)="securityMethod.set('password')"
+                (click)="selectPassword()"
                 [disabled]="isImporting()"
               >
                 <div class="method-icon">
@@ -118,72 +107,10 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
               </button>
             </div>
 
-            @if (securityMethod() === 'password') {
-              <!-- Password Fields -->
-              <div class="form-group">
-                <label for="password" class="form-label">Senha</label>
-                <div class="input-with-toggle">
-                  <input
-                    id="password"
-                    [type]="showPassword() ? 'text' : 'password'"
-                    class="form-input"
-                    [(ngModel)]="password"
-                    placeholder="Digite uma senha forte"
-                    [disabled]="isImporting()"
-                  />
-                  <button
-                    type="button"
-                    class="toggle-visibility"
-                    (click)="showPassword.set(!showPassword())"
-                    [disabled]="isImporting()"
-                    tabindex="-1"
-                  >
-                    @if (showPassword()) {
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                    } @else {
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                    }
-                  </button>
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label for="confirmPassword" class="form-label">Confirmar Senha</label>
-                <div class="input-with-toggle">
-                  <input
-                    id="confirmPassword"
-                    [type]="showConfirmPassword() ? 'text' : 'password'"
-                    class="form-input"
-                    [(ngModel)]="confirmPassword"
-                    placeholder="Digite a senha novamente"
-                    [disabled]="isImporting()"
-                  />
-                  <button
-                    type="button"
-                    class="toggle-visibility"
-                    (click)="showConfirmPassword.set(!showConfirmPassword())"
-                    [disabled]="isImporting()"
-                    tabindex="-1"
-                  >
-                    @if (showConfirmPassword()) {
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                    } @else {
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                    }
-                  </button>
-                </div>
+            @if (isImporting()) {
+              <div class="importing-indicator">
+                <span class="spinner"></span>
+                <span>Importando com Passkey...</span>
               </div>
             }
 
@@ -204,6 +131,103 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
                 </svg>
                 Voltar
               </button>
+            </div>
+          </div>
+        } @else if (currentStep() === 3) {
+          <!-- Step 3: Password Form -->
+          <div class="step-content">
+            <div class="security-notice">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+                <path d="M7 11V7C7 4.24 9.24 2 12 2C14.76 2 17 4.24 17 7V11" stroke="currentColor" stroke-width="2"/>
+                <circle cx="12" cy="16" r="1" fill="currentColor"/>
+              </svg>
+              <span>Crie uma senha para proteger sua carteira</span>
+            </div>
+
+            <div class="form-group">
+              <label for="password" class="form-label">Senha</label>
+              <div class="input-with-toggle">
+                <input
+                  id="password"
+                  [type]="showPassword() ? 'text' : 'password'"
+                  class="form-input"
+                  [(ngModel)]="password"
+                  placeholder="Digite uma senha forte"
+                  [disabled]="isImporting()"
+                />
+                <button
+                  type="button"
+                  class="toggle-visibility"
+                  (click)="showPassword.set(!showPassword())"
+                  [disabled]="isImporting()"
+                  tabindex="-1"
+                >
+                  @if (showPassword()) {
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  } @else {
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  }
+                </button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="confirmPassword" class="form-label">Confirmar Senha</label>
+              <div class="input-with-toggle">
+                <input
+                  id="confirmPassword"
+                  [type]="showConfirmPassword() ? 'text' : 'password'"
+                  class="form-input"
+                  [(ngModel)]="confirmPassword"
+                  placeholder="Digite a senha novamente"
+                  [disabled]="isImporting()"
+                />
+                <button
+                  type="button"
+                  class="toggle-visibility"
+                  (click)="showConfirmPassword.set(!showConfirmPassword())"
+                  [disabled]="isImporting()"
+                  tabindex="-1"
+                >
+                  @if (showConfirmPassword()) {
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  } @else {
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  }
+                </button>
+              </div>
+            </div>
+
+            @if (errorMessage()) {
+              <div class="error-message">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                  <path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                {{ errorMessage() }}
+              </div>
+            }
+
+            <div class="button-group">
+              <button class="btn btn-secondary" (click)="goBackToMethod()" [disabled]="isImporting()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <polyline points="15 18 9 12 15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Voltar
+              </button>
               <button class="btn btn-primary" (click)="importWallet()" [disabled]="isImporting()">
                 @if (isImporting()) {
                   <span class="spinner"></span>
@@ -216,72 +240,40 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
           </div>
         }
 
-        <div class="step-indicator">
-          <div class="step" [class.active]="currentStep() === 1" [class.completed]="currentStep() > 1">1</div>
-          <div class="step-line" [class.completed]="currentStep() > 1"></div>
-          <div class="step" [class.active]="currentStep() === 2">2</div>
-        </div>
-      </div>
     </div>
   `,
   styles: [`
-    .import-container {
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 24px;
-    }
-
-    .import-card {
-      background: #FFFFFF;
-      border-radius: 16px;
-      padding: 32px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-      position: relative;
-    }
-
-    .import-icon {
-      width: 80px;
-      height: 80px;
-      margin: 0 auto 24px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #FFFFFF;
-    }
-
     .import-title {
-      font-size: 24px;
+      font-size: 18px;
       font-weight: 700;
       color: #1F2937;
-      margin: 0 0 8px 0;
+      margin: 0 0 4px 0;
       text-align: center;
     }
 
     .import-description {
-      font-size: 14px;
+      font-size: 13px;
       color: #6B7280;
-      margin: 0 0 32px 0;
+      margin: 0 0 16px 0;
       text-align: center;
       line-height: 1.6;
     }
 
     .step-content {
-      margin-bottom: 32px;
+      margin-bottom: 0;
     }
 
     .security-notice {
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 16px;
+      padding: 12px;
       background: #DBEAFE;
       border: 1px solid #93C5FD;
       border-radius: 8px;
       color: #1E40AF;
-      margin-bottom: 24px;
-      font-size: 14px;
+      margin-bottom: 16px;
+      font-size: 13px;
     }
 
     .security-notice svg {
@@ -289,7 +281,7 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
     }
 
     .form-group {
-      margin-bottom: 20px;
+      margin-bottom: 14px;
     }
 
     .form-label {
@@ -357,15 +349,15 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
     .security-method-selector {
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      margin-bottom: 24px;
+      gap: 10px;
+      margin-bottom: 16px;
     }
 
     .method-option {
       display: flex;
       align-items: center;
-      gap: 16px;
-      padding: 16px;
+      gap: 12px;
+      padding: 12px;
       background: #FFFFFF;
       border: 2px solid #E5E7EB;
       border-radius: 12px;
@@ -390,8 +382,8 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
     }
 
     .method-icon {
-      width: 48px;
-      height: 48px;
+      width: 40px;
+      height: 40px;
       border-radius: 12px;
       background: #F3F4F6;
       display: flex;
@@ -424,6 +416,17 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
       color: #6B7280;
     }
 
+    .importing-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 16px;
+      color: #3B82F6;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
     .method-badge {
       padding: 4px 10px;
       font-size: 11px;
@@ -445,7 +448,7 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
       box-sizing: border-box;
       font-family: 'Courier New', monospace;
       resize: vertical;
-      min-height: 100px;
+      min-height: 80px;
     }
 
     .form-textarea:focus {
@@ -482,7 +485,7 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
     .button-group {
       display: flex;
       gap: 12px;
-      margin-top: 24px;
+      margin-top: 16px;
     }
 
     .btn {
@@ -528,52 +531,6 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
       border-color: #D1D5DB;
     }
 
-    .step-indicator {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
-      margin-top: 32px;
-      padding-top: 24px;
-      border-top: 1px solid #E5E7EB;
-    }
-
-    .step {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: #E5E7EB;
-      color: #9CA3AF;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      font-weight: 600;
-      transition: all 0.2s;
-    }
-
-    .step.active {
-      background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
-      color: #FFFFFF;
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-    }
-
-    .step.completed {
-      background: #10B981;
-      color: #FFFFFF;
-    }
-
-    .step-line {
-      width: 80px;
-      height: 2px;
-      background: #E5E7EB;
-      transition: all 0.2s;
-    }
-
-    .step-line.completed {
-      background: #10B981;
-    }
-
     .spinner {
       width: 16px;
       height: 16px;
@@ -590,24 +547,8 @@ import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
     }
 
     @media (max-width: 640px) {
-      .import-container {
-        padding: 16px;
-      }
-
-      .import-card {
-        padding: 24px;
-      }
-
-      .import-title {
-        font-size: 20px;
-      }
-
       .button-group {
         flex-direction: column-reverse;
-      }
-
-      .step-line {
-        width: 40px;
       }
     }
   `]
@@ -619,6 +560,13 @@ export class EmbeddedWalletImportComponent implements OnInit {
   readonly cancelled = output<void>();
 
   currentStep = signal(1);
+
+  constructor() {
+    effect(() => {
+      this.currentStep();
+      window.scrollTo({ top: 0 });
+    });
+  }
   seedPhrase = '';
   password = '';
   confirmPassword = '';
@@ -667,8 +615,29 @@ export class EmbeddedWalletImportComponent implements OnInit {
     this.currentStep.set(2);
   }
 
+  selectPasskey() {
+    this.securityMethod.set('passkey');
+    this.errorMessage.set(null);
+    this.importWallet();
+  }
+
+  selectPassword() {
+    this.securityMethod.set('password');
+    this.errorMessage.set(null);
+    this.currentStep.set(3);
+  }
+
   goBack() {
     this.currentStep.set(1);
+    this.password = '';
+    this.confirmPassword = '';
+    this.errorMessage.set(null);
+    this.showPassword.set(false);
+    this.showConfirmPassword.set(false);
+  }
+
+  goBackToMethod() {
+    this.currentStep.set(2);
     this.password = '';
     this.confirmPassword = '';
     this.errorMessage.set(null);
