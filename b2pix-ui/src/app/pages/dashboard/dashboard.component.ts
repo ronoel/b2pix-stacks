@@ -101,19 +101,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  isFullyValidated(): boolean {
-    const s = this.validationStatus();
-    return (s?.email_verified && s?.pix_verified) || false;
-  }
-
-  getValidationMessage(): string {
-    const s = this.validationStatus();
-    if (!s) return '';
-    if (!s.email_verified) return 'Valide seu email para começar a usar a plataforma';
-    if (!s.pix_verified) return 'Valide sua conta bancária com um depósito de confirmação';
-    return '';
-  }
-
   isManager(): boolean {
     return this.walletManagerService.getSTXAddress() === environment.b2pixAddress;
   }
@@ -125,11 +112,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // Navigation
   navigate(path: string) {
     this.router.navigate([path]);
-  }
-
-  goToValidation(): void {
-    const s = this.validationStatus();
-    this.router.navigate([!s?.email_verified ? '/email-validation' : '/pix-validation']);
   }
 
   disconnect() {

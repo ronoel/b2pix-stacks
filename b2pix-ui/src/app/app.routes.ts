@@ -43,7 +43,7 @@ export const routes: Routes = [
   {
     path: 'pix-payment',
     loadComponent: () => import('./pages/pix-payment/pix-payment.component').then(m => m.PixPaymentComponent),
-    canActivate: [authGuard]
+    canActivate: [authGuard, accountValidationGuard]
   },
   {
     path: 'sell',

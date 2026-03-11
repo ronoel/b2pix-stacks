@@ -52,52 +52,6 @@
   }
 }
 
-/* Validation Banner */
-.validation-banner {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  background: var(--btc-bg);
-  border: 1px solid var(--warning);
-  border-radius: var(--r-md);
-  margin-top: 12px;
-  cursor: pointer;
-  transition: background 0.15s ease;
-  color: #92400E;
-
-  &:hover {
-    background: #FDE68A;
-  }
-
-  svg:first-child {
-    flex-shrink: 0;
-    color: var(--warning);
-  }
-
-  svg:last-child {
-    flex-shrink: 0;
-    opacity: 0.5;
-  }
-}
-
-.validation-banner__text {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-
-  strong {
-    font-size: 14px;
-    font-weight: 700;
-  }
-
-  span {
-    font-size: 13px;
-    opacity: 0.8;
-  }
-}
-
 /* Balance Card — sats-first */
 .balance-card {
   background: linear-gradient(135deg, #051E3E 0%, var(--primary) 50%, var(--primary-light) 100%);
