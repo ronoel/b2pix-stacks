@@ -35,28 +35,13 @@
     labelText="PIX Copia e Cola"
   ></app-pix-copia-cola>
 
-  <!-- PIX ID Input -->
-  <div class="pix-id-section">
-    <h3>Confirmar pagamento</h3>
-    <p class="instruction">Após pagar o PIX, informe o ID da transação (End-to-End ID) para confirmar.</p>
-    <div class="form-group">
-      <label class="form-label">ID da transação PIX (E2E)</label>
-      <input
-        type="text"
-        class="form-input"
-        placeholder="E12345678202506151230abcdef123456"
-        [(ngModel)]="pixIdValue"
-        [disabled]="isProcessing()"
-      />
-    </div>
-  </div>
-
   <!-- Actions -->
   <div class="actions">
+    <p class="instruction">Após pagar o PIX, confirme abaixo. A verificação será feita automaticamente pelo sistema.</p>
     <button
       class="btn btn-success btn-lg btn-full"
       (click)="onConfirmPayment()"
-      [disabled]="!pixIdValue.trim() || isProcessing()">
+      [disabled]="isProcessing()">
       @if (isProcessing() && processingAction() === 'pay') {
         <div class="loading-spinner-sm"></div>
         Confirmando...

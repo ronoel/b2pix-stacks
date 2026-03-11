@@ -17,11 +17,10 @@ export class LpActiveOrderComponent implements OnInit, OnDestroy {
   isProcessing = input<boolean>(false);
   processingAction = input<string>('');
 
-  paid = output<string>();       // emits pixEndToEndId
+  paid = output<void>();
   cancelled = output<void>();
   reported = output<string>();   // emits reason
 
-  pixIdValue = '';
   reportReason = '';
   showReportSheet = signal(false);
 
@@ -76,10 +75,7 @@ export class LpActiveOrderComponent implements OnInit, OnDestroy {
   }
 
   onConfirmPayment() {
-    const pixId = this.pixIdValue.trim();
-    if (pixId) {
-      this.paid.emit(pixId);
-    }
+    this.paid.emit();
   }
 
   onCancel() {

@@ -253,7 +253,7 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  onPayOrder(pixEndToEndId: string) {
+  onPayOrder() {
     const order = this.activeOrder();
     if (!order) return;
 
@@ -261,7 +261,7 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
     this.processingActionType.set('pay');
     this.clearMessages();
 
-    this.payoutRequestService.payRequest(order.id, pixEndToEndId).subscribe({
+    this.payoutRequestService.payRequest(order.id).subscribe({
       next: () => {
         this.isProcessingAction.set(false);
         this.processingActionType.set('');

@@ -104,15 +104,14 @@ export class PixPayoutRequestService {
 
   /**
    * Confirm PIX payment for an accepted payout request.
-   * LP provides the PIX end-to-end ID.
+   * Bank verification is done automatically by the backend.
    */
-  payRequest(id: string, pixEndToEndId: string): Observable<PixPayoutRequest> {
+  payRequest(id: string): Observable<PixPayoutRequest> {
     const timestamp = new Date().toISOString();
     const payload = [
       'B2PIX - Confirmar Payout PIX',
       'b2pix.org',
       id,
-      pixEndToEndId,
       timestamp
     ].join('\n');
 
