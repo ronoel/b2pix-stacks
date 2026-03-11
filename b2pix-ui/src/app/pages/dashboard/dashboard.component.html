@@ -188,7 +188,7 @@
           <path d="M12 16V12"/>
           <path d="M12 8H12.01"/>
         </svg>
-        <p>Endereço para receber Bitcoin</p>
+        <p>Use este endereço apenas para receber sBTC na rede Stacks</p>
       </div>
 
       <div class="address-box">
@@ -197,6 +197,10 @@
     </div>
 
     <div actions>
+      <div class="deposit-qr">
+        <div class="deposit-qr__frame" [innerHTML]="depositQrSvg()"></div>
+        <span class="deposit-qr__hint">Escaneie para receber BTC</span>
+      </div>
       <button
         class="btn btn-primary btn-lg btn-full"
         (click)="copyAddress()"

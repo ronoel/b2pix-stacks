@@ -13,6 +13,8 @@ import { BuyOrder, BuyOrderStatus } from '../../shared/models/buy-order.model';
 import { SellOrder } from '../../shared/models/sell-order.model';
 import { formatBrlCents, formatSats, formatSatsToBtc, formatTruncated } from '../../shared/utils/format.util';
 import { StatusSheetComponent } from '../../components/status-sheet/status-sheet.component';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { qrcode } from '@libs/qrcode';
 
 @Component({
   selector: 'app-dashboard',
@@ -30,10 +32,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private accountValidationService = inject(AccountValidationService);
   private buyOrderService = inject(BuyOrderService);
   private sellOrderService = inject(SellOrderService);
+  private sanitizer = inject(DomSanitizer);
 
   showDepositSheet = signal(false);
   walletAddress = signal('');
   addressCopied = signal(false);
+  depositQrSvg = signal<SafeHtml>('');
 
   sBtcBalance = signal(0);
   isLoadingBalance = signal(false);
@@ -136,6 +140,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
   openDepositSheet() {
     this.showDepositSheet.set(true);
     this.addressCopied.set(false);
+    const address = this.walletAddress();
+    if (address) {
+      const svg = qrcode(address, { ecl: 'M' });
+      this.depositQrSvg.set(this.sanitizer.bypassSecurityTrustHtml(svg));
+    }
   }
 
   closeDepositSheet() {
