@@ -24,6 +24,22 @@ export class PixPayoutRequestService {
   private walletManager = inject(WalletManagerService);
 
   /**
+   * Get active (non-final) payout requests for a payer address.
+   */
+  getActivePayoutRequests(payerAddress: string): Observable<PixPayoutRequest[]> {
+    const httpParams = new HttpParams().set('payer_address', payerAddress);
+
+    return this.http.get<PixPayoutRequest[]>(`${this.apiUrl}/v1/pix-payout-requests/active`, {
+      params: httpParams
+    }).pipe(
+      catchError((error: any) => {
+        console.error('Error fetching active payout requests:', error);
+        throw error;
+      })
+    );
+  }
+
+  /**
    * Get the queue of pending payout requests available for LPs.
    */
   getQueue(params?: GetPayoutRequestsParams): Observable<PaginatedPayoutRequestResponse> {

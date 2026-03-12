@@ -3,6 +3,8 @@ import { Component, inject, OnInit, OnDestroy, signal, computed, effect } from '
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { PixPaymentService } from '../../shared/api/pix-payment.service';
+import { PixPayoutRequestService } from '../../shared/api/pix-payout-request.service';
+import { PixPayoutRequest } from '../../shared/models/pix-payout-request.model';
 import { sBTCTokenService } from '../../libs/sbtc-token.service';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import { LoadingService } from '../../services/loading.service';
@@ -12,6 +14,7 @@ import { OrderStatusComponent } from '../../components/order-status/order-status
 import { PixPaymentHistoryComponent } from './components/pix-payment-history.component';
 import { PageHeaderComponent } from '../../components/page-header/page-header.component';
 import { StatusSheetComponent } from '../../components/status-sheet/status-sheet.component';
+import { ActivePayoutCardComponent } from '../../components/active-payout-card/active-payout-card.component';
 
 @Component({
   selector: 'app-pix-payment',
@@ -22,7 +25,8 @@ import { StatusSheetComponent } from '../../components/status-sheet/status-sheet
     OrderStatusComponent,
     PixPaymentHistoryComponent,
     PageHeaderComponent,
-    StatusSheetComponent
+    StatusSheetComponent,
+    ActivePayoutCardComponent
   ],
   templateUrl: './pix-payment.component.html',
   styleUrls: ['./pix-payment.component.scss']
@@ -30,6 +34,7 @@ import { StatusSheetComponent } from '../../components/status-sheet/status-sheet
 export class PixPaymentComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private pixPaymentService = inject(PixPaymentService);
+  private payoutRequestService = inject(PixPayoutRequestService);
   private sBTCTokenService = inject(sBTCTokenService);
   private walletManager = inject(WalletManagerService);
   protected loadingService = inject(LoadingService);
@@ -48,6 +53,9 @@ export class PixPaymentComponent implements OnInit, OnDestroy {
 
   // View state
   currentView = signal<'scanner' | 'confirmation' | 'processing' | 'status'>('scanner');
+
+  // Active payout check
+  activePayout = signal<PixPayoutRequest | null>(null);
 
   // P2P warning acknowledgment
   p2pWarningAccepted = signal(sessionStorage.getItem('p2p_warning_accepted') === 'true');
@@ -104,6 +112,7 @@ export class PixPaymentComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.loadBalance();
     this.loadBtcPrice();
+    this.checkActivePayouts();
   }
 
   ngOnDestroy() {
@@ -144,6 +153,25 @@ export class PixPaymentComponent implements OnInit, OnDestroy {
         console.error('Error fetching BTC price:', error);
       }
     });
+  }
+
+  // Active payout check
+  checkActivePayouts() {
+    const address = this.walletManager.getSTXAddress();
+    if (address) {
+      this.payoutRequestService.getActivePayoutRequests(address).subscribe({
+        next: (payouts) => {
+          this.activePayout.set(payouts.length > 0 ? payouts[0] : null);
+        },
+        error: (error) => {
+          console.error('Error checking active payouts:', error);
+        }
+      });
+    }
+  }
+
+  onPayoutResolved() {
+    this.checkActivePayouts();
   }
 
   onP2pWarningAccepted(event: Event) {
@@ -221,6 +249,10 @@ export class PixPaymentComponent implements OnInit, OnDestroy {
         if (error.message?.includes('cancelada') || error.message?.includes('cancelled')) {
           this.currentView.set('confirmation');
           return;
+        }
+
+        if (error.status === 409) {
+          this.checkActivePayouts();
         }
 
         this.currentView.set('confirmation');

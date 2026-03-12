@@ -27,30 +27,37 @@
           </div>
         }
 
-        <!-- P2P Warning -->
-        @if (!p2pWarningAccepted()) {
-          <div class="p2p-warning-card">
-            <div class="p2p-warning-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              </svg>
+        @if (activePayout()) {
+          <app-active-payout-card
+            [payoutRequest]="activePayout()!"
+            (payoutResolved)="onPayoutResolved()"
+          />
+        } @else {
+          <!-- P2P Warning -->
+          @if (!p2pWarningAccepted()) {
+            <div class="p2p-warning-card">
+              <div class="p2p-warning-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <p class="p2p-warning-text">
+                Esta é uma plataforma <strong>P2P</strong>. Seu PIX pode ser processado em poucos minutos,
+                mas pode levar <strong>até 24 horas</strong>. Use apenas para pagamentos que podem aguardar
+                este prazo, como boletos, e-commerce, etc.
+              </p>
+              <label class="p2p-warning-checkbox">
+                <input type="checkbox" (change)="onP2pWarningAccepted($event)" />
+                <span>Li e entendi que o pagamento pode levar até 24 horas</span>
+              </label>
             </div>
-            <p class="p2p-warning-text">
-              Esta é uma plataforma <strong>P2P</strong>. Seu PIX pode ser processado em poucos minutos,
-              mas pode levar <strong>até 24 horas</strong>. Use apenas para pagamentos que podem aguardar
-              este prazo, como boletos, e-commerce, etc.
-            </p>
-            <label class="p2p-warning-checkbox">
-              <input type="checkbox" (change)="onP2pWarningAccepted($event)" />
-              <span>Li e entendi que o pagamento pode levar até 24 horas</span>
-            </label>
-          </div>
-        }
+          }
 
-        @if (p2pWarningAccepted()) {
-          <app-qr-scanner (qrCodeScanned)="onQrCodeScanned($event)" />
+          @if (p2pWarningAccepted()) {
+            <app-qr-scanner (qrCodeScanned)="onQrCodeScanned($event)" />
+          }
         }
 
         <!-- Balance + limit info banner -->

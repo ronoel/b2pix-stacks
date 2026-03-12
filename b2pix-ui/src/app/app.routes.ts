@@ -46,6 +46,11 @@ export const routes: Routes = [
     canActivate: [authGuard, accountValidationGuard]
   },
   {
+    path: 'pix-payment/:id',
+    loadComponent: () => import('./pages/pix-payment/pix-order-details/pix-order-details.component').then(m => m.PixOrderDetailsComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: 'sell',
     loadComponent: () => import('./pages/sell/sell.component').then(m => m.SellComponent),
     canActivate: [authGuard, accountValidationGuard]

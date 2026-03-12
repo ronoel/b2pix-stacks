@@ -27,6 +27,11 @@
           Ver detalhes
         </button>
       </div>
+    } @else if (activePayout()) {
+      <app-active-payout-card
+        [payoutRequest]="activePayout()!"
+        (payoutResolved)="onPayoutResolved()"
+      />
     } @else {
 
       <!-- Formulário de venda -->
