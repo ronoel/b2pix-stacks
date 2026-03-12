@@ -1,0 +1,58 @@
+.confirm-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  margin: 0 auto 16px;
+
+  &--primary {
+    background: var(--primary-bg);
+    color: var(--primary);
+  }
+
+  &--btc {
+    background: var(--btc-bg);
+    color: var(--btc);
+  }
+
+  &--success {
+    background: var(--success-bg);
+    color: var(--success);
+  }
+
+  &--danger {
+    background: var(--danger-bg);
+    color: var(--danger);
+  }
+
+  &--warning {
+    background: var(--btc-bg);
+    color: var(--warning);
+  }
+}
+
+.confirm-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: center;
+  margin: 0 0 8px;
+}
+
+.confirm-message {
+  font-size: 14px;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.5;
+  margin: 0 0 20px;
+}
+
+.confirm-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}

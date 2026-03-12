@@ -2,13 +2,14 @@ import { Component, input, output, signal, OnInit, OnDestroy } from '@angular/co
 
 import { FormsModule } from '@angular/forms';
 import { PixCopiaColaComponent } from '../../../components/pix-copia-cola/pix-copia-cola.component';
+import { ConfirmActionSheetComponent } from '../../../components/confirm-action-sheet/confirm-action-sheet.component';
 import { PixPayoutRequest, getSourceTypeLabel } from '../../../shared/models/pix-payout-request.model';
 import { formatBrlCents } from '../../../shared/utils/format.util';
 
 @Component({
   selector: 'app-lp-active-order',
   standalone: true,
-  imports: [FormsModule, PixCopiaColaComponent],
+  imports: [FormsModule, PixCopiaColaComponent, ConfirmActionSheetComponent],
   templateUrl: './lp-active-order.component.html',
   styleUrl: './lp-active-order.component.scss'
 })
@@ -23,6 +24,8 @@ export class LpActiveOrderComponent implements OnInit, OnDestroy {
 
   reportReason = '';
   showReportSheet = signal(false);
+  showConfirmPay = signal(false);
+  showConfirmCancel = signal(false);
 
   remainingSeconds = signal(0);
   private timerInterval?: ReturnType<typeof setInterval>;

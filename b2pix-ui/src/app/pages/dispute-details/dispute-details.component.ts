@@ -5,10 +5,11 @@ import { BuyOrderService } from '../../shared/api/buy-order.service';
 import { BuyOrder, BuyOrderStatus } from '../../shared/models/buy-order.model';
 import { formatBrlCents } from '../../shared/utils/format.util';
 import { PageHeaderComponent } from '../../components/page-header/page-header.component';
+import { ConfirmActionSheetComponent } from '../../components/confirm-action-sheet/confirm-action-sheet.component';
 @Component({
   selector: 'app-analyzing-order',
   standalone: true,
-  imports: [PageHeaderComponent],
+  imports: [PageHeaderComponent, ConfirmActionSheetComponent],
   templateUrl: './dispute-details.component.html',
   styleUrl: './dispute-details.component.scss'
 })
@@ -22,6 +23,8 @@ export class AnalyzingOrderComponent implements OnInit {
   loading = signal(true);
   error = signal<string | null>(null);
   resolving = signal(false);
+  showConfirmApprove = signal(false);
+  showConfirmReject = signal(false);
 
   ngOnInit() {
     this.route.params.subscribe(params => {

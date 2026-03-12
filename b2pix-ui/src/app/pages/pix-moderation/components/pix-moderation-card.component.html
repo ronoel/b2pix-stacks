@@ -49,34 +49,80 @@
   <div class="card-footer">
     <button
       class="btn btn-danger"
-      (click)="onReject()"
+      (click)="showConfirmReject.set(true)"
       [disabled]="isProcessing"
     >
-      @if (isProcessing) {
-        <div class="loading-spinner-sm"></div>
-      } @else {
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-          <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/>
-          <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
-        </svg>
-      }
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+        <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/>
+        <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
+      </svg>
       Rejeitar
     </button>
     <button
       class="btn btn-success"
-      (click)="onApprove()"
+      (click)="showConfirmApprove.set(true)"
       [disabled]="isProcessing"
     >
-      @if (isProcessing) {
-        <div class="loading-spinner-sm"></div>
-      } @else {
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-          <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-        </svg>
-      }
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+      </svg>
       Aprovar
     </button>
   </div>
 </div>
+
+<!-- Confirm Approve Sheet -->
+<app-confirm-action-sheet
+  [isOpen]="showConfirmApprove()"
+  title="Aprovar verificação"
+  message="Aprovar a verificação PIX deste usuário? Ele poderá operar na plataforma."
+  type="success"
+  confirmLabel="Aprovar"
+  [isLoading]="false"
+  (confirmed)="onApprove()"
+  (cancelled)="showConfirmApprove.set(false)"
+>
+  <div class="card">
+    <div class="detail-row">
+      <span class="detail-label">Endereço</span>
+      <span class="detail-value font-mono">{{ formatAddress(verification.address) }}</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">Chave PIX</span>
+      <span class="detail-value font-mono">{{ verification.user_pix_key }}</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">Valor confirmação</span>
+      <span class="detail-value">R$ {{ (verification.pix_confirmation_value / 100).toFixed(2) }}</span>
+    </div>
+  </div>
+</app-confirm-action-sheet>
+
+<!-- Confirm Reject Sheet -->
+<app-confirm-action-sheet
+  [isOpen]="showConfirmReject()"
+  title="Rejeitar verificação"
+  message="Rejeitar a verificação PIX? O usuário não poderá operar na plataforma."
+  type="danger"
+  confirmLabel="Rejeitar"
+  [isLoading]="false"
+  (confirmed)="onReject()"
+  (cancelled)="showConfirmReject.set(false)"
+>
+  <div class="card">
+    <div class="detail-row">
+      <span class="detail-label">Endereço</span>
+      <span class="detail-value font-mono">{{ formatAddress(verification.address) }}</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">Chave PIX</span>
+      <span class="detail-value font-mono">{{ verification.user_pix_key }}</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">Valor confirmação</span>
+      <span class="detail-value">R$ {{ (verification.pix_confirmation_value / 100).toFixed(2) }}</span>
+    </div>
+  </div>
+</app-confirm-action-sheet>
