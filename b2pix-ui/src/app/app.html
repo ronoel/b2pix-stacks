@@ -12,6 +12,16 @@
     <app-tab-bar />
   }
 
+  @if (lpNotification.hasNotification() && !lpNotification.dismissed()) {
+    <div class="lp-notification" (click)="navigateToLpDashboard()">
+      <div class="lp-notification__content">
+        <span class="lp-notification__dot"></span>
+        <span>Pix de operação disponível</span>
+      </div>
+      <button class="lp-notification__close" (click)="dismissLpNotification($event)">&times;</button>
+    </div>
+  }
+
   <app-footer />
   <app-loading />
   <app-api-unavailable />

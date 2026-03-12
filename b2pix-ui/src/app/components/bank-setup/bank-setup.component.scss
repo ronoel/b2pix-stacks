@@ -526,13 +526,91 @@
   margin-top: 32px;
 }
 
+.account-notice {
+  margin-bottom: 24px;
+}
+
+.notice-requirement {
+  font-size: 16px;
+  color: #1F2937;
+  text-align: center;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #F9FAFB;
+  border-radius: 12px;
+  border: 1px solid #E5E7EB;
+}
+
+.highlight-accent {
+  color: #1E40AF;
+  font-weight: 700;
+}
+
+.store-subtitle {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  margin: 20px 0 12px;
+  text-align: center;
+}
+
+.store-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.store-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: #FFFFFF;
+  border: 2px solid #D1D5DB;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  svg {
+    color: #6B7280;
+  }
+
+  &:hover {
+    border-color: #1E40AF;
+    color: #1E40AF;
+    background: #EFF6FF;
+
+    svg {
+      color: #1E40AF;
+    }
+  }
+}
+
 @media (max-width: 768px) {
   .steps-indicator {
     padding: 16px;
   }
 
   .step {
-    font-size: 11px;
+    font-size: 10px;
+  }
+
+  .store-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .store-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .step-line {
+    margin: 0 6px;
   }
 
   .step-circle {
