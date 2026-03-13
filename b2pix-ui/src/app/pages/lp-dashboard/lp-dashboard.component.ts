@@ -51,8 +51,8 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
   private accountValidationService = inject(AccountValidationService);
   private quoteService = inject(QuoteService);
 
-  // Tabs — 2 tabs: history, ledger
-  currentTab = signal<'history' | 'ledger'>('history');
+  // Tabs — 3 tabs: orders, history, ledger
+  currentTab = signal<'orders' | 'history' | 'ledger'>('orders');
 
   // Stats
   stats = signal<LpStats | null>(null);
@@ -107,7 +107,6 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.loadStats();
     this.loadBtcPrice();
-    this.loadHistory();
   }
 
   ngOnDestroy() {
@@ -119,11 +118,16 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
   // Tab Navigation
   // ============================================
 
-  switchTab(tab: 'history' | 'ledger') {
+  switchTab(tab: 'orders' | 'history' | 'ledger') {
     this.currentTab.set(tab);
     this.clearMessages();
 
     switch (tab) {
+      case 'orders':
+        if (this.queueItems().length === 0 && !this.isLoadingQueue()) {
+          this.loadQueue();
+        }
+        break;
       case 'history':
         if (this.historyItems().length === 0) {
           this.loadHistory();
