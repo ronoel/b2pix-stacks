@@ -1,9 +1,10 @@
-import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy, ViewEncapsulation } from '@angular/core';
 
 import { Router } from '@angular/router';
 import { interval, Subscription } from 'rxjs';
 import { PixPayoutRequestService } from '../../shared/api/pix-payout-request.service';
 import { AccountValidationService } from '../../shared/api/account-validation.service';
+import { QuoteService } from '../../shared/api/quote.service';
 import { BankSetupComponent } from '../../components/bank-setup/bank-setup.component';
 import { PageHeaderComponent } from '../../components/page-header/page-header.component';
 import { StatusSheetComponent } from '../../components/status-sheet/status-sheet.component';
@@ -41,15 +42,17 @@ import { formatBrlCents, formatSats, formatSatsToBtc, formatDateTime } from '../
     StatusSheetComponent
   ],
   templateUrl: './lp-dashboard.component.html',
-  styleUrls: ['./lp-dashboard.component.scss']
+  styleUrls: ['./lp-dashboard.component.scss'],
+  encapsulation: ViewEncapsulation.None
 })
 export class LpDashboardComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private payoutRequestService = inject(PixPayoutRequestService);
   private accountValidationService = inject(AccountValidationService);
+  private quoteService = inject(QuoteService);
 
-  // Tabs — 3 tabs: operations, history, ledger
-  currentTab = signal<'operations' | 'history' | 'ledger'>('operations');
+  // Tabs — 2 tabs: history, ledger
+  currentTab = signal<'history' | 'ledger'>('history');
 
   // Stats
   stats = signal<LpStats | null>(null);
@@ -93,32 +96,34 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
   successMessage = signal('');
   errorMessage = signal('');
 
+  // BTC Price
+  btcPriceCents = signal<number>(0);
+
   // Polling
   private activeOrderPolling?: Subscription;
-  private readonly POLLING_INTERVAL = 5000;
+  private queuePolling?: Subscription;
+  private readonly POLLING_INTERVAL = 10000;
 
   ngOnInit() {
     this.loadStats();
+    this.loadBtcPrice();
+    this.loadHistory();
   }
 
   ngOnDestroy() {
     this.stopPolling();
+    this.stopQueuePolling();
   }
 
   // ============================================
   // Tab Navigation
   // ============================================
 
-  switchTab(tab: 'operations' | 'history' | 'ledger') {
+  switchTab(tab: 'history' | 'ledger') {
     this.currentTab.set(tab);
     this.clearMessages();
 
     switch (tab) {
-      case 'operations':
-        if (this.queueItems().length === 0 && !this.activeOrder()) {
-          this.loadQueue();
-        }
-        break;
       case 'history':
         if (this.historyItems().length === 0) {
           this.loadHistory();
@@ -168,6 +173,7 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
         this.queueItems.set(response.items);
         this.queueHasMore.set(response.has_more);
         this.isLoadingQueue.set(false);
+        this.startQueuePolling();
       },
       error: (error) => {
         console.error('Error loading queue:', error);
@@ -208,6 +214,7 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
         this.activeOrder.set(request);
         this.isAcceptingOrderId.set(null);
         this.queueItems.update(items => items.filter(i => i.id !== orderId));
+        this.stopQueuePolling();
         this.startPolling();
         this.showSuccess('Ordem aceita! Pague o PIX dentro de 15 minutos.');
       },
@@ -410,6 +417,47 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
       this.activeOrderPolling.unsubscribe();
       this.activeOrderPolling = undefined;
     }
+  }
+
+  private startQueuePolling() {
+    this.stopQueuePolling();
+    this.queuePolling = interval(this.POLLING_INTERVAL).subscribe(() => {
+      this.payoutRequestService.getQueue({ page: 1, limit: 10 }).subscribe({
+        next: (response) => {
+          this.queueItems.set(response.items);
+          this.queueHasMore.set(response.has_more);
+          this.queuePage.set(1);
+        },
+        error: () => {}
+      });
+    });
+  }
+
+  private stopQueuePolling() {
+    this.queuePolling?.unsubscribe();
+    this.queuePolling = undefined;
+  }
+
+  // ============================================
+  // BTC Price
+  // ============================================
+
+  private loadBtcPrice() {
+    this.quoteService.getBtcPrice().subscribe({
+      next: (r) => this.btcPriceCents.set(parseInt(r.price, 10)),
+      error: () => {}
+    });
+  }
+
+  satsToBrl(sats: number): string {
+    const price = this.btcPriceCents();
+    if (!price || !sats) return 'R$ 0,00';
+    const brlCents = Math.round((sats / 100_000_000) * price);
+    return formatBrlCents(brlCents);
+  }
+
+  formatBtcPriceBrl(): string {
+    return formatBrlCents(this.btcPriceCents());
   }
 
   // ============================================

@@ -1,3 +1,50 @@
+<!-- ACTIVE ORDER OVERLAY — covers entire viewport -->
+@if (activeOrder()) {
+  <div class="active-order-overlay">
+    <div class="active-order-overlay-container">
+      <!-- Banner -->
+      <div class="active-order-banner">
+        <div class="pulse-ring"></div>
+        <span>Ordem em andamento — realize o PIX</span>
+      </div>
+
+      <!-- Content -->
+      <div class="active-order-body">
+        <!-- Feedback Messages inside overlay -->
+        @if (successMessage()) {
+          <div class="alert-box alert-success">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            <span>{{ successMessage() }}</span>
+          </div>
+        }
+        @if (errorMessage()) {
+          <div class="alert-box alert-error">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/>
+              <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            <span>{{ errorMessage() }}</span>
+          </div>
+        }
+
+        <app-lp-active-order
+          [order]="activeOrder()!"
+          [isProcessing]="isProcessingAction()"
+          [processingAction]="processingActionType()"
+          (paid)="onPayOrder()"
+          (cancelled)="onCancelOrder()"
+          (reported)="onReportOrder($event)"
+        />
+      </div>
+    </div>
+  </div>
+}
+
+<!-- NORMAL DASHBOARD (hidden when active order overlay is showing) -->
 <div class="lp-dashboard">
   <div class="container">
     <!-- Header -->
@@ -22,42 +69,6 @@
         (setupCancelled)="onBankSetupCancelled()"
       />
     } @else {
-
-    <!-- Balance Card (always visible) -->
-    @if (stats()) {
-      <div class="balance-card">
-        <div class="balance-columns">
-          <div class="balance-col">
-            <span class="balance-label">Saldo operacional</span>
-            <span class="balance-brl" [class.negative]="getEffectiveBalance(stats()!) < 0">
-              {{ formatBrlCentsSigned(getEffectiveBalance(stats()!)) }}
-            </span>
-            <span class="balance-secondary">
-              &asymp; {{ formatSatsToBtc(stats()!.balance_cents > 0 ? stats()!.balance_cents : 0) }} BTC
-            </span>
-          </div>
-          <div class="balance-col">
-            <span class="balance-label">Bitcoin a receber</span>
-            <span class="balance-brl">{{ formatBrlCents(stats()!.claimable_satoshis > 0 ? stats()!.claimable_satoshis : 0) }}</span>
-            <span class="balance-secondary">{{ formatSats(stats()!.claimable_satoshis) }} sats</span>
-          </div>
-        </div>
-        <div class="balance-actions">
-          <button
-            class="btn-balance btn-balance-outline"
-            [disabled]="getEffectiveBalance(stats()!) <= 0"
-            (click)="activeSheet.set('convert')">
-            Converter
-          </button>
-          <button
-            class="btn-balance btn-balance-btc"
-            [disabled]="stats()!.claimable_satoshis < 1500"
-            (click)="activeSheet.set('withdraw')">
-            Sacar Bitcoin
-          </button>
-        </div>
-      </div>
-    }
 
     <!-- Credentials Warning -->
     @if (stats() && stats()!.credentials_valid === false) {
@@ -94,84 +105,189 @@
       </div>
     }
 
-    <!-- Active Order Card (shown between balance and tabs) -->
-    @if (activeOrder()) {
-      <div class="active-order-card">
-        <div class="active-order-header">
-          <h2>Ordem ativa</h2>
-          <span class="badge badge-info">Em andamento</span>
+    <!-- QUEUE HERO -->
+    <div class="queue-hero">
+      <div class="queue-header">
+        <div class="queue-title-row">
+          <h2 class="queue-title">Aguardando processamento</h2>
+          @if (queueItems().length > 0) {
+            <span class="queue-count">{{ queueItems().length }}</span>
+          }
         </div>
-        <app-lp-active-order
-          [order]="activeOrder()!"
-          [isProcessing]="isProcessingAction()"
-          [processingAction]="processingActionType()"
-          (paid)="onPayOrder()"
-          (cancelled)="onCancelOrder()"
-          (reported)="onReportOrder($event)"
-        />
+        <div class="queue-live-dot">
+          <span class="live-dot"></span>
+          <span>Ao vivo</span>
+        </div>
       </div>
-    }
 
-    <!-- Tabs (always visible, even with active order) -->
-    <div class="seg-control">
-      <button
-        class="seg-btn"
-        [class.active]="currentTab() === 'operations'"
-        (click)="switchTab('operations')">
-        Operações
-        @if (queueItems().length > 0) {
-          <span class="seg-count">{{ queueItems().length }}</span>
-        }
-      </button>
-      <button
-        class="seg-btn"
-        [class.active]="currentTab() === 'history'"
-        (click)="switchTab('history')">
-        Histórico
-      </button>
-      <button
-        class="seg-btn"
-        [class.active]="currentTab() === 'ledger'"
-        (click)="switchTab('ledger')">
-        Extrato
-      </button>
-    </div>
-
-    <!-- Tab Content -->
-    <div class="tab-content">
-      <!-- Operations Tab -->
-      @if (currentTab() === 'operations') {
-        @if (isLoadingQueue() && queueItems().length === 0) {
-          <div class="loading-state">
-            <div class="loading-spinner"></div>
-            <p>Carregando fila...</p>
-          </div>
-        } @else if (queueItems().length === 0) {
-          <div class="empty-state">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+      @if (isLoadingQueue() && queueItems().length === 0) {
+        <div class="loading-state">
+          <div class="loading-spinner"></div>
+          <p>Carregando fila...</p>
+        </div>
+      } @else if (queueItems().length === 0) {
+        <div class="queue-empty">
+          <div class="queue-empty-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
               <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
               <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            <h3>Nenhum pagamento na fila</h3>
-            <p>Novos pagamentos aparecerão aqui automaticamente.</p>
-            <button class="btn btn-outline btn-sm" (click)="loadQueue()">Atualizar</button>
           </div>
-        } @else {
-          <div class="queue-section">
-            <h3 class="section-label">Fila de pagamentos ({{ queueItems().length }})</h3>
-            <div class="queue-list">
-              @for (item of queueItems(); track item.id) {
-                <app-lp-queue-card
-                  [item]="item"
-                  [isAccepting]="isAcceptingOrderId() === item.id"
-                  (accept)="onAcceptOrder($event)"
-                />
+          <h3>Nenhum pagamento na fila</h3>
+          <p>Novos pagamentos aparecerão aqui automaticamente.</p>
+          <div class="auto-refresh-indicator">
+            <span class="spinner-sm"></span>
+            Atualizando a cada 10s
+          </div>
+        </div>
+      } @else {
+        <div class="queue-list">
+          @for (item of queueItems(); track item.id) {
+            <app-lp-queue-card
+              [item]="item"
+              [isAccepting]="isAcceptingOrderId() === item.id"
+              (accept)="onAcceptOrder($event)"
+            />
+          }
+        </div>
+        @if (queueHasMore()) {
+          <div class="load-more">
+            <button class="btn btn-outline btn-sm" (click)="loadMoreQueue()" [disabled]="isLoadingQueue()">
+              @if (isLoadingQueue()) {
+                <div class="loading-spinner-sm"></div>
+                Carregando...
+              } @else {
+                Carregar mais
+              }
+            </button>
+          </div>
+        }
+      }
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs-section">
+      <div class="seg-control">
+        <button
+          class="seg-btn"
+          [class.active]="currentTab() === 'history'"
+          (click)="switchTab('history')">
+          Histórico
+        </button>
+        <button
+          class="seg-btn"
+          [class.active]="currentTab() === 'ledger'"
+          (click)="switchTab('ledger')">
+          Extrato
+        </button>
+      </div>
+
+      <div class="tab-content">
+        <!-- History Tab -->
+        @if (currentTab() === 'history') {
+          <!-- Balance Banner -->
+          @if (stats()) {
+            <div class="balance-banner">
+              <div class="balance-banner-info">
+                <span class="balance-banner-label">Saldo operacional</span>
+                <span class="balance-banner-value" [class.negative]="getEffectiveBalance(stats()!) < 0">
+                  {{ formatBrlCentsSigned(getEffectiveBalance(stats()!)) }}
+                </span>
+              </div>
+              <button
+                class="btn-banner-action btn-convert"
+                [disabled]="getEffectiveBalance(stats()!) <= 0"
+                (click)="activeSheet.set('convert')">
+                Converter
+              </button>
+            </div>
+          }
+
+          @if (isLoadingHistory() && historyItems().length === 0) {
+            <div class="loading-state">
+              <div class="loading-spinner"></div>
+              <p>Carregando histórico...</p>
+            </div>
+          } @else if (historyItems().length === 0) {
+            <div class="empty-state">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                <path d="M3 12C3 7.02944 7.02944 3 12 3C14.5755 3 16.9 4.15205 18.5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path d="M21 12C21 16.9706 16.9706 21 12 21C9.42446 21 7.09995 19.848 5.5 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path d="M13 2L18 6L14 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M11 22L6 18L10 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <h3>Nenhum histórico ainda</h3>
+              <p>Suas ordens processadas aparecerão aqui.</p>
+            </div>
+          } @else {
+            <div class="history-list">
+              @for (item of historyItems(); track item.id) {
+                <div class="history-card-wrapper">
+                  <div class="history-card">
+                    <div class="history-header">
+                      <div class="history-values">
+                        <span class="history-brl">{{ formatBrlCents(item.pix_value) }}</span>
+                      </div>
+                      <span class="status-badge" [class]="getStatusClass(item.status)">
+                        {{ getStatusLabel(item.status) }}
+                      </span>
+                    </div>
+                    <div class="history-meta">
+                      @if (item.pix_end_to_end_id) {
+                        <span class="meta-item font-mono">PIX: {{ item.pix_end_to_end_id }}</span>
+                      }
+                      <span class="meta-item">{{ formatDateTime(item.created_at) }}</span>
+                    </div>
+                  </div>
+                  @if (item.status === 'disputed') {
+                    <div class="history-chat-toggle">
+                      <button class="btn-chat-toggle" (click)="toggleHistoryChat(item.id)">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                          <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        {{ expandedChatId() === item.id ? 'Ocultar mensagens' : 'Ver mensagens' }}
+                      </button>
+                    </div>
+                    @if (expandedChatId() === item.id) {
+                      <div class="history-chat">
+                        <app-message-chat
+                          [sourceType]="item.source_type"
+                          [sourceId]="item.source_id"
+                          currentUserRole="payer"
+                        />
+                      </div>
+                    }
+                  }
+                </div>
               }
             </div>
-            @if (queueHasMore()) {
+
+            <!-- Summary stats -->
+            @if (stats() && !isLoadingStats()) {
+              <div class="stats-summary">
+                <div class="stat-item">
+                  <span class="stat-label">PIX processados</span>
+                  <span class="stat-value">{{ stats()!.total_paid_count }}</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Cancelamentos</span>
+                  <span class="stat-value">{{ stats()!.cancel_count }}</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Volume total</span>
+                  <span class="stat-value">{{ formatBrlCents(stats()!.total_paid_value_cents) }}</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Disputas perdidas</span>
+                  <span class="stat-value">{{ stats()!.dispute_lost_count }}</span>
+                </div>
+              </div>
+            }
+
+            @if (historyHasMore()) {
               <div class="load-more">
-                <button class="btn btn-outline btn-sm" (click)="loadMoreQueue()" [disabled]="isLoadingQueue()">
-                  @if (isLoadingQueue()) {
+                <button class="btn btn-outline btn-sm" (click)="loadMoreHistory()" [disabled]="isLoadingHistory()">
+                  @if (isLoadingHistory()) {
                     <div class="loading-spinner-sm"></div>
                     Carregando...
                   } @else {
@@ -180,163 +296,108 @@
                 </button>
               </div>
             }
-          </div>
+          }
         }
 
-        <!-- Summary (stats merged into operations tab) -->
-        @if (stats() && !isLoadingStats()) {
-          <div class="summary-section">
-            <h3 class="section-label">Resumo</h3>
-            <div class="summary-grid">
-              <div class="summary-item">
-                <span class="summary-label">PIX processados</span>
-                <span class="summary-value">{{ stats()!.total_paid_count }}</span>
-              </div>
-              <div class="summary-item">
-                <span class="summary-label">Cancelamentos</span>
-                <span class="summary-value">{{ stats()!.cancel_count }}</span>
-              </div>
-              <div class="summary-item">
-                <span class="summary-label">Volume total</span>
-                <span class="summary-value">{{ formatBrlCents(stats()!.total_paid_value_cents) }}</span>
-              </div>
-              <div class="summary-item">
-                <span class="summary-label">Disputas perdidas</span>
-                <span class="summary-value">{{ stats()!.dispute_lost_count }}</span>
-              </div>
-            </div>
-          </div>
-        }
-      }
-
-      <!-- History Tab -->
-      @if (currentTab() === 'history') {
-        @if (isLoadingHistory() && historyItems().length === 0) {
-          <div class="loading-state">
-            <div class="loading-spinner"></div>
-            <p>Carregando histórico...</p>
-          </div>
-        } @else if (historyItems().length === 0) {
-          <div class="empty-state">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-              <path d="M3 12C3 7.02944 7.02944 3 12 3C14.5755 3 16.9 4.15205 18.5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <path d="M21 12C21 16.9706 16.9706 21 12 21C9.42446 21 7.09995 19.848 5.5 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <path d="M13 2L18 6L14 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M11 22L6 18L10 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <h3>Nenhum histórico ainda</h3>
-            <p>Suas ordens processadas aparecerão aqui.</p>
-          </div>
-        } @else {
-          <div class="history-list">
-            @for (item of historyItems(); track item.id) {
-              <div class="history-card-wrapper">
-                <div class="history-card">
-                  <div class="history-header">
-                    <div class="history-values">
-                      <span class="history-brl">{{ formatBrlCents(item.pix_value) }}</span>
-                      <span class="source-badge" [class]="item.source_type">{{ getSourceLabel(item.source_type) }}</span>
-                    </div>
-                    <span class="status-badge" [class]="getStatusClass(item.status)">
-                      {{ getStatusLabel(item.status) }}
-                    </span>
-                  </div>
-                  <div class="history-meta">
-                    @if (item.pix_end_to_end_id) {
-                      <span class="meta-item font-mono">PIX: {{ item.pix_end_to_end_id }}</span>
-                    }
-                    <span class="meta-item">{{ formatDateTime(item.created_at) }}</span>
-                  </div>
+        <!-- Ledger Tab (Bitcoin Extrato) -->
+        @if (currentTab() === 'ledger') {
+          <!-- Balance Banner -->
+          @if (stats()) {
+            <div class="balance-banner">
+              <div class="balance-banner-info">
+                <span class="balance-banner-label">Bitcoin a receber</span>
+                <div class="balance-banner-sats">
+                  <span class="balance-banner-sats-value">{{ formatSats(stats()!.claimable_satoshis) }} sats</span>
+                  <span class="balance-banner-sats-brl">&asymp; {{ satsToBrl(stats()!.claimable_satoshis) }}</span>
                 </div>
-                @if (item.status === 'disputed') {
-                  <div class="history-chat-toggle">
-                    <button class="btn-chat-toggle" (click)="toggleHistoryChat(item.id)">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                      {{ expandedChatId() === item.id ? 'Ocultar mensagens' : 'Ver mensagens' }}
-                    </button>
-                  </div>
-                  @if (expandedChatId() === item.id) {
-                    <div class="history-chat">
-                      <app-message-chat
-                        [sourceType]="item.source_type"
-                        [sourceId]="item.source_id"
-                        currentUserRole="payer"
-                      />
-                    </div>
-                  }
-                }
               </div>
-            }
-          </div>
-          @if (historyHasMore()) {
-            <div class="load-more">
-              <button class="btn btn-outline btn-sm" (click)="loadMoreHistory()" [disabled]="isLoadingHistory()">
-                @if (isLoadingHistory()) {
-                  <div class="loading-spinner-sm"></div>
-                  Carregando...
-                } @else {
-                  Carregar mais
-                }
+              <button
+                class="btn-banner-action btn-withdraw-btc"
+                [disabled]="stats()!.claimable_satoshis < 1500"
+                (click)="activeSheet.set('withdraw')">
+                Sacar Bitcoin
               </button>
             </div>
           }
-        }
-      }
 
-      <!-- Ledger Tab (Bitcoin Extrato) -->
-      @if (currentTab() === 'ledger') {
-        @if (isLoadingLedger() && ledgerItems().length === 0) {
-          <div class="loading-state">
-            <div class="loading-spinner"></div>
-            <p>Carregando extrato...</p>
-          </div>
-        } @else if (ledgerItems().length === 0) {
-          <div class="empty-state">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-              <path d="M11.5 6V2.5M12.5 6V2.5M8 13.5H16M8 10.5H16M9 21H15C15 21 16 21 16 20V17.5C17.3807 17.5 18.5 16.3807 18.5 15V9C18.5 7.61929 17.3807 6.5 16 6.5H8C6.61929 6.5 5.5 7.61929 5.5 9V15C5.5 16.3807 6.61929 17.5 8 17.5V20C8 21 9 21 9 21Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <h3>Nenhum movimento ainda</h3>
-            <p>Recompensas, conversões e saques aparecerão aqui.</p>
-          </div>
-        } @else {
-          <div class="ledger-list">
-            @for (entry of ledgerItems(); track entry.id) {
-              <div class="ledger-card">
-                <div class="ledger-main">
-                  <div class="ledger-amount-col">
-                    <span class="ledger-brl" [class.positive]="entry.entry_type === 'reward' || entry.entry_type === 'conversion'" [class.negative]="entry.entry_type === 'withdrawal'">
-                      {{ entry.entry_type === 'withdrawal' ? '- ' : '+ ' }}{{ formatBrlCents(entry.brl_cents) }}
-                    </span>
-                    <span class="ledger-sats">
-                      {{ entry.entry_type === 'withdrawal' ? '-' : '+' }}{{ formatSats(entry.satoshis) }} sats
-                    </span>
+          <!-- Quote indicator -->
+          @if (btcPriceCents() > 0) {
+            <div class="quote-indicator">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                <path d="M12 8V12M12 16H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              Cotação: 1 BTC = {{ formatBtcPriceBrl() }}
+            </div>
+          }
+
+          @if (isLoadingLedger() && ledgerItems().length === 0) {
+            <div class="loading-state">
+              <div class="loading-spinner"></div>
+              <p>Carregando extrato...</p>
+            </div>
+          } @else if (ledgerItems().length === 0) {
+            <div class="empty-state">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                <path d="M11.5 6V2.5M12.5 6V2.5M8 13.5H16M8 10.5H16M9 21H15C15 21 16 21 16 20V17.5C17.3807 17.5 18.5 16.3807 18.5 15V9C18.5 7.61929 17.3807 6.5 16 6.5H8C6.61929 6.5 5.5 7.61929 5.5 9V15C5.5 16.3807 6.61929 17.5 8 17.5V20C8 21 9 21 9 21Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <h3>Nenhum movimento ainda</h3>
+              <p>Recompensas, conversões e saques aparecerão aqui.</p>
+            </div>
+          } @else {
+            <div class="extrato-list">
+              @for (entry of ledgerItems(); track entry.id) {
+                <div class="extrato-item">
+                  <div class="extrato-item-left">
+                    <div class="extrato-icon" [class]="getLedgerEntryClass(entry.entry_type)">
+                      @if (entry.entry_type === 'reward') {
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                          <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                      } @else if (entry.entry_type === 'conversion') {
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                          <path d="M17 1L21 5L17 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          <path d="M3 11V9C3 7.93913 3.42143 6.92172 4.17157 6.17157C4.92172 5.42143 5.93913 5 7 5H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          <path d="M7 23L3 19L7 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          <path d="M21 13V15C21 16.0609 20.5786 17.0783 19.8284 17.8284C19.0783 18.5786 18.0609 19 17 19H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                      } @else {
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                          <path d="M12 5V19M19 12L12 19L5 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                      }
+                    </div>
+                    <div class="extrato-item-info">
+                      <span class="extrato-sats" [class.positive]="entry.entry_type === 'reward' || entry.entry_type === 'conversion'" [class.negative]="entry.entry_type === 'withdrawal'">
+                        {{ entry.entry_type === 'withdrawal' ? '-' : '+' }}{{ formatSats(entry.satoshis) }} sats
+                      </span>
+                      <span class="extrato-brl">&asymp; {{ satsToBrl(entry.satoshis) }}</span>
+                    </div>
                   </div>
-                  <div class="ledger-right">
-                    <span class="ledger-type-badge" [class]="getLedgerEntryClass(entry.entry_type)">
+                  <div class="extrato-item-right">
+                    <span class="extrato-type" [class]="getLedgerEntryClass(entry.entry_type)">
                       {{ getLedgerEntryLabel(entry.entry_type) }}
                     </span>
-                    <span class="ledger-date">{{ formatDateTime(entry.created_at) }}</span>
+                    <span class="extrato-date">{{ formatDateTime(entry.created_at) }}</span>
                   </div>
                 </div>
+              }
+            </div>
+            @if (ledgerHasMore()) {
+              <div class="load-more">
+                <button class="btn btn-outline btn-sm" (click)="loadMoreLedger()" [disabled]="isLoadingLedger()">
+                  @if (isLoadingLedger()) {
+                    <div class="loading-spinner-sm"></div>
+                    Carregando...
+                  } @else {
+                    Carregar mais
+                  }
+                </button>
               </div>
             }
-          </div>
-          @if (ledgerHasMore()) {
-            <div class="load-more">
-              <button class="btn btn-outline btn-sm" (click)="loadMoreLedger()" [disabled]="isLoadingLedger()">
-                @if (isLoadingLedger()) {
-                  <div class="loading-spinner-sm"></div>
-                  Carregando...
-                } @else {
-                  Carregar mais
-                }
-              </button>
-            </div>
           }
         }
-      }
+      </div>
     </div>
 
     <!-- Convert Bottom Sheet -->

@@ -16,16 +16,10 @@
     </div>
   </div>
 
-  <!-- Values -->
-  <div class="values-section">
-    <div class="value-card highlight">
-      <span class="label">Valor PIX</span>
-      <span class="value brl">{{ formatBrlCents(order().pix_value) }}</span>
-    </div>
-    <div class="value-card">
-      <span class="label">Tipo</span>
-      <span class="value">{{ getSourceLabel(order().source_type) }}</span>
-    </div>
+  <!-- Value -->
+  <div class="value-card highlight">
+    <span class="label">Valor PIX</span>
+    <span class="value brl">{{ formatBrlCents(order().pix_value) }}</span>
   </div>
 
   <!-- PIX Payment Info -->
@@ -37,7 +31,7 @@
 
   <!-- Actions -->
   <div class="actions">
-    <p class="instruction">Após pagar o PIX, confirme abaixo. A verificação será feita automaticamente pelo sistema.</p>
+    <p class="instruction">Após pagar o PIX, confirme abaixo. A verificação será automática.</p>
     <button
       class="btn btn-success btn-lg btn-full"
       (click)="showConfirmPay.set(true)"
@@ -51,14 +45,14 @@
 
     <div class="secondary-actions">
       <button
-        class="btn btn-outline"
+        class="btn btn-sm btn-outline"
         (click)="showConfirmCancel.set(true)"
         [disabled]="isProcessing()">
         Cancelar
       </button>
 
       <button
-        class="btn btn-ghost-danger"
+        class="btn btn-sm btn-ghost-danger"
         (click)="showReportSheet.set(true)"
         [disabled]="isProcessing()">
         Reportar problema
@@ -112,10 +106,6 @@
       <div class="detail-row">
         <span class="detail-label">Valor PIX</span>
         <span class="detail-value">{{ formatBrlCents(order().pix_value) }}</span>
-      </div>
-      <div class="detail-row">
-        <span class="detail-label">Tipo</span>
-        <span class="detail-value">{{ getSourceLabel(order().source_type) }}</span>
       </div>
     </div>
   </app-confirm-action-sheet>
