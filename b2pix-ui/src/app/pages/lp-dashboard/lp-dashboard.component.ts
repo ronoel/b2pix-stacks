@@ -70,6 +70,10 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
   isProcessingAction = signal(false);
   processingActionType = signal('');
 
+  // Accept Confirmation
+  pendingAcceptOrderId = signal<string | null>(null);
+  acceptTermsChecked = signal(false);
+
   // History
   historyItems = signal<PixPayoutRequest[]>([]);
   isLoadingHistory = signal(false);
@@ -208,6 +212,30 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
   // ============================================
   // Accept Order
   // ============================================
+
+  onRequestAcceptOrder(orderId: string) {
+    this.pendingAcceptOrderId.set(orderId);
+    this.acceptTermsChecked.set(false);
+  }
+
+  onCancelAcceptOrder() {
+    this.pendingAcceptOrderId.set(null);
+    this.acceptTermsChecked.set(false);
+  }
+
+  onConfirmAcceptOrder() {
+    const orderId = this.pendingAcceptOrderId();
+    if (!orderId) return;
+    this.pendingAcceptOrderId.set(null);
+    this.acceptTermsChecked.set(false);
+    this.onAcceptOrder(orderId);
+  }
+
+  getPendingAcceptItem(): PixPayoutRequest | null {
+    const id = this.pendingAcceptOrderId();
+    if (!id) return null;
+    return this.queueItems().find(i => i.id === id) ?? null;
+  }
 
   onAcceptOrder(orderId: string) {
     this.isAcceptingOrderId.set(orderId);

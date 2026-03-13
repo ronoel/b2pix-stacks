@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges, signal, inject } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, signal, inject } from '@angular/core';
 
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { qrcode } from '@libs/qrcode';
@@ -21,6 +21,8 @@ export class PixCopiaColaComponent implements OnInit, OnChanges {
   @Input() showLabel = true;
   @Input() labelText = 'PIX Copia e Cola';
   @Input() labelNumber = '';
+  @Input() confirmLabel = '';
+  @Output() confirmAction = new EventEmitter<void>();
 
   showQrCode = signal(false);
   qrCodeSvg = signal<SafeHtml>('');

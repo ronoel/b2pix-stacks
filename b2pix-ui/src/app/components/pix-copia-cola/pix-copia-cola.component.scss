@@ -125,7 +125,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 24px;
+  padding: 14px 20px;
   border-bottom: 1px solid var(--border);
 
   h3 {
@@ -156,16 +156,16 @@
 }
 
 .qr-modal-body {
-  padding: 24px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .qr-code-container {
-  width: 280px;
-  height: 280px;
+  width: 240px;
+  height: 240px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -210,6 +210,26 @@
   color: var(--primary);
 }
 
+/* QR Modal with confirm action — compact layout */
+.qr-modal--with-action {
+  .qr-modal-body {
+    padding: 12px 16px;
+    gap: 10px;
+  }
+}
+
+.qr-modal-actions {
+  padding: 0 16px 16px;
+}
+
+.qr-modal-confirm {
+  width: 100%;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: var(--r-md);
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .pix-copia-cola-section {
@@ -229,7 +249,7 @@
   }
 
   .qr-code-container {
-    width: 240px;
-    height: 240px;
+    width: 200px;
+    height: 200px;
   }
 }

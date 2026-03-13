@@ -171,7 +171,7 @@
                   <app-lp-queue-card
                     [item]="item"
                     [isAccepting]="isAcceptingOrderId() === item.id"
-                    (accept)="onAcceptOrder($event)"
+                    (accept)="onRequestAcceptOrder($event)"
                   />
                 }
               </div>
@@ -427,6 +427,44 @@
         (cancel)="activeSheet.set(null)"
       />
     }
+
+    <!-- Accept Order Confirmation Bottom Sheet -->
+    <app-status-sheet
+      [isOpen]="pendingAcceptOrderId() !== null"
+      title="Confirmar aceite da ordem"
+      type="warning"
+      (close)="onCancelAcceptOrder()">
+      @if (getPendingAcceptItem(); as item) {
+        <div class="accept-confirm-value">{{ formatBrlCents(item.pix_value) }}</div>
+      }
+      <div class="accept-confirm-warning">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <p>Você deve realizar este PIX <strong>a partir da sua conta cadastrada no Efí Bank</strong>. Pagamentos feitos de outras contas ou bancos não serão reconhecidos e poderão resultar em perda de fundos.</p>
+      </div>
+      <label class="accept-confirm-checkbox" (click)="acceptTermsChecked.set(!acceptTermsChecked())">
+        <div class="checkbox-box" [class.checked]="acceptTermsChecked()">
+          @if (acceptTermsChecked()) {
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M5 12l5 5L19 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          }
+        </div>
+        <span>Confirmo que farei o pagamento pela minha conta cadastrada como operador</span>
+      </label>
+      <div actions>
+        <button
+          class="btn btn-primary btn-full"
+          [disabled]="!acceptTermsChecked()"
+          (click)="onConfirmAcceptOrder()">
+          Aceitar ordem
+        </button>
+        <button class="btn btn-ghost btn-full" (click)="onCancelAcceptOrder()">Cancelar</button>
+      </div>
+    </app-status-sheet>
 
     <!-- Update Credentials Bottom Sheet -->
     <app-status-sheet

@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, effect } from '@angular/core';
 import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs';
@@ -9,6 +9,7 @@ import { TabBarComponent } from './components/tab-bar/tab-bar.component';
 import { WalletManagerService } from './libs/wallet/wallet-manager.service';
 import { AppUpdateService } from './services/app-update.service';
 import { LpQueueNotificationService } from './services/lp-queue-notification.service';
+import { InactivityService } from './services/inactivity.service';
 
 @Component({
   selector: 'app-root',
@@ -21,6 +22,17 @@ export class App {
   private walletManager = inject(WalletManagerService);
   protected appUpdate = inject(AppUpdateService);
   protected lpNotification = inject(LpQueueNotificationService);
+  protected inactivity = inject(InactivityService);
+
+  constructor() {
+    effect(() => {
+      if (this.walletManager.isLoggedInSignal()) {
+        this.inactivity.start();
+      } else {
+        this.inactivity.stop();
+      }
+    });
+  }
 
   private currentUrl = toSignal(
     this.router.events.pipe(

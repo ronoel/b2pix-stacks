@@ -22,6 +22,18 @@
     </div>
   }
 
+  @if (inactivity.showWarning()) {
+    <div class="inactivity-warning">
+      <div class="inactivity-warning__content">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+          <polyline points="12,6 12,12 16,14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Sessão expira em <strong>{{ inactivity.secondsRemaining() }}s</strong> por inatividade</span>
+      </div>
+    </div>
+  }
+
   <app-footer />
   <app-loading />
   <app-api-unavailable />

@@ -84,3 +84,37 @@
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }
 }
+
+// Inactivity warning banner
+.inactivity-warning {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10000;
+  background: var(--warning);
+  color: #fff;
+  padding: 10px 16px;
+  padding-top: calc(10px + env(safe-area-inset-top, 0px));
+  animation: slideDown 0.3s ease;
+
+  &__content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 500;
+
+    strong {
+      font-weight: 700;
+      font-family: var(--font-mono);
+    }
+  }
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(0); }
+}

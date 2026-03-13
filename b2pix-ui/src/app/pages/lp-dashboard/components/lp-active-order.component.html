@@ -27,6 +27,8 @@
     [payload]="order().qr_code_payload"
     [amount]="order().pix_value / 100"
     labelText="PIX Copia e Cola"
+    confirmLabel="Confirmar pagamento"
+    (confirmAction)="showConfirmPay.set(true)"
   ></app-pix-copia-cola>
 
   <!-- Actions -->

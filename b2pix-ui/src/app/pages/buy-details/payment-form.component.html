@@ -20,6 +20,8 @@
       [sellerCity]="sellerCity"
       [showLabel]="true"
       labelText="Pagar PIX"
+      [confirmLabel]="confirmLabel"
+      (confirmAction)="confirm.emit()"
     ></app-pix-copia-cola>
   }
 

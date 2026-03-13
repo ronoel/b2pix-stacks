@@ -44,7 +44,7 @@
 <!-- QR Code Modal -->
 @if (showQrCode()) {
   <div class="qr-modal-overlay" (click)="closeQrCode()">
-    <div class="qr-modal" (click)="$event.stopPropagation()">
+    <div class="qr-modal" [class.qr-modal--with-action]="confirmLabel" (click)="$event.stopPropagation()">
       <div class="qr-modal-header">
         <h3>QR Code PIX</h3>
         <button type="button" class="qr-modal-close" (click)="closeQrCode()">
@@ -55,14 +55,21 @@
       </div>
       <div class="qr-modal-body">
         <div class="qr-code-container" [innerHTML]="qrCodeSvg()"></div>
-        <p class="qr-help-text-modal">Escaneie o QR Code com o app do seu banco para pagar via PIX</p>
         @if (amount && amount > 0) {
           <div class="qr-amount-info">
             <span class="qr-amount-label">Valor:</span>
             <span class="qr-amount-value">R$ {{ amount.toFixed(2).replace('.', ',') }}</span>
           </div>
         }
+        <p class="qr-help-text-modal">Escaneie o QR Code com o app do seu banco para pagar via PIX</p>
       </div>
+      @if (confirmLabel) {
+        <div class="qr-modal-actions">
+          <button type="button" class="btn btn-btc btn-full qr-modal-confirm" (click)="confirmAction.emit(); closeQrCode()">
+            {{ confirmLabel }}
+          </button>
+        </div>
+      }
     </div>
   </div>
 }

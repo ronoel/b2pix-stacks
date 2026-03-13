@@ -665,6 +665,80 @@
 }
 
 // ============================================
+// ACCEPT CONFIRMATION SHEET
+// ============================================
+
+.accept-confirm-value {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.accept-confirm-warning {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--warning-bg);
+  border: 1px solid var(--warning);
+  border-radius: var(--r-md);
+  margin-bottom: 16px;
+
+  svg {
+    flex-shrink: 0;
+    color: var(--warning);
+    margin-top: 2px;
+  }
+
+  p {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+    margin: 0;
+
+    strong {
+      color: var(--text-primary);
+    }
+  }
+}
+
+.accept-confirm-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+  padding: 12px 0;
+  user-select: none;
+
+  .checkbox-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--border);
+    border-radius: var(--r-sm);
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+    margin-top: 1px;
+
+    &.checked {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+  }
+
+  span {
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--text-secondary);
+  }
+}
+
+// ============================================
 // SHEET BODY TEXT
 // ============================================
 
