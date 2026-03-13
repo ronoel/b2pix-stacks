@@ -10,7 +10,7 @@ import { formatSats, formatSatsToBtc, formatBrlCents } from '../../../shared/uti
     <div class="sheet-overlay" (click)="cancel.emit()">
       <div class="sheet" (click)="$event.stopPropagation()">
         <div class="sheet-handle"></div>
-        <h3 class="sheet-title">Sacar Bitcoin</h3>
+        <h3 class="sheet-title">Enviar para carteira</h3>
         <p class="sheet-text">Disponível: {{ formatSats(maxAmountSats()) }} sats ({{ formatSatsToBtc(maxAmountSats()) }} BTC)</p>
 
         <div class="input-group">
@@ -25,7 +25,7 @@ import { formatSats, formatSatsToBtc, formatBrlCents } from '../../../shared/uti
           />
           <button class="btn-link" (click)="useMax()">Usar todo o saldo</button>
           @if (amountSats > 0 && amountSats < 1500) {
-            <p class="warning-text">Mínimo para saque: 1.500 sats</p>
+            <p class="warning-text">Mínimo para envio: 1.500 sats</p>
           }
         </div>
 
@@ -33,9 +33,9 @@ import { formatSats, formatSatsToBtc, formatBrlCents } from '../../../shared/uti
           <button class="btn btn-btc btn-full" (click)="onConfirm()" [disabled]="isProcessing() || !isValid()">
             @if (isProcessing()) {
               <div class="loading-spinner-sm"></div>
-              Sacando...
+              Enviando...
             } @else {
-              Confirmar saque
+              Confirmar envio
             }
           </button>
           <button class="btn btn-ghost btn-full" (click)="cancel.emit()" [disabled]="isProcessing()">Cancelar</button>

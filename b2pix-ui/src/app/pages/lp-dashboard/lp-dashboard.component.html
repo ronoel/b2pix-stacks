@@ -195,10 +195,10 @@
                 </span>
               </div>
               <button
-                class="btn-banner-action btn-convert"
+                class="btn-banner-action btn-withdraw-btc"
                 [disabled]="getEffectiveBalance(stats()!) <= 0"
                 (click)="activeSheet.set('convert')">
-                Converter
+                Converter para Bitcoin
               </button>
             </div>
           }
@@ -305,7 +305,7 @@
           @if (stats()) {
             <div class="balance-banner">
               <div class="balance-banner-info">
-                <span class="balance-banner-label">Bitcoin a receber</span>
+                <span class="balance-banner-label">Saldo Bitcoin</span>
                 <div class="balance-banner-sats">
                   <span class="balance-banner-sats-value">{{ formatSats(stats()!.claimable_satoshis) }} sats</span>
                   <span class="balance-banner-sats-brl">&asymp; {{ satsToBrl(stats()!.claimable_satoshis) }}</span>
@@ -315,7 +315,7 @@
                 class="btn-banner-action btn-withdraw-btc"
                 [disabled]="stats()!.claimable_satoshis < 1500"
                 (click)="activeSheet.set('withdraw')">
-                Sacar Bitcoin
+                Enviar para carteira
               </button>
             </div>
           }
