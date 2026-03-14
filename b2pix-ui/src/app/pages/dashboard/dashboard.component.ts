@@ -8,6 +8,7 @@ import { QuoteService } from '../../shared/api/quote.service';
 import { AccountValidationService } from '../../shared/api/account-validation.service';
 import { BuyOrderService } from '../../shared/api/buy-order.service';
 import { SellOrderService } from '../../shared/api/sell-order.service';
+import { ManagerPayoutService } from '../../shared/api/manager-payout.service';
 import { AccountInfo } from '../../shared/models/account-validation.model';
 import { BuyOrder, BuyOrderStatus } from '../../shared/models/buy-order.model';
 import { SellOrder } from '../../shared/models/sell-order.model';
@@ -33,6 +34,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private buyOrderService = inject(BuyOrderService);
   private sellOrderService = inject(SellOrderService);
   private sanitizer = inject(DomSanitizer);
+  private managerPayoutService = inject(ManagerPayoutService);
 
   showDepositSheet = signal(false);
   walletAddress = signal('');
@@ -44,6 +46,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
   btcPriceInCents = signal(0);
 
   validationStatus = signal<AccountInfo | null>(null);
+
+  // System block
+  showBlockSheet = signal(false);
+  blockReason = signal('');
+  isBlocking = signal(false);
 
   // Active order interrupt
   activeOrder = signal<{ type: 'buy' | 'sell'; id: string; title: string; description: string; cta: string } | null>(null);
@@ -116,6 +123,33 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   disconnect() {
     this.walletManagerService.signOut();
+  }
+
+  // System block
+  openBlockSheet() {
+    this.showBlockSheet.set(true);
+    this.blockReason.set('');
+  }
+
+  closeBlockSheet() {
+    this.showBlockSheet.set(false);
+    this.blockReason.set('');
+    this.isBlocking.set(false);
+  }
+
+  confirmBlock() {
+    const reason = this.blockReason().trim();
+    if (!reason) return;
+
+    this.isBlocking.set(true);
+    this.managerPayoutService.blockSystem(reason).subscribe({
+      next: () => {
+        this.closeBlockSheet();
+      },
+      error: () => {
+        this.isBlocking.set(false);
+      }
+    });
   }
 
   // Deposit sheet
