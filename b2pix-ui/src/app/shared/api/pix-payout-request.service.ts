@@ -224,7 +224,7 @@ export class PixPayoutRequestService {
       'B2PIX - Reportar Problema Payout',
       'b2pix.org',
       id,
-      reason,
+      reason.replace(/\n/g, ' '),
       timestamp
     ].join('\n');
 
