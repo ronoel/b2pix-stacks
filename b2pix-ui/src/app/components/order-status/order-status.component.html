@@ -195,6 +195,14 @@
       />
     </div>
 
+    <!-- PIX Receipt: when payout confirmed -->
+    @if (latestPayoutRequest() && latestPayoutRequest()!.status === 'confirmed' && order()) {
+      <app-pix-receipt
+        [payoutRequest]="latestPayoutRequest()!"
+        [order]="order()!"
+      />
+    }
+
     <!-- Dispute Section: when payout request status is 'paid' or 'disputed' -->
     @if (isPayoutPaid() || isPayoutDisputed()) {
       <div class="card dispute-card">

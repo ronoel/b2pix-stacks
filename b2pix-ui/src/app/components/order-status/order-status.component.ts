@@ -28,12 +28,13 @@ import {
 } from '../../shared/utils/format.util';
 import { DisputeModalComponent } from './components/dispute-modal/dispute-modal.component';
 import { MessageChatComponent } from './components/message-chat/message-chat.component';
+import { PixReceiptComponent } from './components/pix-receipt/pix-receipt.component';
 import { TechnicalDetailsComponent } from '../technical-details/technical-details.component';
 
 @Component({
   selector: 'app-order-status',
   standalone: true,
-  imports: [DisputeModalComponent, MessageChatComponent, TechnicalDetailsComponent],
+  imports: [DisputeModalComponent, MessageChatComponent, PixReceiptComponent, TechnicalDetailsComponent],
   templateUrl: './order-status.component.html',
   styleUrl: './order-status.component.scss'
 })

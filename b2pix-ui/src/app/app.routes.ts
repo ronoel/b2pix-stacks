@@ -47,8 +47,9 @@ export const routes: Routes = [
   },
   {
     path: 'pix-payment/:id',
-    loadComponent: () => import('./pages/pix-payment/pix-order-details/pix-order-details.component').then(m => m.PixOrderDetailsComponent),
-    canActivate: [authGuard]
+    loadComponent: () => import('./pages/payment-details/payment-details.component').then(m => m.PaymentDetailsComponent),
+    canActivate: [authGuard],
+    data: { sourceType: 'pix_order', backRoute: '/pix-payment' }
   },
   {
     path: 'sell',
@@ -57,8 +58,9 @@ export const routes: Routes = [
   },
   {
     path: 'sell/:id',
-    loadComponent: () => import('./pages/sell/sell-details/sell-details.component').then(m => m.SellDetailsComponent),
-    canActivate: [authGuard]
+    loadComponent: () => import('./pages/payment-details/payment-details.component').then(m => m.PaymentDetailsComponent),
+    canActivate: [authGuard],
+    data: { sourceType: 'sell_order', backRoute: '/sell' }
   },
   {
     path: 'pix-account',
