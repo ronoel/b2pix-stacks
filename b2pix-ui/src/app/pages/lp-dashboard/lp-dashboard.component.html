@@ -70,6 +70,64 @@
       />
     } @else {
 
+    <!-- Push Notification Banner -->
+    @if (pushNotification.state() === 'prompt') {
+      <div class="push-banner">
+        <div class="push-banner-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M13.73 21a2 2 0 01-3.46 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="push-banner-content">
+          <span class="push-banner-text">Receba alertas quando novos PIX entrarem na fila</span>
+          <button class="btn btn-sm btn-primary push-banner-btn" (click)="onEnablePushNotifications()">Ativar notificações</button>
+        </div>
+      </div>
+    }
+    @if (pushNotification.state() === 'subscribing') {
+      <div class="push-banner push-banner--muted">
+        <div class="push-banner-icon">
+          <div class="loading-spinner-sm"></div>
+        </div>
+        <span class="push-banner-text">Ativando notificações...</span>
+      </div>
+    }
+    @if (pushNotification.state() === 'denied') {
+      <div class="push-banner push-banner--warning">
+        <div class="push-banner-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+            <path d="M12 8V12M12 16H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <span class="push-banner-text">Notificações bloqueadas pelo navegador. Libere nas configurações do navegador para receber alertas.</span>
+      </div>
+    }
+    @if (pushNotification.state() === 'not-lp') {
+      <div class="push-banner push-banner--warning">
+        <div class="push-banner-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+            <path d="M12 8V12M12 16H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <span class="push-banner-text">{{ pushNotification.errorMessage() }}</span>
+      </div>
+    }
+    @if (pushNotification.state() === 'error' && pushNotification.errorMessage()) {
+      <div class="push-banner push-banner--error">
+        <div class="push-banner-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+            <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/>
+            <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
+          </svg>
+        </div>
+        <span class="push-banner-text">{{ pushNotification.errorMessage() }}</span>
+      </div>
+    }
+
     <!-- Credentials Warning -->
     @if (stats() && stats()!.credentials_valid === false) {
       <div class="alert-box alert-warning">

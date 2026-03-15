@@ -5,6 +5,7 @@ import { interval, Subscription } from 'rxjs';
 import { PixPayoutRequestService } from '../../shared/api/pix-payout-request.service';
 import { AccountValidationService } from '../../shared/api/account-validation.service';
 import { QuoteService } from '../../shared/api/quote.service';
+import { PushNotificationService } from '../../services/push-notification.service';
 import { BankSetupComponent } from '../../components/bank-setup/bank-setup.component';
 import { PageHeaderComponent } from '../../components/page-header/page-header.component';
 import { StatusSheetComponent } from '../../components/status-sheet/status-sheet.component';
@@ -50,6 +51,7 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
   private payoutRequestService = inject(PixPayoutRequestService);
   private accountValidationService = inject(AccountValidationService);
   private quoteService = inject(QuoteService);
+  protected pushNotification = inject(PushNotificationService);
 
   // Tabs — 3 tabs: orders, history, ledger
   currentTab = signal<'orders' | 'history' | 'ledger'>('orders');
@@ -111,6 +113,7 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.loadStats();
     this.loadBtcPrice();
+    this.pushNotification.initialize();
   }
 
   ngOnDestroy() {
@@ -674,5 +677,13 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
 
   goToDashboard() {
     this.router.navigate(['/dashboard']);
+  }
+
+  // ============================================
+  // Push Notifications
+  // ============================================
+
+  onEnablePushNotifications() {
+    this.pushNotification.subscribe();
   }
 }

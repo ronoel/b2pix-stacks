@@ -37,6 +37,81 @@
 }
 
 // ============================================
+// PUSH NOTIFICATION BANNER
+// ============================================
+
+.push-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--primary-bg);
+  border: 1px solid rgba(7, 41, 84, 0.15);
+  border-radius: var(--r-md);
+  margin-bottom: 12px;
+  animation: fadeUp 0.3s ease;
+}
+
+.push-banner--muted {
+  background: var(--bg-elevated);
+  border-color: var(--border);
+}
+
+.push-banner--warning {
+  background: #FEF3C7;
+  border-color: rgba(217, 119, 6, 0.25);
+
+  .push-banner-icon {
+    color: var(--warning);
+  }
+}
+
+.push-banner--error {
+  background: var(--danger-bg);
+  border-color: rgba(220, 38, 38, 0.15);
+
+  .push-banner-icon {
+    color: var(--danger);
+  }
+}
+
+.push-banner-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--primary);
+}
+
+.push-banner-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.push-banner-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.push-banner-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+@media (max-width: 400px) {
+  .push-banner-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+
+// ============================================
 // QUEUE HERO — main focus of the page
 // ============================================
 
