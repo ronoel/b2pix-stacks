@@ -92,6 +92,19 @@
     color: var(--success);
     font-family: var(--font-display);
   }
+
+  &.receipt-value--column {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+  }
+}
+
+.receipt-doc {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
 }
 
 .receipt-e2e {

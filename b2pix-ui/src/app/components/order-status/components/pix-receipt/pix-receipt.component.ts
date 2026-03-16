@@ -31,6 +31,14 @@ export class PixReceiptComponent {
     return this.payoutRequest().pix_end_to_end_id ?? '';
   }
 
+  get recipientName(): string | null {
+    return this.payoutRequest().pix_recipient_name;
+  }
+
+  get recipientDoc(): string | null {
+    return this.payoutRequest().pix_recipient_doc;
+  }
+
   copyE2eId() {
     if (!this.e2eId) return;
     navigator.clipboard.writeText(this.e2eId).then(() => {

@@ -22,6 +22,18 @@
         <span class="receipt-value">{{ formattedDate }}</span>
       </div>
 
+      @if (recipientName) {
+        <div class="receipt-row">
+          <span class="receipt-label">Destinatário</span>
+          <div class="receipt-value receipt-value--column">
+            <span>{{ recipientName }}</span>
+            @if (recipientDoc) {
+              <span class="receipt-doc">{{ recipientDoc }}</span>
+            }
+          </div>
+        </div>
+      }
+
       <div class="receipt-row receipt-row--vertical">
         <div class="receipt-row-header">
           <span class="receipt-label">ID (End-to-End)</span>
