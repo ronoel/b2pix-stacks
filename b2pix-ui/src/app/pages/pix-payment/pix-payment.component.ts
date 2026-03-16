@@ -335,7 +335,7 @@ export class PixPaymentComponent implements OnInit, OnDestroy {
     const merchantTags = this.parseEmvTags(merchantInfo);
 
     // Validate GUI = "br.gov.bcb.pix"
-    if (merchantTags.get('00') !== 'br.gov.bcb.pix') {
+    if (merchantTags.get('00')?.toLowerCase() !== 'br.gov.bcb.pix') {
       this.lastParseError = 'QR Code não é do sistema PIX brasileiro.';
       return null;
     }
