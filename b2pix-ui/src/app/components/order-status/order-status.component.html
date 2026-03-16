@@ -18,7 +18,8 @@
       <button class="btn btn-primary" (click)="loadOrder()">Tentar novamente</button>
     </div>
   } @else if (order()) {
-    <!-- Status Card -->
+    <!-- Status Card (hidden when receipt is visible) -->
+    @if (!isReceiptVisible()) {
     <div class="status-card card" [class]="'status-card--' + getStatusClass(order()!.status)">
       <div class="status-card__icon">
         @switch (order()!.status) {
@@ -78,8 +79,10 @@
         <p class="status-card__description">{{ getStatusDescription(order()!.status) }}</p>
       </div>
     </div>
+    }
 
-    <!-- Order Progress Steps -->
+    <!-- Order Progress Steps (hidden when receipt is visible) -->
+    @if (!isReceiptVisible()) {
     <div class="card progress-card">
       <div class="step-dots">
         <div class="step-dot" [class.step-done]="isStepCompleted(1)" [class.step-active]="isStepActive(1)"></div>
@@ -106,9 +109,10 @@
         </span>
       </div>
     </div>
+    }
 
     <!-- Payout Tracking (Phase 2) -->
-    @if (isPayoutPhase()) {
+    @if (isPayoutPhase() && !isReceiptVisible()) {
       <div class="card payout-card">
         <h3 class="card__title">Pagamento</h3>
 
@@ -157,6 +161,14 @@
       </div>
     }
 
+    <!-- PIX Receipt: when payout confirmed (shown above details) -->
+    @if (isReceiptVisible()) {
+      <app-pix-receipt
+        [payoutRequest]="latestPayoutRequest()!"
+        [order]="order()!"
+      />
+    }
+
     <!-- Order Details — BRL first -->
     <div class="card details-card">
       <h3 class="card__title">{{ detailsTitle() }}</h3>
@@ -194,14 +206,6 @@
         [satoshis]="order()!.amount"
       />
     </div>
-
-    <!-- PIX Receipt: when payout confirmed -->
-    @if (latestPayoutRequest() && latestPayoutRequest()!.status === 'confirmed' && order()) {
-      <app-pix-receipt
-        [payoutRequest]="latestPayoutRequest()!"
-        [order]="order()!"
-      />
-    }
 
     <!-- Dispute Section: when payout request status is 'paid' or 'disputed' -->
     @if (isPayoutPaid() || isPayoutDisputed()) {

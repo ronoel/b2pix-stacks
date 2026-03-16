@@ -64,6 +64,10 @@ export class OrderStatusComponent implements OnInit, OnDestroy {
   payoutRequests = signal<PixPayoutRequest[]>([]);
   latestPayoutRequest = computed(() => this.payoutRequests()[0] ?? null);
   isPayoutPhase = computed(() => this.order()?.status === 'settlement_created');
+  isReceiptVisible = computed(() => {
+    const pr = this.latestPayoutRequest();
+    return !!pr && pr.status === PayoutRequestStatus.Confirmed && !!this.order();
+  });
   isPayoutFinal = computed(() => {
     const pr = this.latestPayoutRequest();
     return pr ? isPayoutRequestFinalStatus(pr.status) : false;
