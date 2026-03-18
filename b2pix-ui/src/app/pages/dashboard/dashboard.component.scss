@@ -141,10 +141,10 @@
   }
 }
 
-/* Action Grid — 3 columns */
+/* Action Grid — 2x2 */
 .action-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 10px;
   margin-top: 16px;
 }
@@ -191,6 +191,11 @@
 .action-card--pix .action-card__icon {
   background: var(--primary-bg);
   color: var(--primary);
+}
+
+.action-card--bridge .action-card__icon {
+  background: var(--btc-bg);
+  color: var(--btc);
 }
 
 .action-card__label {

@@ -1,0 +1,88 @@
+<div class="container">
+  <app-page-header title="Bridge BTC ↔ sBTC" backRoute="/dashboard" />
+
+  <!-- Segmented control -->
+  <div class="seg-control">
+    <button class="seg-btn" [class.active]="activeTab() === 'deposit'" (click)="activeTab.set('deposit')">
+      BTC → sBTC
+    </button>
+    <button class="seg-btn" [class.active]="activeTab() === 'withdrawal'" (click)="activeTab.set('withdrawal')">
+      sBTC → BTC
+    </button>
+  </div>
+
+  <!-- Error -->
+  @if (errorMessage()) {
+    <div class="alert-box alert-error" style="cursor: pointer;" (click)="errorMessage.set('')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/>
+      </svg>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  <!-- Deposit tab -->
+  @if (activeTab() === 'deposit') {
+    <div class="flow-content card fade-up">
+      @if (depositLoading()) {
+        <div class="loading-state">
+          <div class="loading-spinner"></div>
+          <p style="color: var(--text-muted); font-size: 14px; margin: 0;">Gerando endereço de depósito...</p>
+        </div>
+      } @else if (depositError()) {
+        <div class="alert-box alert-error">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/>
+          </svg>
+          <span>{{ depositError() }}</span>
+        </div>
+        <button class="btn btn-btc btn-lg btn-full" (click)="depositAddress.set(''); loadDepositAddress()">
+          Tentar novamente
+        </button>
+      } @else if (depositAddress()) {
+        <app-bridge-deposit-address
+          [address]="depositAddress()"
+          [maxSignerFee]="depositMaxFee()"
+        />
+      }
+    </div>
+  }
+
+  <!-- Withdrawal tab -->
+  @if (activeTab() === 'withdrawal') {
+    <div class="flow-content card fade-up">
+      @if (isLoading()) {
+        <div class="loading-state">
+          <div class="loading-spinner"></div>
+        </div>
+      }
+
+      <app-bridge-step-indicator
+        [currentStep]="withdrawStepIndex"
+        [stepLabels]="withdrawStepLabels"
+      />
+
+      @switch (withdrawStep()) {
+        @case ('form') {
+          <app-bridge-withdraw-form
+            (initiateWithdraw)="onInitiateWithdraw($event)"
+          />
+        }
+        @case ('processing') {
+          <app-bridge-withdraw-status
+            [stacksTxid]="withdrawStacksTxid()"
+            [btcAddress]="withdrawBtcAddress()"
+            [amount]="withdrawAmount()"
+            [status]="withdrawStatus()"
+            [btcTxidFulfillment]="withdrawBtcTxidFulfillment()"
+            (newWithdraw)="onNewWithdraw()"
+            (goToDashboard)="goToDashboard()"
+          />
+        }
+      }
+    </div>
+  }
+
+  <!-- History (always visible) -->
+  <app-bridge-history [filterType]="activeTab()" />
+</div>

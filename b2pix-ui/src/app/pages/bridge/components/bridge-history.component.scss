@@ -1,0 +1,42 @@
+:host {
+  display: block;
+}
+
+.bridge-history {
+  margin-top: 24px;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-card {
+  padding: 12px 16px;
+}
+
+.history-card__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.history-card__info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.history-card__amount {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.history-card__date {
+  font-size: 12px;
+  color: var(--text-muted);
+}

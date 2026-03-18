@@ -1,0 +1,128 @@
+:host {
+  display: block;
+}
+
+.withdraw-status {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+}
+
+.timeline-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  position: relative;
+  padding-bottom: 20px;
+
+  &:last-child {
+    padding-bottom: 0;
+    .timeline-connector { display: none; }
+  }
+}
+
+.timeline-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--border);
+  flex-shrink: 0;
+  margin-top: 3px;
+  position: relative;
+  z-index: 1;
+
+  .done & { background: var(--success); }
+  .active & { background: var(--btc); }
+
+  &.pulse {
+    animation: pulse 1.5s ease-in-out infinite;
+    box-shadow: 0 0 0 4px var(--btc-bg);
+  }
+}
+
+.timeline-connector {
+  position: absolute;
+  left: 5px;
+  top: 17px;
+  width: 2px;
+  height: calc(100% - 14px);
+  background: var(--border);
+
+  .done & { background: var(--success); }
+}
+
+.timeline-label {
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.3;
+
+  .done & { color: var(--text-primary); font-weight: 500; }
+  .active & { color: var(--btc); font-weight: 600; }
+}
+
+.info-section {
+  padding: 12px 16px;
+}
+
+.txid-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.address-display {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+
+  code {
+    flex: 1;
+    font-size: 12px;
+    color: var(--text-primary);
+    word-break: break-all;
+    line-height: 1.5;
+  }
+}
+
+.explorer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--primary);
+  text-decoration: none;
+
+  &:hover { text-decoration: underline; }
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}

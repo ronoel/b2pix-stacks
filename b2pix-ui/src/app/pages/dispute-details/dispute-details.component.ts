@@ -25,6 +25,7 @@ export class AnalyzingOrderComponent implements OnInit {
   resolving = signal(false);
   showConfirmApprove = signal(false);
   showConfirmReject = signal(false);
+  pixEndToEndId = signal('');
 
   ngOnInit() {
     this.route.params.subscribe(params => {
@@ -67,8 +68,11 @@ export class AnalyzingOrderComponent implements OnInit {
     if (!currentOrder || this.resolving()) return;
 
     this.resolving.set(true);
+    this.error.set(null);
 
-    this.buyOrderService.resolveAnalyzingOrder(currentOrder.id, resolution).subscribe({
+    const e2eId = resolution === 'confirmed' ? this.pixEndToEndId().trim() || undefined : undefined;
+
+    this.buyOrderService.resolveAnalyzingOrder(currentOrder.id, resolution, e2eId).subscribe({
       next: (updatedOrder) => {
         this.order.set(updatedOrder);
         this.resolving.set(false);
@@ -77,7 +81,8 @@ export class AnalyzingOrderComponent implements OnInit {
       error: (error) => {
         console.error('Error resolving order:', error);
         this.resolving.set(false);
-        this.error.set('Erro ao resolver ordem. Tente novamente.');
+        this.showConfirmApprove.set(false);
+        this.error.set(error.message || 'Erro ao resolver ordem. Tente novamente.');
       }
     });
   }

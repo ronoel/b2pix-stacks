@@ -139,14 +139,20 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
-    path: 'btc-to-sbtc',
-    loadComponent: () => import('./pages/btc-sbtc-bridge/btc-to-sbtc.component').then(m => m.BtcToSbtcComponent),
+    path: 'bridge',
+    loadComponent: () => import('./pages/bridge/bridge.component').then(m => m.BridgeComponent),
     canActivate: [authGuard]
+  },
+  // Legacy routes — redirect to unified bridge
+  {
+    path: 'btc-to-sbtc',
+    redirectTo: 'bridge',
+    pathMatch: 'full'
   },
   {
     path: 'sbtc-to-btc',
-    loadComponent: () => import('./pages/btc-sbtc-bridge/sbtc-to-btc.component').then(m => m.SbtcToBtcComponent),
-    canActivate: [authGuard]
+    redirectTo: 'bridge',
+    pathMatch: 'full'
   },
   {
     path: '**',

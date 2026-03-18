@@ -143,6 +143,18 @@
         <span class="detail-value font-mono">{{ order()!.pix_key }}</span>
       </div>
     </div>
+    <div class="e2e-input-group">
+      <label class="e2e-label" for="pixE2eId">ID End-to-End PIX (opcional)</label>
+      <input
+        id="pixE2eId"
+        class="form-input font-mono"
+        type="text"
+        placeholder="E12345678901234567890123456789012"
+        [value]="pixEndToEndId()"
+        (input)="pixEndToEndId.set($any($event.target).value)"
+      />
+      <span class="e2e-hint">Vincular uma transação PIX específica para rastreamento</span>
+    </div>
   }
 </app-confirm-action-sheet>
 

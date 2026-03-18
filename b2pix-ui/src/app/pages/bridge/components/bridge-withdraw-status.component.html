@@ -1,0 +1,91 @@
+<div class="withdraw-status fade-up">
+  @if (status() === 'confirmed') {
+    <div class="alert-box alert-success">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 6L9 17l-5-5"/>
+      </svg>
+      <span>Retirada confirmada! BTC enviado com sucesso.</span>
+    </div>
+  }
+
+  @if (status() === 'failed') {
+    <div class="alert-box alert-error">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6"/><path d="M9 9l6 6"/>
+      </svg>
+      <span>Retirada falhou. Verifique o status da transação.</span>
+    </div>
+  }
+
+  <div class="timeline">
+    @for (step of timelineSteps(); track $index) {
+      <div class="timeline-item" [class.done]="step.done" [class.active]="step.active">
+        <div class="timeline-dot" [class.pulse]="step.active"></div>
+        @if (!$last) {
+          <div class="timeline-connector"></div>
+        }
+        <span class="timeline-label">{{ step.label }}</span>
+      </div>
+    }
+  </div>
+
+  <div class="info-section card">
+    <div class="detail-row">
+      <span class="detail-label">Status</span>
+      <span class="status-badge" [class]="statusClass()">{{ statusLabel() }}</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">Quantidade</span>
+      <span class="detail-value">{{ formatSats(amount()) }} sats</span>
+    </div>
+    @if (btcAddress()) {
+      <div class="detail-row">
+        <span class="detail-label">Endereço BTC</span>
+        <span class="detail-value font-mono" style="font-size: 12px; max-width: 200px; overflow: hidden; text-overflow: ellipsis;">{{ btcAddress() }}</span>
+      </div>
+    }
+  </div>
+
+  <div class="txid-block">
+    <label class="form-label">Transação Stacks</label>
+    <div class="address-display">
+      <code class="font-mono">{{ stacksTxid() }}</code>
+      <button class="copy-btn" [class.copied]="stacksTxidCopied()" (click)="copyStacksTxid()">
+        {{ stacksTxidCopied() ? 'Copiado!' : 'Copiar' }}
+      </button>
+    </div>
+    <a class="explorer-link" [href]="stacksExplorerUrl()" target="_blank" rel="noopener">
+      Ver no Explorer
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+      </svg>
+    </a>
+  </div>
+
+  @if (btcTxidFulfillment()) {
+    <div class="txid-block">
+      <label class="form-label">Transação Bitcoin</label>
+      <div class="address-display">
+        <code class="font-mono">{{ btcTxidFulfillment() }}</code>
+        <button class="copy-btn" [class.copied]="btcTxidCopied()" (click)="copyBtcTxid()">
+          {{ btcTxidCopied() ? 'Copiado!' : 'Copiar' }}
+        </button>
+      </div>
+      <a class="explorer-link" [href]="btcExplorerUrl()" target="_blank" rel="noopener">
+        Ver no Mempool
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+        </svg>
+      </a>
+    </div>
+  }
+
+  <div class="actions">
+    <button class="btn btn-btc btn-lg btn-full" (click)="newWithdraw.emit()">
+      Nova Retirada
+    </button>
+    <button class="btn btn-ghost btn-sm" (click)="goToDashboard.emit()">
+      Voltar ao Dashboard
+    </button>
+  </div>
+</div>

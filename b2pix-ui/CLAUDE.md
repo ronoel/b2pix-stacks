@@ -33,7 +33,7 @@ src/styles/            → global SCSS + _shared-components.scss
 
 ## Critical Rules
 
-- Code: English. UI text: Portuguese (pt-BR)
+- Code: English. UI text: Portuguese (pt-BR) **with proper accents** (é, ã, ç, ê, ó, í, ú, â, õ, etc.) — never omit diacritics
 - BRL values in **cents** (`number`), BTC in **satoshis** (`number`)
 - All components must be `standalone: true`
 - Use signals (`signal()`, `computed()`) for state — no BehaviorSubject for new code

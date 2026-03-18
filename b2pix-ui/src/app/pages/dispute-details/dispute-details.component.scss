@@ -54,6 +54,26 @@
   color: var(--text-muted);
 }
 
+/* E2E Input */
+.e2e-input-group {
+  margin-top: 16px;
+}
+
+.e2e-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.e2e-hint {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
 /* States */
 .loading-state p {
   color: var(--text-muted);
