@@ -138,7 +138,13 @@
 .estimate-sats {
   font-size: 13px;
   color: var(--text-muted);
-  margin: 0 0 12px;
+  margin: 0;
+}
+
+.estimate-rate {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 8px 0 0;
 }
 
 .estimate-fee {

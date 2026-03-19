@@ -59,6 +59,7 @@
           <p class="estimate-label">Você receberá</p>
           <p class="estimate-btc estimate-btc--success">≈ {{ formatBtcFromSats(estimatedSats()) }} BTC</p>
           <p class="estimate-sats font-mono">{{ formatSatsValue(estimatedSats()) }} sats</p>
+          <p class="estimate-rate">1 BTC = {{ formatCurrency(currentQuotePrice()! / 100) }}</p>
         }
       </section>
     }
