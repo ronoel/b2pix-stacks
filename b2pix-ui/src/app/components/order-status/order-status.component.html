@@ -173,6 +173,19 @@
     <div class="card details-card">
       <h3 class="card__title">{{ detailsTitle() }}</h3>
 
+      <!-- Auto-refresh notice -->
+      @if (!isFullyComplete()) {
+        <div class="refresh-notice">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M3 12C3 7.02944 7.02944 3 12 3C14.5755 3 16.9 4.15205 18.5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M21 12C21 16.9706 16.9706 21 12 21C9.42446 21 7.09995 19.848 5.5 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M13 2L18 6L14 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M11 22L6 18L10 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>Atualizando automaticamente...</span>
+        </div>
+      }
+
       @if (order()!.pix_value) {
         <div class="detail-row highlight">
           <span class="detail-label">Valor</span>
@@ -295,19 +308,6 @@
           <path d="M12 8H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         </svg>
         <p>A disputa foi rejeitada. Um novo pagamento est&aacute; sendo processado.</p>
-      </div>
-    }
-
-    <!-- Auto-refresh notice -->
-    @if (!isFullyComplete()) {
-      <div class="refresh-notice">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-          <path d="M3 12C3 7.02944 7.02944 3 12 3C14.5755 3 16.9 4.15205 18.5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          <path d="M21 12C21 16.9706 16.9706 21 12 21C9.42446 21 7.09995 19.848 5.5 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          <path d="M13 2L18 6L14 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M11 22L6 18L10 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <span>Atualizando automaticamente...</span>
       </div>
     }
 
