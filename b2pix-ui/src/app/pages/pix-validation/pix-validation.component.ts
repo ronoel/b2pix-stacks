@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, effect } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -27,11 +27,16 @@ export class PixValidationComponent implements OnInit, OnDestroy {
   userPixKey = signal('');
   pixKeyValid = signal(false);
   pixVerification = signal<PixVerificationStatus | null>(null);
-  step = signal<PixVerificationStep>('enter-pix');
+  step = signal<PixVerificationStep>('privacy-notice');
   loading = signal(false);
   error = signal('');
 
   pixKeyConfirmed = signal(false);
+
+  private scrollOnStepChange = effect(() => {
+    this.step(); // track signal
+    window.scrollTo({ top: 0 });
+  });
 
   // Deposit amount upfront (fetched on init from pending verification or will be revealed on step 2)
   depositAmountCents = signal<number | null>(null);
@@ -242,6 +247,10 @@ export class PixValidationComponent implements OnInit, OnDestroy {
       this.pollSubscription.unsubscribe();
       this.pollSubscription = null;
     }
+  }
+
+  continueFromPrivacy(): void {
+    this.step.set('enter-pix');
   }
 
   retryValidation(): void {

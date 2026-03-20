@@ -40,6 +40,7 @@ src/styles/            → global SCSS + _shared-components.scss
 - Formatting: always `Intl.NumberFormat('pt-BR')`
 - Separate file structure for components (HTML/SCSS/TS)
 - Inline template OK only if < 50 lines
+- **Scroll to top on page/step change**: When navigating to a new route or changing an in-component step (e.g., multi-step flows using a `step` signal), always ensure the page scrolls to the top. For route navigation use `scrollPositionRestoration: 'top'` in router config. For in-component step changes use an `effect()` on the step signal with `window.scrollTo({ top: 0 })`.
 
 ## Backend
 

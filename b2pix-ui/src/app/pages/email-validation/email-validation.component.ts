@@ -98,15 +98,9 @@ export class EmailValidationComponent implements OnInit, OnDestroy {
         this.loading.set(false);
         this.step.set('success');
 
-        // Refresh account data then auto-navigate after 2s
-        this.validationService.getAccount().subscribe({
-          next: () => {
-            setTimeout(() => this.navigateNext(), 2000);
-          },
-          error: () => {
-            setTimeout(() => this.navigateNext(), 2000);
-          }
-        });
+        // Cache is already updated optimistically by verifyEmailCode()
+        // Do NOT re-fetch getAccount() here — backend may not have propagated yet
+        setTimeout(() => this.navigateNext(), 2000);
       },
       error: (err) => {
         this.loading.set(false);
