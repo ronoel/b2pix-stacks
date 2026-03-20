@@ -43,7 +43,13 @@ export const routes: Routes = [
   {
     path: 'pix-payment',
     loadComponent: () => import('./pages/pix-payment/pix-payment.component').then(m => m.PixPaymentComponent),
-    canActivate: [authGuard]
+    canActivate: [authGuard, accountValidationGuard]
+  },
+  {
+    path: 'pix-payment/:id',
+    loadComponent: () => import('./pages/payment-details/payment-details.component').then(m => m.PaymentDetailsComponent),
+    canActivate: [authGuard],
+    data: { sourceType: 'pix_order', backRoute: '/pix-payment' }
   },
   {
     path: 'sell',
@@ -52,8 +58,9 @@ export const routes: Routes = [
   },
   {
     path: 'sell/:id',
-    loadComponent: () => import('./pages/sell/sell-details/sell-details.component').then(m => m.SellDetailsComponent),
-    canActivate: [authGuard]
+    loadComponent: () => import('./pages/payment-details/payment-details.component').then(m => m.PaymentDetailsComponent),
+    canActivate: [authGuard],
+    data: { sourceType: 'sell_order', backRoute: '/sell' }
   },
   {
     path: 'pix-account',
@@ -132,14 +139,20 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
-    path: 'btc-to-sbtc',
-    loadComponent: () => import('./pages/btc-sbtc-bridge/btc-to-sbtc.component').then(m => m.BtcToSbtcComponent),
+    path: 'bridge',
+    loadComponent: () => import('./pages/bridge/bridge.component').then(m => m.BridgeComponent),
     canActivate: [authGuard]
+  },
+  // Legacy routes — redirect to unified bridge
+  {
+    path: 'btc-to-sbtc',
+    redirectTo: 'bridge',
+    pathMatch: 'full'
   },
   {
     path: 'sbtc-to-btc',
-    loadComponent: () => import('./pages/btc-sbtc-bridge/sbtc-to-btc.component').then(m => m.SbtcToBtcComponent),
-    canActivate: [authGuard]
+    redirectTo: 'bridge',
+    pathMatch: 'full'
   },
   {
     path: '**',

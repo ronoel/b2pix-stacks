@@ -1,10 +1,11 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal } from '@angular/core';
 import { AccountPixVerify } from '../../../shared/models/account-validation.model';
+import { ConfirmActionSheetComponent } from '../../../components/confirm-action-sheet/confirm-action-sheet.component';
 
 @Component({
   selector: 'app-pix-moderation-card',
   standalone: true,
-  imports: [],
+  imports: [ConfirmActionSheetComponent],
   templateUrl: './pix-moderation-card.component.html',
   styleUrl: './pix-moderation-card.component.scss'
 })
@@ -14,6 +15,9 @@ export class PixModerationCardComponent {
 
   @Output() approve = new EventEmitter<string>();
   @Output() reject = new EventEmitter<string>();
+
+  showConfirmApprove = signal(false);
+  showConfirmReject = signal(false);
 
   onApprove() {
     this.approve.emit(this.verification.address);

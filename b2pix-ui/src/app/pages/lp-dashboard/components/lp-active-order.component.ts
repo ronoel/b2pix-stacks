@@ -2,13 +2,14 @@ import { Component, input, output, signal, OnInit, OnDestroy } from '@angular/co
 
 import { FormsModule } from '@angular/forms';
 import { PixCopiaColaComponent } from '../../../components/pix-copia-cola/pix-copia-cola.component';
+import { ConfirmActionSheetComponent } from '../../../components/confirm-action-sheet/confirm-action-sheet.component';
 import { PixPayoutRequest, getSourceTypeLabel } from '../../../shared/models/pix-payout-request.model';
 import { formatBrlCents } from '../../../shared/utils/format.util';
 
 @Component({
   selector: 'app-lp-active-order',
   standalone: true,
-  imports: [FormsModule, PixCopiaColaComponent],
+  imports: [FormsModule, PixCopiaColaComponent, ConfirmActionSheetComponent],
   templateUrl: './lp-active-order.component.html',
   styleUrl: './lp-active-order.component.scss'
 })
@@ -17,13 +18,14 @@ export class LpActiveOrderComponent implements OnInit, OnDestroy {
   isProcessing = input<boolean>(false);
   processingAction = input<string>('');
 
-  paid = output<string>();       // emits pixEndToEndId
+  paid = output<void>();
   cancelled = output<void>();
   reported = output<string>();   // emits reason
 
-  pixIdValue = '';
   reportReason = '';
   showReportSheet = signal(false);
+  showConfirmPay = signal(false);
+  showConfirmCancel = signal(false);
 
   remainingSeconds = signal(0);
   private timerInterval?: ReturnType<typeof setInterval>;
@@ -76,10 +78,7 @@ export class LpActiveOrderComponent implements OnInit, OnDestroy {
   }
 
   onConfirmPayment() {
-    const pixId = this.pixIdValue.trim();
-    if (pixId) {
-      this.paid.emit(pixId);
-    }
+    this.paid.emit();
   }
 
   onCancel() {

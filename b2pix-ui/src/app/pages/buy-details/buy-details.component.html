@@ -44,12 +44,10 @@
           [fiatAmountValue]="getTotalFiatAmount()"
           [btcAmount]="formatBTC(getBtcAmount())"
           [pixKey]="buyData()!.pix_key"
-          [canConfirm]="canConfirmPayment()"
+          [canConfirm]="true"
           (copyPix)="copyPixKey()"
           (confirm)="confirmPayment()"
-          (cancel)="cancelPurchase()"
-          (transactionIdChanged)="onTransactionIdChange($event)"
-          (noTransactionIdChanged)="onNoTransactionIdChange($event)"
+          (cancel)="openCancelConfirm()"
         />
 
       } @else {
@@ -136,14 +134,12 @@
                 [fiatAmountValue]="getTotalFiatAmount()"
                 [btcAmount]="formatBTC(getBtcAmount())"
                 [pixKey]="buyData()!.pix_key"
-                [canConfirm]="canConfirmPayment()"
+                [canConfirm]="true"
                 [showPaymentInfo]="false"
                 (confirm)="resubmitPayment()"
-                (transactionIdChanged)="onTransactionIdChange($event)"
-                (noTransactionIdChanged)="onNoTransactionIdChange($event)"
                 confirmLabel="Enviar comprovante"
               />
-              <button class="btn btn-danger btn-full" (click)="cancelPurchase()">
+              <button class="btn btn-danger btn-full" (click)="openCancelConfirm()">
                 Cancelar compra
               </button>
               <button class="btn btn-ghost btn-full" (click)="goToDashboard()">
@@ -194,5 +190,34 @@
       </button>
     </div>
   </app-status-sheet>
+
+  <!-- Cancel Purchase Confirmation Sheet -->
+  @if (buyData()) {
+    <app-confirm-action-sheet
+      [isOpen]="showConfirmCancel()"
+      title="Cancelar compra"
+      message="Esta ação cancelará sua ordem de compra. Não pode ser desfeita."
+      type="danger"
+      confirmLabel="Cancelar compra"
+      [isLoading]="false"
+      (confirmed)="cancelPurchase()"
+      (cancelled)="showConfirmCancel.set(false)"
+    >
+      <div class="card">
+        <div class="detail-row">
+          <span class="detail-label">Valor</span>
+          <span class="detail-value">{{ formatBRLCurrency(buyData()!.buy_value) }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Quantidade</span>
+          <span class="detail-value font-mono">{{ formatBTC(getBtcAmount()) }} BTC</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Chave PIX</span>
+          <span class="detail-value font-mono">{{ buyData()!.pix_key }}</span>
+        </div>
+      </div>
+    </app-confirm-action-sheet>
+  }
 
 </div>

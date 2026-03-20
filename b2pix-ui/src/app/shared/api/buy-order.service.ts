@@ -60,12 +60,10 @@ export class BuyOrderService {
   /**
    * Mark buy order as paid
    * @param orderId Order ID
-   * @param pixConfirmationCode PIX confirmation code (optional, use undefined for NONE)
    */
-  markBuyOrderAsPaid(orderId: string, pixConfirmationCode?: string): Observable<BuyOrder> {
-    const pixCode = pixConfirmationCode || 'NONE';
+  markBuyOrderAsPaid(orderId: string): Observable<BuyOrder> {
     const timestamp = new Date().toISOString();
-    const payload = `B2PIX - Marcar Ordem como Paga\nb2pix.org\n${orderId}\n${pixCode}\n${timestamp}`;
+    const payload = `B2PIX - Marcar Ordem como Paga\nb2pix.org\n${orderId}\n${timestamp}`;
 
     return from(this.walletManager.signMessage(payload)).pipe(
       switchMap(signedMessage => {
@@ -148,10 +146,21 @@ export class BuyOrderService {
    * Resolve analyzing order (Manager only)
    * @param orderId Order ID
    * @param resolution 'confirmed' or 'rejected'
+   * @param pixEndToEndId Optional PIX end-to-end ID (only for 'confirmed')
    */
-  resolveAnalyzingOrder(orderId: string, resolution: 'confirmed' | 'rejected'): Observable<BuyOrder> {
+  resolveAnalyzingOrder(orderId: string, resolution: 'confirmed' | 'rejected', pixEndToEndId?: string): Observable<BuyOrder> {
     const timestamp = new Date().toISOString();
-    const payload = `B2PIX - Resolver Análise de Ordem\nb2pix.org\n${orderId}\n${resolution}\n${timestamp}`;
+    const lines = [
+      'B2PIX - Resolver Análise de Ordem',
+      'b2pix.org',
+      orderId,
+      resolution,
+    ];
+    if (pixEndToEndId) {
+      lines.push(pixEndToEndId);
+    }
+    lines.push(timestamp);
+    const payload = lines.join('\n');
 
     return from(this.walletManager.signMessage(payload)).pipe(
       switchMap(signedMessage => {
@@ -167,6 +176,9 @@ export class BuyOrderService {
         if (error.message && error.message.includes('User denied')) {
           throw new Error('Assinatura cancelada pelo usuário');
         }
+        if (error.status === 409 && error.error?.error === 'duplicate_pix_order') {
+          throw new Error('Este ID PIX já está vinculado a outra ordem');
+        }
         if (error.error?.error) {
           throw new Error(error.error.error);
         }
@@ -178,10 +190,9 @@ export class BuyOrderService {
   /**
    * Resubmit payment verification on an expired non-final order
    */
-  resubmitPayment(orderId: string, pixConfirmationCode?: string): Observable<BuyOrder> {
-    const pixCode = pixConfirmationCode || 'NONE';
+  resubmitPayment(orderId: string): Observable<BuyOrder> {
     const timestamp = new Date().toISOString();
-    const payload = `B2PIX - Reenviar Pagamento\nb2pix.org\n${orderId}\n${pixCode}\n${timestamp}`;
+    const payload = `B2PIX - Reenviar Pagamento\nb2pix.org\n${orderId}\n${timestamp}`;
 
     return from(this.walletManager.signMessage(payload)).pipe(
       switchMap(signedMessage => {

@@ -1,44 +1,45 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
-import { OrderStatusComponent } from '../../../components/order-status/order-status.component';
-import { PageHeaderComponent } from '../../../components/page-header/page-header.component';
+import { OrderStatusComponent } from '../../components/order-status/order-status.component';
+import { PageHeaderComponent } from '../../components/page-header/page-header.component';
+import { PayoutSourceType } from '../../shared/models/pix-payout-request.model';
 
 @Component({
-  selector: 'app-sell-details',
+  selector: 'app-payment-details',
   standalone: true,
   imports: [OrderStatusComponent, PageHeaderComponent],
   template: `
-    <div class="sell-details-page">
+    <div class="payment-details-page">
       <div class="container">
         <app-page-header
-          title="Detalhes da venda"
-          subtitle="Acompanhe o status da sua venda"
-          backRoute="/sell"
+          title="Detalhes do pagamento"
+          subtitle="Acompanhe o status do pagamento PIX"
+          [backRoute]="backRoute"
         />
 
         @if (orderId()) {
           <app-order-status
             [orderId]="orderId()!"
-            sourceType="sell_order"
-            detailsTitle="Detalhes do pedido"
+            [sourceType]="sourceType"
+            detailsTitle="Detalhes do pagamento PIX"
             [refreshInterval]="10000"
           />
 
           <div class="actions">
             <button class="btn btn-outline btn-full" (click)="goBack()">
-              Voltar para vendas
+              Voltar
             </button>
           </div>
         } @else {
           <div class="error-state">
-            <h3>ID da ordem n&atilde;o encontrado</h3>
+            <h3>ID do pagamento não encontrado</h3>
           </div>
         }
       </div>
     </div>
   `,
   styles: [`
-    .sell-details-page {
+    .payment-details-page {
       min-height: 100vh;
       background: var(--bg-secondary);
       padding: 0 0 100px;
@@ -64,17 +65,21 @@ import { PageHeaderComponent } from '../../../components/page-header/page-header
     }
   `]
 })
-export class SellDetailsComponent implements OnInit {
+export class PaymentDetailsComponent implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
 
   orderId = signal<string | null>(null);
+  sourceType!: PayoutSourceType;
+  backRoute!: string;
 
   ngOnInit() {
     this.orderId.set(this.route.snapshot.paramMap.get('id'));
+    this.sourceType = this.route.snapshot.data['sourceType'];
+    this.backRoute = this.route.snapshot.data['backRoute'];
   }
 
   goBack() {
-    this.router.navigate(['/sell']);
+    this.router.navigate([this.backRoute]);
   }
 }

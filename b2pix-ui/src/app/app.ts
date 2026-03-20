@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, effect } from '@angular/core';
 import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs';
@@ -8,6 +8,8 @@ import { FooterComponent } from './components/footer/footer.component';
 import { TabBarComponent } from './components/tab-bar/tab-bar.component';
 import { WalletManagerService } from './libs/wallet/wallet-manager.service';
 import { AppUpdateService } from './services/app-update.service';
+import { LpQueueNotificationService } from './services/lp-queue-notification.service';
+import { InactivityService } from './services/inactivity.service';
 
 @Component({
   selector: 'app-root',
@@ -19,6 +21,18 @@ export class App {
   private router = inject(Router);
   private walletManager = inject(WalletManagerService);
   protected appUpdate = inject(AppUpdateService);
+  protected lpNotification = inject(LpQueueNotificationService);
+  protected inactivity = inject(InactivityService);
+
+  constructor() {
+    effect(() => {
+      if (this.walletManager.isLoggedInSignal()) {
+        this.inactivity.start();
+      } else {
+        this.inactivity.stop();
+      }
+    });
+  }
 
   private currentUrl = toSignal(
     this.router.events.pipe(
@@ -34,5 +48,15 @@ export class App {
     const url = this.currentUrl();
     const authPaths = ['/dashboard', '/buy', '/sell', '/pix-payment', '/wallet', '/send', '/lp-dashboard', '/lp-register', '/pix-account', '/manager-dashboard', '/order-analysis', '/payment-requests', '/pix-moderation', '/payout-disputes', '/analyzing-order'];
     return authPaths.some(p => url === p || url.startsWith(p + '/'));
+  }
+
+  navigateToLpDashboard(): void {
+    this.lpNotification.dismiss();
+    this.router.navigate(['/lp-dashboard']);
+  }
+
+  dismissLpNotification(event: Event): void {
+    event.stopPropagation();
+    this.lpNotification.dismiss();
   }
 }

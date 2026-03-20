@@ -29,6 +29,10 @@ export const apiHealthInterceptor: HttpInterceptorFn = (req, next) => {
     }),
     catchError(error => {
       const status = error.status;
+      if (status === 503 && error.error?.error === 'system_temporarily_unavailable') {
+        apiHealth.reportSystemBlock();
+        return throwError(() => error);
+      }
       if (status === 0 || status === 408 || (status >= 500 && status <= 599)) {
         apiHealth.reportFailure();
       }

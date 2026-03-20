@@ -40,9 +40,7 @@ export class BuyComponent implements OnInit, OnDestroy {
   currentStep = signal(1);
   step1Confirmed = signal(false);
   step2Confirmed = signal(false);
-  step3Confirmed = signal(false);
-
-  // Single checkbox state for confirmation sheet (legacy, kept for step 3 confirm flow)
+  // Single checkbox state for confirmation sheet
   termsConfirmed = signal<boolean>(false);
 
   // Quote signals
@@ -134,7 +132,6 @@ export class BuyComponent implements OnInit, OnDestroy {
     this.currentStep.set(1);
     this.step1Confirmed.set(false);
     this.step2Confirmed.set(false);
-    this.step3Confirmed.set(false);
     this.termsConfirmed.set(false);
     this.showConfirmSheet.set(true);
   }
@@ -144,13 +141,12 @@ export class BuyComponent implements OnInit, OnDestroy {
     this.currentStep.set(1);
     this.step1Confirmed.set(false);
     this.step2Confirmed.set(false);
-    this.step3Confirmed.set(false);
     this.termsConfirmed.set(false);
   }
 
   nextStep() {
     if (this.canProceedToNextStep()) {
-      this.currentStep.update(s => Math.min(s + 1, 3));
+      this.currentStep.update(s => Math.min(s + 1, 2));
     }
   }
 
@@ -162,7 +158,6 @@ export class BuyComponent implements OnInit, OnDestroy {
     switch (this.currentStep()) {
       case 1: return this.step1Confirmed();
       case 2: return this.step2Confirmed();
-      case 3: return this.step3Confirmed();
       default: return false;
     }
   }
@@ -171,7 +166,6 @@ export class BuyComponent implements OnInit, OnDestroy {
     switch (step) {
       case 1: this.step1Confirmed.set(value); break;
       case 2: this.step2Confirmed.set(value); break;
-      case 3: this.step3Confirmed.set(value); break;
     }
   }
 

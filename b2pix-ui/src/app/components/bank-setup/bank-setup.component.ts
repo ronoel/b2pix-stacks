@@ -1,4 +1,4 @@
-import { Component, inject, Output, EventEmitter } from '@angular/core';
+import { Component, inject, Output, EventEmitter, signal, effect } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { LoadingService } from '../../services/loading.service';
@@ -28,7 +28,7 @@ export class BankSetupComponent {
   protected loadingService = inject(LoadingService);
   private bankAccountService = inject(BankAccountService);
 
-  currentStep = 1;
+  currentStep = signal(1);
   credentials: BankCredentials = {
     clientId: '',
     clientSecret: '',
@@ -41,19 +41,34 @@ export class BankSetupComponent {
   @Output() setupCancelled = new EventEmitter<void>();
   @Output() setupSuccess = new EventEmitter<BankCredentials>();
 
+  constructor() {
+    effect(() => {
+      this.currentStep();
+      window.scrollTo({ top: 0 });
+    });
+  }
+
   openBankApp() {
     window.open('https://sejaefi.com.br/', '_blank');
   }
 
+  openPlayStore() {
+    window.open('https://play.google.com/store/apps/details?id=br.com.gerencianet.app', '_blank');
+  }
+
+  openAppStore() {
+    window.open('https://apps.apple.com/br/app/efí-bank-conta-digital/id1443363326', '_blank');
+  }
+
   nextStep() {
-    if (this.currentStep < 4) {
-      this.currentStep++;
+    if (this.currentStep() < 4) {
+      this.currentStep.update(v => v + 1);
     }
   }
 
   previousStep() {
-    if (this.currentStep > 1) {
-      this.currentStep--;
+    if (this.currentStep() > 1) {
+      this.currentStep.update(v => v - 1);
     } else {
       // Se estamos na primeira etapa, emite o evento para cancelar o setup
       this.setupCancelled.emit();
@@ -78,12 +93,12 @@ export class BankSetupComponent {
 
   clearResult() {
     this.setupResult = null;
-    this.currentStep = 3; // Go back to the review step
+    this.currentStep.set(3); // Go back to the certificate step
   }
 
   restartSetup() {
     this.setupResult = null;
-    this.currentStep = 1;
+    this.currentStep.set(1);
     // Optionally clear credentials
     this.credentials = {
       clientId: '',
@@ -140,7 +155,7 @@ export class BankSetupComponent {
         type: 'error',
         message: '📝 <strong>ERRO: Campos obrigatórios</strong>\n\nPor favor, preencha todos os campos obrigatórios:\n\n• Client ID\n• Client Secret\n• Arquivo de certificado (.p12)\n\n<strong>💡 DICA:</strong> Volte às etapas anteriores e complete todas as informações.'
       };
-      this.currentStep = 4;
+      this.currentStep.set(4);
       return;
     }
 
@@ -149,9 +164,9 @@ export class BankSetupComponent {
       this.setupResult = {
         success: false,
         type: 'error',
-        message: '📜 <strong>ERRO: Tipo de arquivo incorreto</strong>\n\nO arquivo de certificado deve ter extensão .p12\n\n<strong>📋 VERIFIQUE:</strong>\n• Se você baixou o arquivo correto do aplicativo EFI\n• Se o arquivo não foi renomeado\n• Se a extensão está correta (.p12)\n\n<strong>💡 DICA:</strong> Baixe novamente o certificado do aplicativo EFI se necessário.'
+        message: '📜 <strong>ERRO: Tipo de arquivo incorreto</strong>\n\nO arquivo de certificado deve ter extensão .p12\n\n<strong>📋 VERIFIQUE:</strong>\n• Se você baixou o arquivo correto do site do Efí Bank\n• Se o arquivo não foi renomeado\n• Se a extensão está correta (.p12)\n\n<strong>💡 DICA:</strong> Baixe novamente o certificado do site do Efí Bank se necessário.'
       };
-      this.currentStep = 4;
+      this.currentStep.set(4);
       return;
     }
 
@@ -162,7 +177,7 @@ export class BankSetupComponent {
     try {
       // Convert certificate to base64
       const certificateBase64 = await this.convertFileToBase64(this.credentials.certificateFile);
-      
+
       // Complete bank setup with both credentials and certificate
       await firstValueFrom(
         this.bankAccountService.setupBank(
@@ -179,13 +194,13 @@ export class BankSetupComponent {
         type: 'success',
         message: '🎉 Configuração bancária realizada com sucesso!\n\nSeu sistema PIX está agora configurado e pronto para uso.'
       };
-      
+
       // Navigate to result step
-      this.currentStep = 4;
-      
+      this.currentStep.set(4);
+
     } catch (error: any) {
       console.error('Error setting up bank configuration:', error);
-      
+
       // Handle different types of errors
       if (error.status === 400 && error.error?.error) {
         this.handleBankSetupError(error.error.error);
@@ -193,7 +208,7 @@ export class BankSetupComponent {
         this.setupResult = {
           success: false,
           type: 'error',
-          message: '❌ <strong>ERRO: Dados inválidos</strong>\n\nOs dados fornecidos não estão corretos. Verifique:\n\n• As credenciais Client ID e Client Secret\n• Se o arquivo de certificado é válido (.p12)\n• Se todos os campos foram preenchidos corretamente\n\n<strong>💡 DICA:</strong> Volte às etapas anteriores e confirme se copiou corretamente as credenciais do aplicativo EFI.'
+          message: '❌ <strong>ERRO: Dados inválidos</strong>\n\nOs dados fornecidos não estão corretos. Verifique:\n\n• As credenciais Client ID e Client Secret\n• Se o arquivo de certificado é válido (.p12)\n• Se todos os campos foram preenchidos corretamente\n\n<strong>💡 DICA:</strong> Volte às etapas anteriores e confirme se copiou corretamente as credenciais do site do Efí Bank.'
         };
       } else if (error.status === 401) {
         this.setupResult = {
@@ -214,9 +229,9 @@ export class BankSetupComponent {
           message: '⚠️ <strong>ERRO: Falha na configuração</strong>\n\nNão foi possível completar a configuração do sistema bancário.\n\n<strong>📋 VERIFIQUE:</strong>\n• Se sua conexão com a internet está estável\n• Se as credenciais estão corretas\n• Se o certificado é válido\n\n<strong>💡 DICA:</strong> Refaça o processo desde o início, verificando cada passo cuidadosamente.'
         };
       }
-      
+
       // Navigate to result step for all error cases
-      this.currentStep = 4;
+      this.currentStep.set(4);
     } finally {
       this.loadingService.hide();
     }
@@ -229,13 +244,13 @@ export class BankSetupComponent {
       this.setupResult = {
         success: false,
         type: 'error',
-        message: '📜 <strong>ERRO: Problema no certificado</strong>\n\nO arquivo de certificado não é válido.\n\n<strong>📋 VERIFIQUE:</strong>\n• Se o arquivo tem extensão .p12\n• Se o certificado foi baixado corretamente do aplicativo EFI\n• Se o arquivo não está corrompido\n\n<strong>💡 COMO CORRIGIR:</strong>\n1. Volte ao aplicativo EFI\n2. Baixe novamente o certificado\n3. Certifique-se de que o arquivo tem extensão .p12\n4. Faça o upload do novo arquivo'
+        message: '📜 <strong>ERRO: Problema no certificado</strong>\n\nO arquivo de certificado não é válido.\n\n<strong>📋 VERIFIQUE:</strong>\n• Se o arquivo tem extensão .p12\n• Se o certificado foi baixado corretamente do site do Efí Bank\n• Se o arquivo não está corrompido\n\n<strong>💡 COMO CORRIGIR:</strong>\n1. Volte ao site do Efí Bank\n2. Baixe novamente o certificado\n3. Certifique-se de que o arquivo tem extensão .p12\n4. Faça o upload do novo arquivo'
       };
     } else if (errorMessage.includes('EFI Pay authentication failed') || errorMessage.includes('Invalid or inactive credentials') || errorMessage.includes('invalid_client')) {
       this.setupResult = {
         success: false,
         type: 'error',
-        message: '🔑 <strong>ERRO: Credenciais inválidas</strong>\n\nAs credenciais fornecidas não estão corretas ou estão inativas.\n\n<strong>📋 POSSÍVEIS CAUSAS:</strong>\n• Client ID ou Client Secret incorretos\n• Credenciais copiadas de forma incompleta\n• Credenciais expiraram ou foram revogadas\n\n<strong>💡 COMO CORRIGIR:</strong>\n1. Volte ao aplicativo EFI\n2. Vá em API → Aplicações → B2PIX\n3. Verifique se a aplicação está ativa\n4. Copie novamente as credenciais (Client ID e Client Secret)\n5. Cole cuidadosamente nos campos, sem espaços extras'
+        message: '🔑 <strong>ERRO: Credenciais inválidas</strong>\n\nAs credenciais fornecidas não estão corretas ou estão inativas.\n\n<strong>📋 POSSÍVEIS CAUSAS:</strong>\n• Client ID ou Client Secret incorretos\n• Credenciais copiadas de forma incompleta\n• Credenciais expiraram ou foram revogadas\n\n<strong>💡 COMO CORRIGIR:</strong>\n1. Volte ao site do Efí Bank\n2. Vá em API → Aplicações → B2PIX\n3. Verifique se a aplicação está ativa\n4. Copie novamente as credenciais (Client ID e Client Secret)\n5. Cole cuidadosamente nos campos, sem espaços extras'
       };
     } else {
       this.setupResult = {
@@ -250,10 +265,10 @@ export class BankSetupComponent {
     // Parse the error message to extract required and granted scopes
     const requiredMatch = errorMessage.match(/Required: \[(.*?)\]/);
     const grantedMatch = errorMessage.match(/Granted: '(.*?)'/);
-    
+
     const requiredScopes = requiredMatch ? requiredMatch[1].split(', ').map(s => s.trim()) : [];
     const grantedScopes = grantedMatch ? grantedMatch[1].split(' ').filter(s => s.trim()) : [];
-    
+
     // Map scopes to user-friendly names
     const scopeMap: { [key: string]: string } = {
       'pix.read': '✓ Consultar Pix',
@@ -263,8 +278,8 @@ export class BankSetupComponent {
     };
 
     let message = '🚫 <strong>ERRO: Permissões insuficientes na API PIX</strong>\n\n';
-    message += 'Você precisa configurar as seguintes permissões no aplicativo EFI:\n\n';
-    
+    message += 'Você precisa configurar as seguintes permissões no site do Efí Bank:\n\n';
+
     // Show all required permissions and mark which ones are missing
     requiredScopes.forEach(scope => {
       const scopeName = scopeMap[scope] || scope;
@@ -277,7 +292,7 @@ export class BankSetupComponent {
     });
 
     message += '\n<strong>📋 COMO CORRIGIR:</strong>\n';
-    message += '1. Volte ao aplicativo web do Banco EFI\n';
+    message += '1. Volte ao site do Efí Bank\n';
     message += '2. Vá em API → Aplicações → B2PIX\n';
     message += '3. Edite a aplicação e marque TODAS as permissões:\n';
     message += '   • Consultar Pix\n';
@@ -294,4 +309,3 @@ export class BankSetupComponent {
     };
   }
 }
-

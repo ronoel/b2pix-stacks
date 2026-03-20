@@ -1,0 +1,52 @@
+.active-payout-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--warning);
+  border-radius: var(--r-lg);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  color: #92400E;
+
+  svg {
+    flex-shrink: 0;
+    color: var(--warning);
+  }
+
+  h3 {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0;
+  }
+}
+
+.card-details {
+  margin-bottom: 16px;
+}
+
+.action-section {
+  margin-bottom: 12px;
+}
+
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.view-details-btn {
+  margin-top: 4px;
+  color: var(--primary) !important;
+  font-weight: 600 !important;
+
+  &:hover {
+    color: var(--text-primary) !important;
+  }
+}

@@ -33,13 +33,14 @@ src/styles/            → global SCSS + _shared-components.scss
 
 ## Critical Rules
 
-- Code: English. UI text: Portuguese (pt-BR)
+- Code: English. UI text: Portuguese (pt-BR) **with proper accents** (é, ã, ç, ê, ó, í, ú, â, õ, etc.) — never omit diacritics
 - BRL values in **cents** (`number`), BTC in **satoshis** (`number`)
 - All components must be `standalone: true`
 - Use signals (`signal()`, `computed()`) for state — no BehaviorSubject for new code
 - Formatting: always `Intl.NumberFormat('pt-BR')`
 - Separate file structure for components (HTML/SCSS/TS)
 - Inline template OK only if < 50 lines
+- **Scroll to top on page/step change**: When navigating to a new route or changing an in-component step (e.g., multi-step flows using a `step` signal), always ensure the page scrolls to the top. For route navigation use `scrollPositionRestoration: 'top'` in router config. For in-component step changes use an `effect()` on the step signal with `window.scrollTo({ top: 0 })`.
 
 ## Backend
 

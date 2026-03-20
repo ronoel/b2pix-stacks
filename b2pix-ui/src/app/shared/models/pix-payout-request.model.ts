@@ -26,6 +26,9 @@ export interface PixPayoutRequest {
   lp_paid_at: string | null;
   lp_cancel_count: number;
   pix_end_to_end_id: string | null;
+  pix_settled_at: string | null;
+  pix_recipient_name: string | null;
+  pix_recipient_doc: string | null;
   error_message: string | null;
   confirmed_at: string | null;
   disputed_at: string | null;

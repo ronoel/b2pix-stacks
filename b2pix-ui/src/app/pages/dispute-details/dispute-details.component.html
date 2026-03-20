@@ -86,7 +86,7 @@
           <div class="action-buttons">
             <button
               class="btn btn-success btn-full"
-              (click)="resolveOrder('confirmed')"
+              (click)="showConfirmApprove.set(true)"
               [disabled]="resolving()">
               Confirmar ordem
               <span class="btn-hint">Comprador receberá os bitcoins</span>
@@ -94,7 +94,7 @@
 
             <button
               class="btn btn-danger btn-full"
-              (click)="resolveOrder('rejected')"
+              (click)="showConfirmReject.set(true)"
               [disabled]="resolving()">
               Rejeitar ordem
               <span class="btn-hint">A ordem será rejeitada</span>
@@ -112,3 +112,81 @@
     }
   </div>
 </div>
+
+<!-- Confirm Approve Sheet -->
+<app-confirm-action-sheet
+  [isOpen]="showConfirmApprove()"
+  title="Confirmar ordem"
+  message="Você está liberando os fundos ao comprador. Esta ação não pode ser desfeita."
+  type="success"
+  confirmLabel="Confirmar ordem"
+  [isLoading]="resolving()"
+  (confirmed)="resolveOrder('confirmed')"
+  (cancelled)="showConfirmApprove.set(false)"
+>
+  @if (order()) {
+    <div class="card">
+      <div class="detail-row">
+        <span class="detail-label">Valor</span>
+        <span class="detail-value">{{ formatCurrency(order()!.buy_value) }}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Quantidade</span>
+        <span class="detail-value font-mono">{{ formatBitcoin(order()!.amount) }} BTC</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Comprador</span>
+        <span class="detail-value font-mono">{{ formatAddress(order()!.address_buy) }}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Chave PIX</span>
+        <span class="detail-value font-mono">{{ order()!.pix_key }}</span>
+      </div>
+    </div>
+    <div class="e2e-input-group">
+      <label class="e2e-label" for="pixE2eId">ID End-to-End PIX (opcional)</label>
+      <input
+        id="pixE2eId"
+        class="form-input font-mono"
+        type="text"
+        placeholder="E12345678901234567890123456789012"
+        [value]="pixEndToEndId()"
+        (input)="pixEndToEndId.set($any($event.target).value)"
+      />
+      <span class="e2e-hint">Vincular uma transação PIX específica para rastreamento</span>
+    </div>
+  }
+</app-confirm-action-sheet>
+
+<!-- Confirm Reject Sheet -->
+<app-confirm-action-sheet
+  [isOpen]="showConfirmReject()"
+  title="Rejeitar ordem"
+  message="Você está rejeitando esta ordem e devolvendo os fundos. Esta ação não pode ser desfeita."
+  type="danger"
+  confirmLabel="Rejeitar ordem"
+  [isLoading]="resolving()"
+  (confirmed)="resolveOrder('rejected')"
+  (cancelled)="showConfirmReject.set(false)"
+>
+  @if (order()) {
+    <div class="card">
+      <div class="detail-row">
+        <span class="detail-label">Valor</span>
+        <span class="detail-value">{{ formatCurrency(order()!.buy_value) }}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Quantidade</span>
+        <span class="detail-value font-mono">{{ formatBitcoin(order()!.amount) }} BTC</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Comprador</span>
+        <span class="detail-value font-mono">{{ formatAddress(order()!.address_buy) }}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Chave PIX</span>
+        <span class="detail-value font-mono">{{ order()!.pix_key }}</span>
+      </div>
+    </div>
+  }
+</app-confirm-action-sheet>

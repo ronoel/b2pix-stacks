@@ -8,7 +8,7 @@
         <span class="amount-value">R$&nbsp;{{ fiatAmount }}</span>
       </div>
       <p class="instructions-compact">
-        Copie o código ou escaneie o QR Code, pague via PIX e informe o código de confirmação abaixo.
+        Copie o código ou escaneie o QR Code e pague via PIX.
       </p>
     </div>
 
@@ -20,15 +20,10 @@
       [sellerCity]="sellerCity"
       [showLabel]="true"
       labelText="Pagar PIX"
+      [confirmLabel]="confirmLabel"
+      (confirmAction)="confirm.emit()"
     ></app-pix-copia-cola>
   }
-
-  <!-- Confirmation Code Section -->
-  <app-confirmation-code-input
-    [disabled]="false"
-    (codeChange)="transactionIdChanged.emit($event)"
-    (noCodeChange)="noTransactionIdChanged.emit($event)"
-  />
 
   <!-- Action Buttons -->
   <div class="form-actions">

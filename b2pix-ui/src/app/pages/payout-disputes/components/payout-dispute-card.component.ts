@@ -1,12 +1,13 @@
 import { Component, input, output, signal } from '@angular/core';
 import { PixPayoutRequest, PayoutRequestStatus, getSourceTypeLabel, getPayoutRequestStatusLabel, getPayoutRequestStatusClass } from '../../../shared/models/pix-payout-request.model';
 import { MessageChatComponent } from '../../../components/order-status/components/message-chat/message-chat.component';
+import { ConfirmActionSheetComponent } from '../../../components/confirm-action-sheet/confirm-action-sheet.component';
 import { formatBrlCents, formatTruncated, formatDateTime } from '../../../shared/utils/format.util';
 
 @Component({
   selector: 'app-payout-dispute-card',
   standalone: true,
-  imports: [MessageChatComponent],
+  imports: [MessageChatComponent, ConfirmActionSheetComponent],
   templateUrl: './payout-dispute-card.component.html',
   styleUrl: './payout-dispute-card.component.scss'
 })
@@ -16,6 +17,9 @@ export class PayoutDisputeCardComponent {
   isProcessing = input<boolean>(false);
 
   showChat = signal(false);
+  showConfirmLp = signal(false);
+  showConfirmCustomer = signal(false);
+  showConfirmEscalation = signal(false);
 
   disputeResolved = output<{ id: string; ruling: 'lp' | 'customer' }>();
   resolveEscalation = output<string>();

@@ -17,13 +17,14 @@ export class ApiHealthService {
   private destroyRef = inject(DestroyRef);
 
   private consecutiveFailures = signal(0);
+  private systemBlocked = signal(false);
   private dismissed = signal(false);
   private _retryCountdown = signal(0);
   private _isChecking = signal(false);
   private countdownSub: Subscription | null = null;
 
   isUnavailable = computed(() =>
-    this.consecutiveFailures() >= FAILURE_THRESHOLD && !this.dismissed()
+    (this.consecutiveFailures() >= FAILURE_THRESHOLD || this.systemBlocked()) && !this.dismissed()
   );
 
   retryCountdown = this._retryCountdown.asReadonly();
@@ -38,8 +39,17 @@ export class ApiHealthService {
     }
   }
 
+  reportSystemBlock(): void {
+    this.systemBlocked.set(true);
+    this.dismissed.set(false);
+    if (!this.countdownSub) {
+      this.startRecoveryLoop();
+    }
+  }
+
   reportSuccess(): void {
     this.consecutiveFailures.set(0);
+    this.systemBlocked.set(false);
     this.dismissed.set(false);
     this.stopRecoveryLoop();
   }
@@ -47,6 +57,7 @@ export class ApiHealthService {
   dismiss(): void {
     this.dismissed.set(true);
     this.consecutiveFailures.set(0);
+    this.systemBlocked.set(false);
     this.stopRecoveryLoop();
   }
 

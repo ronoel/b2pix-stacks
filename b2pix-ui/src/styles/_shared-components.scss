@@ -126,8 +126,15 @@
 }
 
 .btn-sm {
-  padding: 8px 16px;
+  padding: 10px 16px;
+  font-size: 13px;
+  border-radius: var(--r-md);
+}
+
+.btn-xs {
+  padding: 6px 12px;
   font-size: 12px;
+  border-radius: var(--r-sm);
 }
 
 .btn-full {

@@ -1,6 +1,99 @@
 <div class="pix-validation-page">
   <div class="container">
 
+    <!-- View 0: Privacy Notice -->
+    @if (step() === 'privacy-notice') {
+
+      <app-page-header
+        title="Verificar conta bancária"
+        subtitle="Passo 2 de 2"
+        backRoute="/account-validation-required"
+      ></app-page-header>
+
+      <div class="privacy-notice">
+        <div class="privacy-icon-row fade-up stagger-1">
+          <div class="privacy-icon-box">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+        </div>
+
+        <h2 class="privacy-title fade-up stagger-2">Sua privacidade importa para nós</h2>
+
+        <p class="privacy-description fade-up stagger-2">
+          Para sua segurança, precisamos confirmar que a conta bancária pertence a você.
+          Isso é feito com seu <strong>CPF ou CNPJ</strong>.
+        </p>
+
+        <div class="card privacy-card fade-up stagger-3">
+          <div class="privacy-point">
+            <div class="privacy-point-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </div>
+            <div class="privacy-point-text">
+              <strong>Apenas para confirmar titularidade</strong>
+              <span>Validamos apenas que a conta bancária pertence a você</span>
+            </div>
+          </div>
+
+          <div class="privacy-point">
+            <div class="privacy-point-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </div>
+            <div class="privacy-point-text">
+              <strong>Não é um processo KYC completo</strong>
+              <span>Sem selfie, sem comprovante de endereço, sem documentos extras</span>
+            </div>
+          </div>
+
+          <div class="privacy-point">
+            <div class="privacy-point-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </div>
+            <div class="privacy-point-text">
+              <strong>Seus dados não são compartilhados</strong>
+              <span>Não vendemos nem compartilhamos com terceiros</span>
+            </div>
+          </div>
+
+          <div class="privacy-point privacy-point--last">
+            <div class="privacy-point-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </div>
+            <div class="privacy-point-text">
+              <strong>Coleta mínima de dados</strong>
+              <span>Apenas o necessário para a segurança da transação</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="alert-box alert-info fade-up stagger-4" style="margin-bottom: 20px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span>A verificação protege todos os usuários contra fraudes.</span>
+        </div>
+
+        <button
+          type="button"
+          class="btn btn-primary btn-full fade-up stagger-5"
+          (click)="continueFromPrivacy()"
+        >
+          Entendi, continuar
+        </button>
+      </div>
+
+    }
+
     <!-- View 1: Enter PIX Key -->
     @if (step() === 'enter-pix') {
 
@@ -112,13 +205,6 @@
         labelText="Pagar PIX"
       ></app-pix-copia-cola>
 
-      <!-- Confirmation code -->
-      <app-confirmation-code-input
-        [disabled]="loading()"
-        (codeChange)="onConfirmationCodeChange($event)"
-        (noCodeChange)="onNoCodeChange($event)"
-      />
-
       <!-- Attempts warning -->
       @if (isLastAttempt()) {
         <p class="attempt-warning attempt-warning--danger">
@@ -150,7 +236,7 @@
         <button
           type="button"
           class="btn btn-primary btn-full"
-          [disabled]="loading() || (!noConfirmationCode() && confirmationCode().length < 3)"
+          [disabled]="loading()"
           (click)="confirmDeposit()"
         >
           @if (loading()) {

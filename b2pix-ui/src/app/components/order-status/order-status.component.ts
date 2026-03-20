@@ -28,12 +28,13 @@ import {
 } from '../../shared/utils/format.util';
 import { DisputeModalComponent } from './components/dispute-modal/dispute-modal.component';
 import { MessageChatComponent } from './components/message-chat/message-chat.component';
+import { PixReceiptComponent } from './components/pix-receipt/pix-receipt.component';
 import { TechnicalDetailsComponent } from '../technical-details/technical-details.component';
 
 @Component({
   selector: 'app-order-status',
   standalone: true,
-  imports: [DisputeModalComponent, MessageChatComponent, TechnicalDetailsComponent],
+  imports: [DisputeModalComponent, MessageChatComponent, PixReceiptComponent, TechnicalDetailsComponent],
   templateUrl: './order-status.component.html',
   styleUrl: './order-status.component.scss'
 })
@@ -63,6 +64,10 @@ export class OrderStatusComponent implements OnInit, OnDestroy {
   payoutRequests = signal<PixPayoutRequest[]>([]);
   latestPayoutRequest = computed(() => this.payoutRequests()[0] ?? null);
   isPayoutPhase = computed(() => this.order()?.status === 'settlement_created');
+  isReceiptVisible = computed(() => {
+    const pr = this.latestPayoutRequest();
+    return !!pr && pr.status === PayoutRequestStatus.Confirmed && !!this.order();
+  });
   isPayoutFinal = computed(() => {
     const pr = this.latestPayoutRequest();
     return pr ? isPayoutRequestFinalStatus(pr.status) : false;

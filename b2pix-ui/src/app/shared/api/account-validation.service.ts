@@ -100,9 +100,10 @@ export class AccountValidationService {
           const address = this.walletManager.getSTXAddress();
           if (address) {
             const cached = this.accountCache.get(address);
-            if (cached) {
-              this.accountCache.set(address, { ...cached, email_verified: true });
-            }
+            this.accountCache.set(address, {
+              ...(cached ?? { address, email_verified: false, pix_verified: false }),
+              email_verified: true
+            });
           }
         }
       }),
@@ -165,12 +166,11 @@ export class AccountValidationService {
   /**
    * Confirma o pagamento PIX
    */
-  confirmPixPayment(pixConfirmationCode?: string): Observable<PixVerifyResponse> {
+  confirmPixPayment(): Observable<PixVerifyResponse> {
     const timestamp = new Date().toISOString();
     const payloadString = [
       'B2PIX - Confirmar Pagamento PIX',
       'b2pix.org',
-      pixConfirmationCode || 'NONE',
       timestamp
     ].join('\n');
 

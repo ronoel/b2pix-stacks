@@ -52,52 +52,6 @@
   }
 }
 
-/* Validation Banner */
-.validation-banner {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  background: var(--btc-bg);
-  border: 1px solid var(--warning);
-  border-radius: var(--r-md);
-  margin-top: 12px;
-  cursor: pointer;
-  transition: background 0.15s ease;
-  color: #92400E;
-
-  &:hover {
-    background: #FDE68A;
-  }
-
-  svg:first-child {
-    flex-shrink: 0;
-    color: var(--warning);
-  }
-
-  svg:last-child {
-    flex-shrink: 0;
-    opacity: 0.5;
-  }
-}
-
-.validation-banner__text {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-
-  strong {
-    font-size: 14px;
-    font-weight: 700;
-  }
-
-  span {
-    font-size: 13px;
-    opacity: 0.8;
-  }
-}
-
 /* Balance Card — sats-first */
 .balance-card {
   background: linear-gradient(135deg, #051E3E 0%, var(--primary) 50%, var(--primary-light) 100%);
@@ -187,10 +141,10 @@
   }
 }
 
-/* Action Grid — 3 columns */
+/* Action Grid — 2x2 */
 .action-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 10px;
   margin-top: 16px;
 }
@@ -237,6 +191,11 @@
 .action-card--pix .action-card__icon {
   background: var(--primary-bg);
   color: var(--primary);
+}
+
+.action-card--bridge .action-card__icon {
+  background: var(--btc-bg);
+  color: var(--btc);
 }
 
 .action-card__label {
@@ -405,6 +364,42 @@
     font-size: 13px;
     color: var(--text-muted);
   }
+}
+
+/* Operator Card — Danger variant */
+.operator-card--danger {
+  border-color: var(--danger-bg);
+  margin-top: 10px;
+
+  &:hover {
+    background: var(--danger-bg);
+    border-color: var(--danger);
+  }
+}
+
+.operator-card__icon--danger {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+/* Block Sheet Content */
+.block-content {
+  margin-bottom: 4px;
+}
+
+.block-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 16px 0 6px;
+}
+
+.block-reason {
+  width: 100%;
+  resize: vertical;
+  min-height: 72px;
+  font-family: var(--font-body);
 }
 
 /* Deposit Sheet Content */

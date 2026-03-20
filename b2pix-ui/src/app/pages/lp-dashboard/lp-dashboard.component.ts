@@ -1,9 +1,11 @@
-import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy, ViewEncapsulation } from '@angular/core';
 
 import { Router } from '@angular/router';
 import { interval, Subscription } from 'rxjs';
 import { PixPayoutRequestService } from '../../shared/api/pix-payout-request.service';
 import { AccountValidationService } from '../../shared/api/account-validation.service';
+import { QuoteService } from '../../shared/api/quote.service';
+import { PushNotificationService } from '../../services/push-notification.service';
 import { BankSetupComponent } from '../../components/bank-setup/bank-setup.component';
 import { PageHeaderComponent } from '../../components/page-header/page-header.component';
 import { StatusSheetComponent } from '../../components/status-sheet/status-sheet.component';
@@ -41,15 +43,18 @@ import { formatBrlCents, formatSats, formatSatsToBtc, formatDateTime } from '../
     StatusSheetComponent
   ],
   templateUrl: './lp-dashboard.component.html',
-  styleUrls: ['./lp-dashboard.component.scss']
+  styleUrls: ['./lp-dashboard.component.scss'],
+  encapsulation: ViewEncapsulation.None
 })
 export class LpDashboardComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private payoutRequestService = inject(PixPayoutRequestService);
   private accountValidationService = inject(AccountValidationService);
+  private quoteService = inject(QuoteService);
+  protected pushNotification = inject(PushNotificationService);
 
-  // Tabs — 3 tabs: operations, history, ledger
-  currentTab = signal<'operations' | 'history' | 'ledger'>('operations');
+  // Tabs — 3 tabs: orders, history, ledger
+  currentTab = signal<'orders' | 'history' | 'ledger'>('orders');
 
   // Stats
   stats = signal<LpStats | null>(null);
@@ -66,6 +71,10 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
   isAcceptingOrderId = signal<string | null>(null);
   isProcessingAction = signal(false);
   processingActionType = signal('');
+
+  // Accept Confirmation
+  pendingAcceptOrderId = signal<string | null>(null);
+  acceptTermsChecked = signal(false);
 
   // History
   historyItems = signal<PixPayoutRequest[]>([]);
@@ -93,29 +102,36 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
   successMessage = signal('');
   errorMessage = signal('');
 
+  // BTC Price
+  btcPriceCents = signal<number>(0);
+
   // Polling
   private activeOrderPolling?: Subscription;
-  private readonly POLLING_INTERVAL = 5000;
+  private queuePolling?: Subscription;
+  private readonly POLLING_INTERVAL = 10000;
 
   ngOnInit() {
     this.loadStats();
+    this.loadBtcPrice();
+    this.pushNotification.initialize();
   }
 
   ngOnDestroy() {
     this.stopPolling();
+    this.stopQueuePolling();
   }
 
   // ============================================
   // Tab Navigation
   // ============================================
 
-  switchTab(tab: 'operations' | 'history' | 'ledger') {
+  switchTab(tab: 'orders' | 'history' | 'ledger') {
     this.currentTab.set(tab);
     this.clearMessages();
 
     switch (tab) {
-      case 'operations':
-        if (this.queueItems().length === 0 && !this.activeOrder()) {
+      case 'orders':
+        if (this.queueItems().length === 0 && !this.isLoadingQueue()) {
           this.loadQueue();
         }
         break;
@@ -168,6 +184,7 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
         this.queueItems.set(response.items);
         this.queueHasMore.set(response.has_more);
         this.isLoadingQueue.set(false);
+        this.startQueuePolling();
       },
       error: (error) => {
         console.error('Error loading queue:', error);
@@ -199,6 +216,30 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
   // Accept Order
   // ============================================
 
+  onRequestAcceptOrder(orderId: string) {
+    this.pendingAcceptOrderId.set(orderId);
+    this.acceptTermsChecked.set(false);
+  }
+
+  onCancelAcceptOrder() {
+    this.pendingAcceptOrderId.set(null);
+    this.acceptTermsChecked.set(false);
+  }
+
+  onConfirmAcceptOrder() {
+    const orderId = this.pendingAcceptOrderId();
+    if (!orderId) return;
+    this.pendingAcceptOrderId.set(null);
+    this.acceptTermsChecked.set(false);
+    this.onAcceptOrder(orderId);
+  }
+
+  getPendingAcceptItem(): PixPayoutRequest | null {
+    const id = this.pendingAcceptOrderId();
+    if (!id) return null;
+    return this.queueItems().find(i => i.id === id) ?? null;
+  }
+
   onAcceptOrder(orderId: string) {
     this.isAcceptingOrderId.set(orderId);
     this.clearMessages();
@@ -208,6 +249,7 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
         this.activeOrder.set(request);
         this.isAcceptingOrderId.set(null);
         this.queueItems.update(items => items.filter(i => i.id !== orderId));
+        this.stopQueuePolling();
         this.startPolling();
         this.showSuccess('Ordem aceita! Pague o PIX dentro de 15 minutos.');
       },
@@ -253,7 +295,7 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  onPayOrder(pixEndToEndId: string) {
+  onPayOrder() {
     const order = this.activeOrder();
     if (!order) return;
 
@@ -261,7 +303,7 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
     this.processingActionType.set('pay');
     this.clearMessages();
 
-    this.payoutRequestService.payRequest(order.id, pixEndToEndId).subscribe({
+    this.payoutRequestService.payRequest(order.id).subscribe({
       next: () => {
         this.isProcessingAction.set(false);
         this.processingActionType.set('');
@@ -410,6 +452,47 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
       this.activeOrderPolling.unsubscribe();
       this.activeOrderPolling = undefined;
     }
+  }
+
+  private startQueuePolling() {
+    this.stopQueuePolling();
+    this.queuePolling = interval(this.POLLING_INTERVAL).subscribe(() => {
+      this.payoutRequestService.getQueue({ page: 1, limit: 10 }).subscribe({
+        next: (response) => {
+          this.queueItems.set(response.items);
+          this.queueHasMore.set(response.has_more);
+          this.queuePage.set(1);
+        },
+        error: () => {}
+      });
+    });
+  }
+
+  private stopQueuePolling() {
+    this.queuePolling?.unsubscribe();
+    this.queuePolling = undefined;
+  }
+
+  // ============================================
+  // BTC Price
+  // ============================================
+
+  private loadBtcPrice() {
+    this.quoteService.getBtcPrice().subscribe({
+      next: (r) => this.btcPriceCents.set(parseInt(r.price, 10)),
+      error: () => {}
+    });
+  }
+
+  satsToBrl(sats: number): string {
+    const price = this.btcPriceCents();
+    if (!price || !sats) return 'R$ 0,00';
+    const brlCents = Math.round((sats / 100_000_000) * price);
+    return formatBrlCents(brlCents);
+  }
+
+  formatBtcPriceBrl(): string {
+    return formatBrlCents(this.btcPriceCents());
   }
 
   // ============================================
@@ -594,5 +677,13 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
 
   goToDashboard() {
     this.router.navigate(['/dashboard']);
+  }
+
+  // ============================================
+  // Push Notifications
+  // ============================================
+
+  onEnablePushNotifications() {
+    this.pushNotification.subscribe();
   }
 }

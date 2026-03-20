@@ -5,10 +5,11 @@ import { BuyOrderService } from '../../shared/api/buy-order.service';
 import { BuyOrder, BuyOrderStatus } from '../../shared/models/buy-order.model';
 import { formatBrlCents } from '../../shared/utils/format.util';
 import { PageHeaderComponent } from '../../components/page-header/page-header.component';
+import { ConfirmActionSheetComponent } from '../../components/confirm-action-sheet/confirm-action-sheet.component';
 @Component({
   selector: 'app-analyzing-order',
   standalone: true,
-  imports: [PageHeaderComponent],
+  imports: [PageHeaderComponent, ConfirmActionSheetComponent],
   templateUrl: './dispute-details.component.html',
   styleUrl: './dispute-details.component.scss'
 })
@@ -22,6 +23,9 @@ export class AnalyzingOrderComponent implements OnInit {
   loading = signal(true);
   error = signal<string | null>(null);
   resolving = signal(false);
+  showConfirmApprove = signal(false);
+  showConfirmReject = signal(false);
+  pixEndToEndId = signal('');
 
   ngOnInit() {
     this.route.params.subscribe(params => {
@@ -64,8 +68,11 @@ export class AnalyzingOrderComponent implements OnInit {
     if (!currentOrder || this.resolving()) return;
 
     this.resolving.set(true);
+    this.error.set(null);
 
-    this.buyOrderService.resolveAnalyzingOrder(currentOrder.id, resolution).subscribe({
+    const e2eId = resolution === 'confirmed' ? this.pixEndToEndId().trim() || undefined : undefined;
+
+    this.buyOrderService.resolveAnalyzingOrder(currentOrder.id, resolution, e2eId).subscribe({
       next: (updatedOrder) => {
         this.order.set(updatedOrder);
         this.resolving.set(false);
@@ -74,7 +81,8 @@ export class AnalyzingOrderComponent implements OnInit {
       error: (error) => {
         console.error('Error resolving order:', error);
         this.resolving.set(false);
-        this.error.set('Erro ao resolver ordem. Tente novamente.');
+        this.showConfirmApprove.set(false);
+        this.error.set(error.message || 'Erro ao resolver ordem. Tente novamente.');
       }
     });
   }

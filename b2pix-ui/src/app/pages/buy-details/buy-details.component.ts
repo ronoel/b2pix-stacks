@@ -19,11 +19,13 @@ import { PageHeaderComponent } from '../../components/page-header/page-header.co
 import { StatusSheetComponent } from '../../components/status-sheet/status-sheet.component';
 import { TechnicalDetailsComponent } from '../../components/technical-details/technical-details.component';
 import { CountdownTimerComponent } from '../../components/countdown-timer/countdown-timer.component';
+import { ConfirmActionSheetComponent } from '../../components/confirm-action-sheet/confirm-action-sheet.component';
+import { interval, Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-buy-details',
   standalone: true,
-  imports: [NgClass, PaymentFormComponent, PageHeaderComponent, StatusSheetComponent, TechnicalDetailsComponent, CountdownTimerComponent],
+  imports: [NgClass, PaymentFormComponent, PageHeaderComponent, StatusSheetComponent, TechnicalDetailsComponent, CountdownTimerComponent, ConfirmActionSheetComponent],
   encapsulation: ViewEncapsulation.None,
   templateUrl: './buy-details.component.html',
   styleUrl: './buy-details.component.scss'
@@ -43,12 +45,9 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   isLoading = signal(true);
   errorMessage = signal('');
 
-  // Payment form state (for pending status)
-  transactionId = signal('');
-  noTransactionId = signal(false);
-
   // Time warning sheet state (bottom sheet, triggers at 3 minutes)
   showTimeWarningSheet = signal(false);
+  showConfirmCancel = signal(false);
   private hasShownTimeWarning = false;
   private hasShownTimeoutAlert = false;
 
@@ -56,8 +55,8 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   paymentRequest = signal<PaymentRequest | null>(null);
   isLoadingPaymentRequest = signal(false);
 
-  // Auto-refresh timer
-  private refreshTimeout: any = null;
+  // Auto-refresh polling
+  private pollSubscription?: Subscription;
 
   ngOnInit() {
     const buyId = this.route.snapshot.paramMap.get('id');
@@ -71,7 +70,7 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    this.clearRefreshTimeout();
+    this.stopPolling();
   }
 
   loadBuyData(buyId?: string, showLoading: boolean = true) {
@@ -103,8 +102,8 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
           this.isLoading.set(false);
         }
 
-        // Schedule auto-refresh if needed
-        this.scheduleAutoRefresh();
+        // Start polling for status updates
+        this.startPolling();
       },
       error: (error) => {
         console.error('Erro ao carregar dados da compra:', error);
@@ -116,20 +115,6 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     });
   }
 
-  refreshBuyData() {
-    const buy = this.buyData();
-    const buyId = buy?.id;
-
-    // Don't refresh if buy is pending but actually expired
-    if (buy && this.isActuallyExpired(buy)) {
-      return;
-    }
-
-    if (buyId) {
-      // Silent refresh - don't show loading spinner
-      this.loadBuyData(buyId, false);
-    }
-  }
 
   /**
    * Check if a buy is actually expired (expires_at has passed)
@@ -206,28 +191,6 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
 
   formatSats = formatSats;
 
-  onTransactionIdChange(transactionId: string) {
-    this.transactionId.set(transactionId.toUpperCase());
-    if (transactionId.length > 0) {
-      this.noTransactionId.set(false);
-    }
-  }
-
-  onNoTransactionIdChange(noTransactionId: boolean) {
-    this.noTransactionId.set(noTransactionId);
-    if (noTransactionId) {
-      this.transactionId.set('');
-    }
-  }
-
-  canConfirmPayment(): boolean {
-    if (this.noTransactionId()) {
-      return true;
-    }
-    const txId = this.transactionId();
-    return txId.length === 3 && /^[A-Z0-9]{3}$/.test(txId);
-  }
-
   copyPixKey() {
     const buy = this.buyData();
     if (buy?.pix_key) {
@@ -245,17 +208,13 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
 
   cancelFromWarningSheet() {
     this.showTimeWarningSheet.set(false);
-    this.cancelPurchase();
+    this.openCancelConfirm();
   }
 
   confirmPayment(event?: Event) {
     if (event) {
       event.preventDefault();
       event.stopPropagation();
-    }
-
-    if (!this.canConfirmPayment()) {
-      return;
     }
 
     const buy = this.buyData();
@@ -266,9 +225,7 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
 
     this.loadingService.show();
 
-    const pixId = this.noTransactionId() ? undefined : this.transactionId();
-
-    this.buyOrderService.markBuyOrderAsPaid(buy.id, pixId).subscribe({
+    this.buyOrderService.markBuyOrderAsPaid(buy.id).subscribe({
       next: (updatedBuy) => {
         this.loadingService.hide();
         this.buyData.set(updatedBuy);
@@ -295,14 +252,14 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     });
   }
 
+  openCancelConfirm() {
+    this.showConfirmCancel.set(true);
+  }
+
   cancelPurchase() {
     const buy = this.buyData();
 
     if (!buy) {
-      return;
-    }
-
-    if (!confirm('Tem certeza que deseja cancelar esta compra?')) {
       return;
     }
 
@@ -311,6 +268,7 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     this.buyOrderService.cancelBuyOrder(buy.id).subscribe({
       next: () => {
         this.loadingService.hide();
+        this.showConfirmCancel.set(false);
 
         alert('Compra cancelada com sucesso!');
         this.router.navigate(['/dashboard']);
@@ -318,6 +276,7 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
       error: (error) => {
         console.error('Error canceling buy:', error);
         this.loadingService.hide();
+        this.showConfirmCancel.set(false);
 
         let errorMessage = 'Erro ao cancelar compra. Tente novamente.';
         if (error.error && error.error.message) {
@@ -522,18 +481,12 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
       event.stopPropagation();
     }
 
-    if (!this.canConfirmPayment()) {
-      return;
-    }
-
     const buy = this.buyData();
     if (!buy) return;
 
     this.loadingService.show();
 
-    const pixId = this.noTransactionId() ? undefined : this.transactionId();
-
-    this.buyOrderService.resubmitPayment(buy.id, pixId).subscribe({
+    this.buyOrderService.resubmitPayment(buy.id).subscribe({
       next: (updatedBuy) => {
         this.loadingService.hide();
         this.buyData.set(updatedBuy);
@@ -564,41 +517,49 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Check if buy needs monitoring (is not in a final state and not created payment)
+   * Start polling for status updates every 10 seconds.
+   * Only polls for "Detalhes da compra" view (non-created, non-final).
    */
-  private needsMonitoring(): boolean {
-    const buy = this.buyData();
-    if (!buy) return false;
-    return !buy.is_final;
+  private startPolling() {
+    this.stopPolling();
+
+    this.pollSubscription = interval(10000).subscribe(() => {
+      const buy = this.buyData();
+      if (!buy) return;
+
+      const status = buy.status?.toString().toLowerCase();
+
+      // Only poll for "Detalhes da compra" view — not while awaiting payment
+      if (status === 'created') return;
+
+      // Stop polling if final — is_final is the sole authority here.
+      // (isActuallyExpired only applies to 'created' payment window, not post-payment statuses)
+      if (buy.is_final) {
+        this.stopPolling();
+        return;
+      }
+
+      this.buyOrderService.getBuyOrderById(buy.id).subscribe({
+        next: (updated) => {
+          this.buyData.set(updated);
+          if (this.shouldShowPaymentDetails()) {
+            this.loadPaymentRequest(updated.id);
+          }
+          if (updated.is_final) {
+            this.stopPolling();
+          }
+        },
+        error: (err) => {
+          console.error('Erro ao atualizar dados da compra:', err);
+        }
+      });
+    });
   }
 
-  /**
-   * Schedule auto-refresh if buy needs monitoring
-   */
-  private scheduleAutoRefresh() {
-    this.clearRefreshTimeout();
-
-    const buy = this.buyData();
-
-    // Don't schedule refresh if buy is actually expired
-    if (buy && this.isActuallyExpired(buy)) {
-      return;
-    }
-
-    if (this.needsMonitoring()) {
-      this.refreshTimeout = setTimeout(() => {
-        this.refreshBuyData();
-      }, 10000); // 10 seconds
-    }
-  }
-
-  /**
-   * Clear auto-refresh timeout
-   */
-  private clearRefreshTimeout() {
-    if (this.refreshTimeout) {
-      clearTimeout(this.refreshTimeout);
-      this.refreshTimeout = null;
+  private stopPolling() {
+    if (this.pollSubscription) {
+      this.pollSubscription.unsubscribe();
+      this.pollSubscription = undefined;
     }
   }
 }

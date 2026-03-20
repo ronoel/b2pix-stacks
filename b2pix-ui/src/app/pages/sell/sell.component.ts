@@ -5,6 +5,8 @@ import { Subscription } from 'rxjs';
 import { LoadingService } from '../../services/loading.service';
 import { SellOrderService } from '../../shared/api/sell-order.service';
 import { AccountValidationService } from '../../shared/api/account-validation.service';
+import { PixPayoutRequestService } from '../../shared/api/pix-payout-request.service';
+import { PixPayoutRequest } from '../../shared/models/pix-payout-request.model';
 import { sBTCTokenService } from '../../libs/sbtc-token.service';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import {
@@ -23,11 +25,12 @@ import {
 import { PageHeaderComponent } from '../../components/page-header/page-header.component';
 import { StatusSheetComponent } from '../../components/status-sheet/status-sheet.component';
 import { QuickAmountChipsComponent } from '../../components/quick-amount-chips/quick-amount-chips.component';
+import { ActivePayoutCardComponent } from '../../components/active-payout-card/active-payout-card.component';
 
 @Component({
   selector: 'app-sell',
   standalone: true,
-  imports: [PageHeaderComponent, StatusSheetComponent, QuickAmountChipsComponent],
+  imports: [PageHeaderComponent, StatusSheetComponent, QuickAmountChipsComponent, ActivePayoutCardComponent],
   templateUrl: './sell.component.html',
   styleUrls: ['./sell.component.scss']
 })
@@ -38,6 +41,7 @@ export class SellComponent implements OnInit, OnDestroy {
   private accountValidationService = inject(AccountValidationService);
   private sBTCTokenService = inject(sBTCTokenService);
   private walletManagerService = inject(WalletManagerService);
+  private payoutRequestService = inject(PixPayoutRequestService);
 
   // Constants
   readonly SATS_PER_BTC = 100000000;
@@ -69,6 +73,10 @@ export class SellComponent implements OnInit, OnDestroy {
   isLoadingMore = signal(false);
   hasMoreOrders = signal(false);
   currentPage = signal(1);
+
+  // Active payout check
+  activePayout = signal<PixPayoutRequest | null>(null);
+  hasActivePayout = computed(() => !!this.activePayout());
 
   // Sheet + inline error (replaces modal signals)
   showConfirmationSheet = signal(false);
@@ -108,6 +116,7 @@ export class SellComponent implements OnInit, OnDestroy {
     this.startPricePolling();
     this.loadSellOrders();
     this.checkForActiveSellOrder();
+    this.checkActivePayouts();
   }
 
   ngOnDestroy() {
@@ -253,8 +262,28 @@ export class SellComponent implements OnInit, OnDestroy {
       brlAmount <= this.MAX_SELL_BRL_VALIDATION &&
       this.amountInBrl() <= this.MAX_SELL_BRL &&
       this.currentBtcPrice() > 0 &&
-      !this.activeSellOrder()
+      !this.activeSellOrder() &&
+      !this.hasActivePayout()
     );
+  }
+
+  // Active payout check
+  checkActivePayouts() {
+    const address = this.walletManagerService.getSTXAddress();
+    if (address) {
+      this.payoutRequestService.getActivePayoutRequests(address).subscribe({
+        next: (payouts) => {
+          this.activePayout.set(payouts.length > 0 ? payouts[0] : null);
+        },
+        error: (error) => {
+          console.error('Error checking active payouts:', error);
+        }
+      });
+    }
+  }
+
+  onPayoutResolved() {
+    this.checkActivePayouts();
   }
 
   // Sell order methods
@@ -380,6 +409,10 @@ export class SellComponent implements OnInit, OnDestroy {
 
         if (error.message && error.message.includes('cancelada')) {
           return;
+        }
+
+        if (error.status === 409) {
+          this.checkActivePayouts();
         }
 
         this.showInlineError(this.getErrorMessage(error));

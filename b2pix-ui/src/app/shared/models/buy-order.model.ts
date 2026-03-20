@@ -26,7 +26,6 @@ export interface BuyOrder {
   buy_value: number;                    // BRL in cents (u64)
   address_buy: string;                  // Stacks wallet address
   pix_key: string;                      // PIX key to receive payment
-  pix_confirmation_code: string | null; // PIX confirmation code (if provided)
   pix_end_to_end_id: string | null;     // PIX transaction ID (when confirmed)
   amount: number | null;                // BTC in satoshis (u64) - only set when confirmed
   status: BuyOrderStatus;               // Current order status

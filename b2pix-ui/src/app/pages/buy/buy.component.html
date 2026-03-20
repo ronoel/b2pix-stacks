@@ -59,6 +59,7 @@
           <p class="estimate-label">Você receberá</p>
           <p class="estimate-btc estimate-btc--success">≈ {{ formatBtcFromSats(estimatedSats()) }} BTC</p>
           <p class="estimate-sats font-mono">{{ formatSatsValue(estimatedSats()) }} sats</p>
+          <p class="estimate-rate">1 BTC = {{ formatCurrency(currentQuotePrice()! / 100) }}</p>
         }
       </section>
     }
@@ -88,7 +89,7 @@
   <app-status-sheet
     [isOpen]="showConfirmSheet()"
     title="Preparação para compra"
-    [subtitle]="'Passo ' + currentStep() + '/3'"
+    [subtitle]="'Passo ' + currentStep() + '/2'"
     type="confirm"
     (close)="closeConfirmSheet()"
   >
@@ -144,35 +145,6 @@
       </div>
     }
 
-    <!-- Step 3: Como funciona o pagamento -->
-    @if (currentStep() === 3) {
-      <div class="step-content">
-        <div class="step-icon">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-          </svg>
-        </div>
-        <h3 class="step-title">Como funciona o pagamento</h3>
-
-        <ol class="instruction-list">
-          <li>Você receberá uma <strong>chave PIX</strong> para pagar</li>
-          <li>Após fazer o PIX, precisará informar os <strong>3 últimos caracteres</strong> do ID da transação</li>
-          <li>O ID da transação pode ser encontrado no <strong>comprovante do PIX</strong></li>
-          <li>Exemplo: ID da transação <span class="id-example font-mono">E000-12A<span class="highlight-chars">9Z7</span></span></li>
-        </ol>
-
-        <label class="sheet-checkbox">
-          <input
-            type="checkbox"
-            [checked]="step3Confirmed()"
-            (change)="toggleStep(3, $any($event.target).checked)"
-          >
-          <span class="sheet-checkbox__box"></span>
-          <span class="sheet-checkbox__text">Entendi como fazer o PIX e informar os 3 últimos caracteres</span>
-        </label>
-      </div>
-    }
-
     <!-- Navigation actions -->
     <div actions class="sheet-actions">
       @if (currentStep() === 1) {
@@ -187,21 +159,16 @@
           Cancelar
         </button>
       } @else if (currentStep() === 2) {
-        <button
-          class="btn btn-primary btn-lg btn-full"
-          (click)="nextStep()"
-          [disabled]="!step2Confirmed()"
-        >
-          Próximo
-        </button>
-        <button class="btn btn-ghost btn-full" (click)="previousStep()">
-          Voltar
-        </button>
-      } @else if (currentStep() === 3) {
+        <div class="step-reminder">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span>Após pagar o PIX, não esqueça de confirmar o pagamento no app para liberar seus bitcoins.</span>
+        </div>
         <button
           class="btn btn-success btn-lg btn-full"
           (click)="confirmPurchase()"
-          [disabled]="!step3Confirmed() || isProcessingPurchase()"
+          [disabled]="!step2Confirmed() || isProcessingPurchase()"
         >
           @if (isProcessingPurchase()) {
             <div class="loading-spinner-sm"></div>

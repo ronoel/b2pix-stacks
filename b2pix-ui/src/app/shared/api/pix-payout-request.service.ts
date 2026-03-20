@@ -24,6 +24,22 @@ export class PixPayoutRequestService {
   private walletManager = inject(WalletManagerService);
 
   /**
+   * Get active (non-final) payout requests for a payer address.
+   */
+  getActivePayoutRequests(payerAddress: string): Observable<PixPayoutRequest[]> {
+    const httpParams = new HttpParams().set('payer_address', payerAddress);
+
+    return this.http.get<PixPayoutRequest[]>(`${this.apiUrl}/v1/pix-payout-requests/active`, {
+      params: httpParams
+    }).pipe(
+      catchError((error: any) => {
+        console.error('Error fetching active payout requests:', error);
+        throw error;
+      })
+    );
+  }
+
+  /**
    * Get the queue of pending payout requests available for LPs.
    */
   getQueue(params?: GetPayoutRequestsParams): Observable<PaginatedPayoutRequestResponse> {
@@ -104,15 +120,14 @@ export class PixPayoutRequestService {
 
   /**
    * Confirm PIX payment for an accepted payout request.
-   * LP provides the PIX end-to-end ID.
+   * Bank verification is done automatically by the backend.
    */
-  payRequest(id: string, pixEndToEndId: string): Observable<PixPayoutRequest> {
+  payRequest(id: string): Observable<PixPayoutRequest> {
     const timestamp = new Date().toISOString();
     const payload = [
       'B2PIX - Confirmar Payout PIX',
       'b2pix.org',
       id,
-      pixEndToEndId,
       timestamp
     ].join('\n');
 
@@ -209,7 +224,7 @@ export class PixPayoutRequestService {
       'B2PIX - Reportar Problema Payout',
       'b2pix.org',
       id,
-      reason,
+      reason.replace(/\n/g, ' '),
       timestamp
     ].join('\n');
 

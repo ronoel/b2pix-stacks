@@ -20,10 +20,6 @@ export interface CreatePixVerifyPayload {
   user_pix_key: string;
 }
 
-export interface ConfirmPixPayload {
-  pix_confirmation_code?: string;
-}
-
 // ============================================================================
 // Response Types
 // ============================================================================
@@ -98,7 +94,7 @@ export interface ApiError {
 // ============================================================================
 
 export type EmailVerificationStep = 'enter-email' | 'enter-code' | 'success';
-export type PixVerificationStep = 'enter-pix' | 'deposit-instructions' | 'processing' | 'awaiting-validation' | 'validated' | 'validation-failed';
+export type PixVerificationStep = 'privacy-notice' | 'enter-pix' | 'deposit-instructions' | 'processing' | 'awaiting-validation' | 'validated' | 'validation-failed';
 
 // ============================================================================
 // PIX Moderation Types (Manager only)
@@ -109,7 +105,6 @@ export interface AccountPixVerify {
   user_pix_key: string;
   destination_pix_key: string;
   pix_confirmation_value: number;
-  pix_confirmation_code: string;
   pix_end_to_end_id: string | null;
   status: 'processing' | 'verified' | 'failed';
   attempts: number;

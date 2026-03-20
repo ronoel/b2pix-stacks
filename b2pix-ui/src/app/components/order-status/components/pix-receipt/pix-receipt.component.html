@@ -1,0 +1,99 @@
+<div class="pix-receipt">
+  <div class="receipt-card" #receiptCard>
+    <div class="receipt-header">
+      <div class="receipt-icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+          <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+        </svg>
+      </div>
+      <h3 class="receipt-title">COMPROVANTE PIX</h3>
+      <p class="receipt-subtitle">Pagamento realizado com Bitcoin</p>
+    </div>
+
+    <div class="receipt-details">
+      <div class="receipt-row">
+        <span class="receipt-label">Valor</span>
+        <span class="receipt-value receipt-value--highlight">{{ formattedValue }}</span>
+      </div>
+
+      <div class="receipt-row">
+        <span class="receipt-label">Data do pagamento</span>
+        <span class="receipt-value">{{ formattedDate }}</span>
+      </div>
+
+      @if (recipientName) {
+        <div class="receipt-row">
+          <span class="receipt-label">Destinatário</span>
+          <div class="receipt-value receipt-value--column">
+            <span>{{ recipientName }}</span>
+            @if (recipientDoc) {
+              <span class="receipt-doc">{{ recipientDoc }}</span>
+            }
+          </div>
+        </div>
+      }
+
+      <div class="receipt-row receipt-row--vertical">
+        <div class="receipt-row-header">
+          <span class="receipt-label">ID (End-to-End)</span>
+          <button
+            class="copy-btn"
+            [class.copied]="e2eCopied()"
+            (click)="copyE2eId()">
+            @if (e2eCopied()) {
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Copiado
+            } @else {
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
+                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" stroke-width="2"/>
+              </svg>
+              Copiar
+            }
+          </button>
+        </div>
+        <span class="receipt-e2e">{{ e2eId }}</span>
+      </div>
+    </div>
+
+    <div class="receipt-branding">
+      <span class="branding-via">Realizado via <strong>b2pix.org</strong></span>
+      <span class="branding-tagline">PIX pago com Bitcoin</span>
+    </div>
+  </div>
+
+  <div class="receipt-actions">
+    <button
+      class="btn btn-primary btn-full"
+      (click)="shareReceipt()"
+      [disabled]="isExporting()">
+      @if (isExporting()) {
+        <span class="loading-spinner-sm"></span>
+        Exportando...
+      } @else {
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="2"/>
+          <circle cx="6" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+          <circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="2"/>
+          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" stroke="currentColor" stroke-width="2"/>
+          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        Compartilhar comprovante
+      }
+    </button>
+    <button
+      class="btn btn-outline btn-full"
+      (click)="saveImage()"
+      [disabled]="isExporting()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <polyline points="7 10 12 15 17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Salvar comprovante
+    </button>
+  </div>
+</div>
