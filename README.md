@@ -99,7 +99,7 @@ The **embedded wallet** is designed to offer a **Web2-like experience** — allo
 
 ### Architecture Diagram
 
-```
+```mermaid
 flowchart TD
   subgraph Client
     F["@stacks/connect"]
