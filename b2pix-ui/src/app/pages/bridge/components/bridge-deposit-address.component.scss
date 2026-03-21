@@ -8,6 +8,98 @@
   gap: 20px;
 }
 
+/* Step Header Indicator */
+.step-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 0 4px;
+}
+
+.step-number {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+  border: 2px solid var(--border);
+  color: var(--text-muted);
+  background: transparent;
+  transition: all 0.3s ease;
+}
+
+.step-number.step-active {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 0 0 4px var(--primary-glow);
+}
+
+.step-number.step-done {
+  border-color: var(--success);
+  background: var(--success);
+  color: #fff;
+  box-shadow: 0 0 0 4px var(--success-glow);
+}
+
+.step-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  transition: color 0.3s ease;
+}
+
+.step-label-active {
+  color: var(--text-primary);
+}
+
+.step-label-done {
+  color: var(--success);
+}
+
+.step-line {
+  width: 40px;
+  height: 2px;
+  background: var(--border);
+  border-radius: 1px;
+  transition: background 0.3s ease;
+}
+
+.step-line-done {
+  background: var(--success);
+}
+
+/* Step Content */
+.step-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.step-instruction {
+  text-align: center;
+
+  h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 6px;
+  }
+
+  p {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.5;
+  }
+}
+
+/* QR Code */
 .qr-container {
   display: flex;
   justify-content: center;
@@ -27,16 +119,11 @@
   }
 }
 
+/* Address Block */
 .address-block {
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-
-.form-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-muted);
 }
 
 .address-display {
@@ -57,13 +144,52 @@
   }
 }
 
+/* Fee Summary */
 .fee-summary {
   padding: 12px 16px;
 }
 
-.actions {
+/* Notify Form (Step 2) */
+.notify-form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+
+  .form-input {
+    width: 100%;
+    font-size: 13px;
+  }
+}
+
+.form-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Success State */
+.success-state {
+  display: flex;
+  flex-direction: column;
   align-items: center;
+  text-align: center;
+  padding: 16px 0;
+
+  h3 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 8px;
+  }
+
+  p {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin: 0 0 20px;
+    line-height: 1.5;
+    max-width: 380px;
+  }
+
+  .alert-box {
+    width: 100%;
+  }
 }

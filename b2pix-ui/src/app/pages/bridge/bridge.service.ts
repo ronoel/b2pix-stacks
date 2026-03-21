@@ -134,6 +134,7 @@ export class BridgeService {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       btcTxid: btcTxid,
+      btcVout: 0,
       depositAddress: params.depositAddress,
       depositScript: params.depositData.depositScript,
       reclaimScript: params.depositData.reclaimScript,
@@ -149,15 +150,48 @@ export class BridgeService {
 
   async checkDepositStatus(btcTxid: string): Promise<void> {
     try {
-      const deposit = await this.sbtcClient.fetchDeposit(btcTxid);
+      const op = this.operations().find(o => o.btcTxid === btcTxid);
+
+      // If btcVout is explicitly set, use it. Otherwise scan vouts 0-3
+      // (manual deposits may land on vout > 0).
+      const voutsToTry = op?.btcVout != null ? [op.btcVout] : [0, 1, 2, 3];
+
+      let deposit: any = null;
+      let discoveredVout = 0;
+
+      for (const vout of voutsToTry) {
+        try {
+          const result = await this.sbtcClient.fetchDeposit({ txid: btcTxid, vout });
+          if (result?.status) {
+            deposit = result;
+            discoveredVout = vout;
+            break;
+          }
+        } catch {
+          // 404 — try next vout
+        }
+      }
+
       if (!deposit) return;
 
       const status = mapEmilyDepositStatus(deposit.status);
-      this.storageService.updateOperation(btcTxid, {
+      const updates: Partial<BridgeOperationRecord> = {
         status,
         emilyStatus: deposit.status,
         emilyStatusMessage: deposit.statusMessage,
-      });
+      };
+
+      // Persist the discovered vout so future polls go directly
+      if (op?.btcVout == null) {
+        updates.btcVout = discoveredVout;
+      }
+
+      // Backfill amount from Emily if missing
+      if (deposit.amount && (!op?.amount || op.amount === 0)) {
+        updates.amount = deposit.amount;
+      }
+
+      this.storageService.updateOperation(btcTxid, updates);
       this.refreshOperations();
 
       if (isFinalStatus(status)) {
@@ -165,6 +199,92 @@ export class BridgeService {
       }
     } catch (err) {
       console.error(`Error checking deposit ${btcTxid}:`, err);
+    }
+  }
+
+  /**
+   * Notify Emily about a deposit that was sent manually (outside the app).
+   * Regenerates the address to recover the scripts, verifies match, finds the correct vout.
+   */
+  async notifyManualDeposit(params: {
+    btcTxid: string;
+    expectedAddress: string;
+    config: DepositConfig;
+  }): Promise<void> {
+    // Regenerate to recover depositScript & reclaimScript
+    const result = await this.generateDepositAddress(params.config);
+
+    if (result.address !== params.expectedAddress) {
+      throw new Error(
+        `Endereço regenerado (${result.address}) não confere com o esperado (${params.expectedAddress}). ` +
+        `A chave dos signers pode ter rotacionado desde a geração.`
+      );
+    }
+
+    // Fetch the raw transaction hex
+    const txHex = await this.sbtcClient.fetchTxHex(params.btcTxid);
+
+    // Parse the transaction to find the correct output index
+    const { hexToBytes } = await import('@stacks/common');
+    const btcLib = await import('@scure/btc-signer');
+    const tx = btcLib.Transaction.fromRaw(hexToBytes(txHex));
+
+    // Find vout by matching the address on each output
+    let vout = -1;
+    for (let i = 0; i < tx.outputsLength; i++) {
+      const addr = tx.getOutputAddress(i, this.network);
+      if (addr === params.expectedAddress) {
+        vout = i;
+        break;
+      }
+    }
+
+    // Fallback: match via p2tr output script bytes
+    if (vout === -1) {
+      const trScript = result.trOut.script;
+      for (let i = 0; i < tx.outputsLength; i++) {
+        const out = tx.getOutput(i);
+        if (out.script && bytesEqual(out.script, trScript)) {
+          vout = i;
+          break;
+        }
+      }
+    }
+
+    if (vout === -1) {
+      throw new Error('Não foi possível encontrar o endereço de depósito nos outputs da transação');
+    }
+
+    // Notify Emily
+    const emilyResponse = await this.sbtcClient.notifySbtc({
+      depositScript: result.depositScript,
+      reclaimScript: result.reclaimScript,
+      vout,
+      transaction: txHex,
+    });
+
+    // Save operation record with vout & amount from Emily response
+    const record: BridgeOperationRecord = {
+      id: params.btcTxid,
+      type: 'deposit',
+      status: mapEmilyDepositStatus(emilyResponse?.status ?? 'pending'),
+      amount: emilyResponse?.amount ?? 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      btcTxid: params.btcTxid,
+      btcVout: vout,
+      depositAddress: params.expectedAddress,
+      depositScript: result.depositScript,
+      reclaimScript: result.reclaimScript,
+      emilyStatus: emilyResponse?.status,
+      emilyStatusMessage: emilyResponse?.statusMessage,
+    };
+    this.storageService.saveOperation(record);
+    this.refreshOperations();
+
+    // Only poll if not already final
+    if (!isFinalStatus(record.status)) {
+      this.startDepositPolling(params.btcTxid);
     }
   }
 
@@ -408,8 +528,9 @@ export class BridgeService {
 
     // External wallet: try cached addresses from @stacks/connect localStorage
     const data = getLocalStorage();
-    const btcAddr = data?.addresses?.btc?.[0]?.address;
-    if (btcAddr) return btcAddr;
+    const btcEntry = data?.addresses?.btc?.[0] as any;
+    const btcPubKey = btcEntry?.publicKey;
+    if (btcPubKey) return btcPubKey;
 
     // Fall back to wallet prompt
     const response = await request('getAddresses');
@@ -421,4 +542,12 @@ export class BridgeService {
 
     throw new Error('Não foi possível obter o endereço Bitcoin da carteira');
   }
+}
+
+function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
 }

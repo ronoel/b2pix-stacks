@@ -54,6 +54,7 @@ export interface BridgeOperationRecord {
   updatedAt: string;
   // Deposit-specific
   btcTxid?: string;
+  btcVout?: number;
   depositAddress?: string;
   depositScript?: string;
   reclaimScript?: string;

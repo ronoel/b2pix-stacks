@@ -1,4 +1,4 @@
-import { Component, input, signal, inject, OnInit } from '@angular/core';
+import { Component, input, output, signal, inject, effect, OnInit } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { qrcode } from '@libs/qrcode';
 
@@ -13,9 +13,22 @@ export class BridgeDepositAddressComponent implements OnInit {
 
   address = input.required<string>();
   maxSignerFee = input<number>(4000);
+  notifying = input<boolean>(false);
+  notified = input<boolean>(false);
+
+  notifyDeposit = output<string>();
 
   qrSvg = signal<SafeHtml>('');
   addressCopied = signal(false);
+  depositStep = signal<1 | 2>(1);
+  btcTxidInput = signal('');
+
+  constructor() {
+    effect(() => {
+      this.depositStep();
+      window.scrollTo({ top: 0 });
+    });
+  }
 
   ngOnInit(): void {
     const svg = qrcode(`bitcoin:${this.address()}`, { ecl: 'M' });
@@ -29,7 +42,10 @@ export class BridgeDepositAddressComponent implements OnInit {
     });
   }
 
-  formatSats(value: number): string {
-    return new Intl.NumberFormat('pt-BR').format(value);
+  submitNotify(): void {
+    const txid = this.btcTxidInput().trim();
+    if (txid.length === 64) {
+      this.notifyDeposit.emit(txid);
+    }
   }
 }

@@ -1,40 +1,147 @@
 <div class="deposit-address fade-up">
-  <div class="qr-container">
-    <div class="qr-frame" [innerHTML]="qrSvg()"></div>
-  </div>
-
-  <div class="address-block">
-    <label class="form-label">Seu endereço (Bitcoin Network)</label>
-    <div class="address-display">
-      <code class="font-mono">{{ address() }}</code>
-      <button class="copy-btn" [class.copied]="addressCopied()" (click)="copyAddress()">
-        @if (addressCopied()) {
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Step indicator -->
+  @if (!notified()) {
+    <div class="step-header">
+      <div class="step-number" [class.step-active]="depositStep() === 1" [class.step-done]="depositStep() === 2">
+        @if (depositStep() === 2) {
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
             <path d="M20 6L9 17l-5-5"/>
           </svg>
-          Copiado!
         } @else {
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="9" y="9" width="13" height="13" rx="2"/>
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-          </svg>
-          Copiar
+          1
         }
+      </div>
+      <span class="step-label" [class.step-label-active]="depositStep() === 1" [class.step-label-done]="depositStep() === 2">Enviar BTC</span>
+      <div class="step-line" [class.step-line-done]="depositStep() === 2"></div>
+      <div class="step-number" [class.step-active]="depositStep() === 2">
+        2
+      </div>
+      <span class="step-label" [class.step-label-active]="depositStep() === 2">Confirmar</span>
+    </div>
+  }
+
+  <!-- Step 1: Send BTC -->
+  @if (depositStep() === 1 && !notified()) {
+    <div class="step-content fade-up">
+      <div class="step-instruction">
+        <h3 class="font-display">Envie BTC para o endereço abaixo</h3>
+        <p>Escaneie o QR code ou copie o endereço para sua carteira Bitcoin.</p>
+      </div>
+
+      <div class="qr-container">
+        <div class="qr-frame" [innerHTML]="qrSvg()"></div>
+      </div>
+
+      <div class="address-block">
+        <label class="form-label">Endereço de depósito (Bitcoin Network)</label>
+        <div class="address-display">
+          <code class="font-mono">{{ address() }}</code>
+          <button class="copy-btn" [class.copied]="addressCopied()" (click)="copyAddress()">
+            @if (addressCopied()) {
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 6L9 17l-5-5"/>
+              </svg>
+              Copiado!
+            } @else {
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              Copiar
+            }
+          </button>
+        </div>
+      </div>
+
+      <div class="fee-summary card">
+        <div class="detail-row">
+          <span class="detail-label">Depósito mínimo</span>
+          <span class="detail-value">10.000 sats</span>
+        </div>
+      </div>
+
+      <div class="alert-box alert-info">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><path d="M12 16V12"/><path d="M12 8h.01"/>
+        </svg>
+        <span>Após enviar o BTC, você precisará informar o <strong>txid</strong> da transação no próximo passo para que os signers possam processar seu depósito.</span>
+      </div>
+
+      <button class="btn btn-btc btn-lg btn-full" (click)="depositStep.set(2)">
+        Já enviei o BTC
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14"/><path d="M12 5l7 7-7 7"/>
+        </svg>
       </button>
     </div>
-  </div>
+  }
 
-  <div class="fee-summary card">
-    <div class="detail-row">
-      <span class="detail-label">Depósito mínimo</span>
-      <span class="detail-value">10.000 sats</span>
+  <!-- Step 2: Confirm txid -->
+  @if (depositStep() === 2 && !notified()) {
+    <div class="step-content fade-up">
+      <div class="step-instruction">
+        <h3 class="font-display">Informe o txid da transação</h3>
+        <p>O txid permite que os signers localizem seu depósito na blockchain e processem a conversão para sBTC.</p>
+      </div>
+
+      <div class="alert-box alert-info">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><path d="M12 16V12"/><path d="M12 8h.01"/>
+        </svg>
+        <span>O txid aparece na sua carteira Bitcoin após a confirmação do envio. É um código de 64 caracteres hexadecimais.</span>
+      </div>
+
+      <div class="notify-form">
+        <label class="form-label">ID da transação Bitcoin (txid)</label>
+        <input
+          type="text"
+          class="form-input font-mono"
+          placeholder="Ex: 36b626903b49e40cfc21f58..."
+          [value]="btcTxidInput()"
+          (input)="btcTxidInput.set($any($event.target).value)"
+          maxlength="64"
+        />
+        <span class="form-hint">64 caracteres hexadecimais</span>
+      </div>
+
+      <button
+        class="btn btn-btc btn-lg btn-full"
+        [disabled]="btcTxidInput().trim().length !== 64 || notifying()"
+        (click)="submitNotify()"
+      >
+        @if (notifying()) {
+          <span class="loading-spinner loading-spinner-sm"></span>
+          Notificando...
+        } @else {
+          Confirmar depósito
+        }
+      </button>
+
+      <button class="btn btn-ghost btn-full" (click)="depositStep.set(1)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/>
+        </svg>
+        Voltar para endereço
+      </button>
     </div>
-  </div>
+  }
 
-  <div class="alert-box alert-info">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="10"/><path d="M12 16V12"/><path d="M12 8h.01"/>
-    </svg>
-    <span>Este endereço é exclusivo para a rede Bitcoin. O BTC enviado será convertido automaticamente em sBTC na Stacks Blockchain em aproximadamente 60 minutos. As taxas de rede serão descontadas do valor convertido.</span>
-  </div>
+  <!-- Success state -->
+  @if (notified()) {
+    <div class="success-state fade-up">
+      <div class="result-icon success">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 6L9 17l-5-5"/>
+        </svg>
+      </div>
+      <h3 class="font-display">Depósito notificado!</h3>
+      <p>Os signers foram notificados e irão processar seu depósito. A conversão para sBTC leva aproximadamente 60 minutos.</p>
+      <div class="alert-box alert-success">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 6L9 17l-5-5"/>
+        </svg>
+        <span>Acompanhe o status do seu depósito no histórico abaixo.</span>
+      </div>
+    </div>
+  }
 </div>

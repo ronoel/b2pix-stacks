@@ -12,6 +12,7 @@ import {
   WithdrawStep,
   WithdrawConfig,
   DecodedBtcAddress,
+  DepositAddressResult,
   BridgeOperationStatus,
 } from './bridge.types';
 
@@ -37,9 +38,12 @@ export class BridgeComponent implements OnInit, OnDestroy {
 
   // Deposit state — persistent address, auto-generated
   depositAddress = signal('');
+  depositResult = signal<DepositAddressResult | null>(null);
   depositMaxFee = signal(10_000); // safe cap — actual signer fee is much lower
   depositLoading = signal(false);
   depositError = signal('');
+  depositNotifying = signal(false);
+  depositNotified = signal(false);
 
   // Withdrawal state
   withdrawStep = signal<WithdrawStep>('form');
@@ -86,10 +90,37 @@ export class BridgeComponent implements OnInit, OnDestroy {
       });
 
       this.depositAddress.set(result.address);
+      this.depositResult.set(result);
     } catch (err) {
       this.depositError.set((err as Error).message);
     } finally {
       this.depositLoading.set(false);
+    }
+  }
+
+  async onNotifyDeposit(btcTxid: string): Promise<void> {
+    const address = this.depositAddress();
+    if (!address) return;
+
+    try {
+      this.depositNotifying.set(true);
+      this.depositError.set('');
+
+      await this.bridgeService.notifyManualDeposit({
+        btcTxid: btcTxid.trim(),
+        expectedAddress: address,
+        config: {
+          amount: 0,
+          maxSignerFee: this.depositMaxFee(),
+          reclaimLockTime: 700,
+        },
+      });
+
+      this.depositNotified.set(true);
+    } catch (err) {
+      this.depositError.set((err as Error).message);
+    } finally {
+      this.depositNotifying.set(false);
     }
   }
 

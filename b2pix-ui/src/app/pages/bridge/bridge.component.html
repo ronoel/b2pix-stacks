@@ -43,6 +43,9 @@
         <app-bridge-deposit-address
           [address]="depositAddress()"
           [maxSignerFee]="depositMaxFee()"
+          [notifying]="depositNotifying()"
+          [notified]="depositNotified()"
+          (notifyDeposit)="onNotifyDeposit($event)"
         />
       }
     </div>
