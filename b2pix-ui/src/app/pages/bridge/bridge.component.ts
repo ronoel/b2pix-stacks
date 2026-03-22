@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { PageHeaderComponent } from '../../components/page-header/page-header.component';
 import { BridgeStepIndicatorComponent } from './components/bridge-step-indicator.component';
@@ -50,8 +50,18 @@ export class BridgeComponent implements OnInit, OnDestroy {
   withdrawStacksTxid = signal('');
   withdrawBtcAddress = signal('');
   withdrawAmount = signal(100_000);
-  withdrawStatus = signal<BridgeOperationStatus>('pending');
-  withdrawBtcTxidFulfillment = signal('');
+  withdrawStatus = computed<BridgeOperationStatus>(() => {
+    const txid = this.withdrawStacksTxid();
+    if (!txid) return 'pending';
+    const op = this.bridgeService.operations().find(o => o.stacksTxid === txid);
+    return op?.status ?? 'pending';
+  });
+  withdrawBtcTxidFulfillment = computed(() => {
+    const txid = this.withdrawStacksTxid();
+    if (!txid) return '';
+    const op = this.bridgeService.operations().find(o => o.stacksTxid === txid);
+    return op?.btcTxidFulfillment ?? '';
+  });
 
   // Loading / error
   isLoading = signal(false);
@@ -136,7 +146,6 @@ export class BridgeComponent implements OnInit, OnDestroy {
       this.withdrawStacksTxid.set(result.stacksTxid);
       this.withdrawBtcAddress.set(params.btcAddress);
       this.withdrawAmount.set(params.amount);
-      this.withdrawStatus.set('pending');
       this.withdrawStep.set('processing');
     } catch (err) {
       this.errorMessage.set((err as Error).message);
@@ -148,7 +157,6 @@ export class BridgeComponent implements OnInit, OnDestroy {
   onNewWithdraw(): void {
     this.withdrawStep.set('form');
     this.withdrawStacksTxid.set('');
-    this.withdrawBtcTxidFulfillment.set('');
     this.errorMessage.set('');
   }
 

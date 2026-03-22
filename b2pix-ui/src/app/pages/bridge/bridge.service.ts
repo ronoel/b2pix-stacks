@@ -15,7 +15,8 @@ import {
   WithdrawConfig,
   DepositAddressResult,
   DecodedBtcAddress,
-  EmilyWithdrawalRecord,
+  EmilyWithdrawalListResponse,
+  EmilyWithdrawalDetail,
   ADDRESS_TYPE_VERSION,
   isFinalStatus,
   mapEmilyDepositStatus,
@@ -189,6 +190,11 @@ export class BridgeService {
       // Backfill amount from Emily if missing
       if (deposit.amount && (!op?.amount || op.amount === 0)) {
         updates.amount = deposit.amount;
+      }
+
+      // Capture fulfillment Stacks txid if available
+      if (deposit.fulfillment?.StacksTxid) {
+        updates.stacksTxidFulfillment = deposit.fulfillment.StacksTxid;
       }
 
       this.storageService.updateOperation(btcTxid, updates);
@@ -420,18 +426,33 @@ export class BridgeService {
       const response = await fetch(`${this.emilyUrl}/withdrawal/sender/${stxAddress}`);
       if (!response.ok) return;
 
-      const data: EmilyWithdrawalRecord[] = await response.json();
+      const data: EmilyWithdrawalListResponse = await response.json();
       const localOps = this.operations().filter(o => o.type === 'withdrawal' && !isFinalStatus(o.status));
 
       for (const op of localOps) {
-        const match = data.find(w => w.requestId === op.stacksTxid);
+        // Match by Stacks tx hash (Emily's txid field), not by requestId
+        const match = data.withdrawals.find(w => w.txid === op.stacksTxid);
         if (match) {
           const status = mapEmilyWithdrawalStatus(match.status);
-          this.storageService.updateOperation(op.id, {
+          const updates: Partial<BridgeOperationRecord> = {
             status,
             emilyStatus: match.status,
-            btcTxidFulfillment: match.txid,
-          });
+            requestId: match.requestId,
+          };
+
+          // For confirmed withdrawals, fetch the individual record to get the BTC fulfillment txid
+          if (status === 'confirmed' && !op.btcTxidFulfillment) {
+            try {
+              const detail = await this.fetchWithdrawalDetail(match.requestId);
+              if (detail?.fulfillment?.BitcoinTxid) {
+                updates.btcTxidFulfillment = detail.fulfillment.BitcoinTxid;
+              }
+            } catch (err) {
+              console.error(`Error fetching withdrawal detail ${match.requestId}:`, err);
+            }
+          }
+
+          this.storageService.updateOperation(op.id, updates);
         }
       }
 
@@ -445,6 +466,12 @@ export class BridgeService {
     } catch (err) {
       console.error('Error checking withdrawal statuses:', err);
     }
+  }
+
+  private async fetchWithdrawalDetail(requestId: number): Promise<EmilyWithdrawalDetail | null> {
+    const response = await fetch(`${this.emilyUrl}/withdrawal/${requestId}`);
+    if (!response.ok) return null;
+    return response.json();
   }
 
   // ===== Polling =====

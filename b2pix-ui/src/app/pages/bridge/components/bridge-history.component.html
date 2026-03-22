@@ -21,8 +21,8 @@
   } @else {
     <div class="history-list">
       @for (op of filteredOps(); track op.id) {
-        <div class="history-card card">
-          <div class="history-card__header">
+        <div class="history-card card" [class.expanded]="expandedId() === op.id">
+          <div class="history-card__header" (click)="toggleExpand(op.id)">
             <div class="history-card__icon icon-box icon-box-sm"
               [style.background]="op.type === 'deposit' ? 'var(--btc-bg)' : 'var(--primary-bg)'"
               [style.color]="op.type === 'deposit' ? 'var(--btc)' : 'var(--primary)'">
@@ -43,7 +43,69 @@
             <span class="status-badge" [class]="getStatusClass(op.status)">
               {{ getStatusLabel(op.status) }}
             </span>
+            <svg class="history-card__chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 9l6 6 6-6"/>
+            </svg>
           </div>
+
+          @if (expandedId() === op.id) {
+            <div class="history-card__details">
+              @if (op.type === 'deposit' && op.btcTxid) {
+                <div class="detail-row">
+                  <span class="detail-row__label">Transação BTC</span>
+                  <a class="detail-row__link" [href]="getMempoolUrl(op.btcTxid)" target="_blank" rel="noopener">
+                    {{ truncateTxid(op.btcTxid) }}
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                    </svg>
+                  </a>
+                </div>
+              }
+
+              @if (op.type === 'deposit' && op.stacksTxidFulfillment) {
+                <div class="detail-row">
+                  <span class="detail-row__label">Transação Stacks</span>
+                  <a class="detail-row__link" [href]="getStacksExplorerUrl(op.stacksTxidFulfillment)" target="_blank" rel="noopener">
+                    {{ truncateTxid(op.stacksTxidFulfillment) }}
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                    </svg>
+                  </a>
+                </div>
+              }
+
+              @if (op.type === 'withdrawal' && op.stacksTxid) {
+                <div class="detail-row">
+                  <span class="detail-row__label">Transação Stacks</span>
+                  <a class="detail-row__link" [href]="getStacksExplorerUrl(op.stacksTxid)" target="_blank" rel="noopener">
+                    {{ truncateTxid(op.stacksTxid) }}
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                    </svg>
+                  </a>
+                </div>
+              }
+
+              @if (op.type === 'withdrawal' && op.btcTxidFulfillment) {
+                <div class="detail-row">
+                  <span class="detail-row__label">Transação BTC</span>
+                  <a class="detail-row__link" [href]="getMempoolUrl(op.btcTxidFulfillment)" target="_blank" rel="noopener">
+                    {{ truncateTxid(op.btcTxidFulfillment) }}
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                    </svg>
+                  </a>
+                </div>
+              }
+
+              @if (op.btcAddress) {
+                <div class="detail-row">
+                  <span class="detail-row__label">Endereço BTC</span>
+                  <span class="detail-row__value">{{ truncateTxid(op.btcAddress) }}</span>
+                </div>
+              }
+            </div>
+          }
         </div>
       }
     </div>

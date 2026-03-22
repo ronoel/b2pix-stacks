@@ -58,6 +58,8 @@ export interface BridgeOperationRecord {
   depositAddress?: string;
   depositScript?: string;
   reclaimScript?: string;
+  // Deposit fulfillment (Stacks mint tx from signers)
+  stacksTxidFulfillment?: string;
   // Withdrawal-specific
   stacksTxid?: string;
   btcAddress?: string;
@@ -72,12 +74,35 @@ export interface BridgeStorageData {
   operations: BridgeOperationRecord[];
 }
 
-// Emily withdrawal response
-export interface EmilyWithdrawalRecord {
-  requestId: string;
+// Emily withdrawal list response (from /withdrawal/sender/{address})
+export interface EmilyWithdrawalListResponse {
+  nextToken: string | null;
+  withdrawals: EmilyWithdrawalListItem[];
+}
+
+export interface EmilyWithdrawalListItem {
+  requestId: number;
   status: 'pending' | 'accepted' | 'confirmed';
-  txid?: string;
+  txid: string;       // Stacks tx hash that initiated the withdrawal
+  sender: string;
   amount: number;
+}
+
+// Emily individual withdrawal response (from /withdrawal/{requestId})
+export interface EmilyWithdrawalDetail {
+  requestId: number;
+  status: 'pending' | 'accepted' | 'confirmed';
+  txid: string;
+  sender: string;
+  amount: number;
+  fulfillment?: {
+    BitcoinTxid: string;
+    BitcoinTxIndex: number;
+    StacksTxid: string;
+    BitcoinBlockHash: string;
+    BitcoinBlockHeight: number;
+    BtcFee: number;
+  };
 }
 
 // ===== Status helpers =====
