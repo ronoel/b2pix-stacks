@@ -11,7 +11,7 @@ import { formatSats, formatSatsToBtc, formatBrlCents } from '../../../shared/uti
       <div class="sheet" (click)="$event.stopPropagation()">
         <div class="sheet-handle"></div>
         <h3 class="sheet-title">Enviar para carteira</h3>
-        <p class="sheet-text">Disponível: {{ formatSats(maxAmountSats()) }} sats ({{ formatSatsToBtc(maxAmountSats()) }} BTC)</p>
+        <p class="sheet-text">Disponível: {{ formatSats(maxAmountSats()) }} sats ({{ formatSatsToBtc(maxAmountSats()) }} sBTC)</p>
 
         <div class="input-group">
           <label>Quantidade (sats)</label>

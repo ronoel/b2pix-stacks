@@ -379,7 +379,7 @@ export class OrderStatusComponent implements OnInit, OnDestroy {
       case 'refunded':
         return 'Reembolsado';
       default:
-        return 'Recebendo Bitcoin';
+        return 'Recebendo sBTC';
     }
   }
 

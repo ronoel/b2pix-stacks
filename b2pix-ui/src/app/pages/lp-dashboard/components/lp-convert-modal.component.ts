@@ -10,7 +10,7 @@ import { formatBrlCents } from '../../../shared/utils/format.util';
     <div class="sheet-overlay" (click)="cancel.emit()">
       <div class="sheet" (click)="$event.stopPropagation()">
         <div class="sheet-handle"></div>
-        <h3 class="sheet-title">Converter saldo para Bitcoin</h3>
+        <h3 class="sheet-title">Converter saldo para sBTC</h3>
         <p class="sheet-text">Saldo disponível: {{ formatBrlCents(maxAmountCents()) }}</p>
 
         <div class="input-group">

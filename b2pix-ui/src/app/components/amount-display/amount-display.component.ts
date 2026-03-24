@@ -11,7 +11,7 @@ import { formatBrlCents, formatSatsToBtc } from '../../shared/utils/format.util'
       }
       <span class="amount-display__brl">{{ formattedBrl() }}</span>
       @if (showBtc() && amountSats() > 0) {
-        <span class="amount-display__btc">&asymp; {{ formattedBtc() }} BTC</span>
+        <span class="amount-display__btc">&asymp; {{ formattedBtc() }} sBTC</span>
       }
     </div>
   `,

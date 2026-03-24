@@ -546,7 +546,7 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
       next: () => {
         this.isSheetProcessing.set(false);
         this.activeSheet.set(null);
-        this.showSuccess('Saldo convertido para Bitcoin com sucesso!');
+        this.showSuccess('Saldo convertido para sBTC com sucesso!');
         this.loadStats();
         if (this.currentTab() === 'ledger') {
           this.loadLedger();
@@ -567,7 +567,7 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
       next: () => {
         this.isSheetProcessing.set(false);
         this.activeSheet.set(null);
-        this.showSuccess('Saque de Bitcoin realizado com sucesso!');
+        this.showSuccess('Saque de sBTC realizado com sucesso!');
         this.loadStats();
         if (this.currentTab() === 'ledger') {
           this.loadLedger();

@@ -33,7 +33,7 @@
         </div>
       } @else {
         <span class="balance-card__sats">{{ formatSats(sBtcBalance()) }} sats</span>
-        <span class="balance-card__btc font-mono">{{ formatSatsToBtc(sBtcBalance()) }} BTC</span>
+        <span class="balance-card__btc font-mono">{{ formatSatsToBtc(sBtcBalance()) }} sBTC</span>
         <div class="balance-card__brl-chip">
           <span>&asymp; {{ formatBrlCentsValue(balanceInCents()) }}</span>
         </div>
@@ -86,7 +86,7 @@
           </svg>
         </div>
         <span class="action-card__label">Comprar</span>
-        <span class="action-card__sub">BTC com PIX</span>
+        <span class="action-card__sub">sBTC com PIX</span>
       </button>
 
       <button class="action-card action-card--sell" (click)="navigate('/sell')">
@@ -96,7 +96,7 @@
           </svg>
         </div>
         <span class="action-card__label">Vender</span>
-        <span class="action-card__sub">BTC para PIX</span>
+        <span class="action-card__sub">sBTC para PIX</span>
       </button>
 
       <button class="action-card action-card--pix" (click)="navigate('/pix-payment')">
@@ -188,7 +188,7 @@
   <!-- Deposit Bottom Sheet -->
   <app-status-sheet
     [isOpen]="showDepositSheet()"
-    title="Receber Bitcoin"
+    title="Receber sBTC"
     type="info"
     (close)="closeDepositSheet()"
   >
@@ -210,7 +210,7 @@
     <div actions>
       <div class="deposit-qr">
         <div class="deposit-qr__frame" [innerHTML]="depositQrSvg()"></div>
-        <span class="deposit-qr__hint">Escaneie para receber BTC</span>
+        <span class="deposit-qr__hint">Escaneie para receber sBTC</span>
       </div>
       <button
         class="btn btn-primary btn-lg btn-full"
