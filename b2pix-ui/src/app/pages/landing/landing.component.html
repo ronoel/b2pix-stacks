@@ -10,12 +10,12 @@
 
       <!-- Title -->
       <h1 class="hero-title">
-        Compre e venda <span class="text-gradient-btc">Bitcoin</span> com PIX em instantes
+        Sua carteira <span class="text-gradient-btc">Bitcoin</span> para o dia a dia
       </h1>
 
       <!-- Subtitle -->
       <p class="hero-subtitle">
-        Fácil como comprar um café. Seguro como um cofre que só você tem a chave.
+        Pague contas, compre online, guarde valor. Tudo com a segurança de só você ter a chave.
       </p>
 
       <!-- CTA Buttons -->
@@ -50,24 +50,27 @@
             <rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
             <path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2"/>
           </svg>
-          <span>Sem custódia</span>
+          <span>Você no controle</span>
         </div>
         <div class="trust-badge-item">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <span>Compra e venda com PIX</span>
+          <span>Integrado com PIX</span>
         </div>
         <div class="trust-badge-item">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="2"/>
             <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <span>P2P 100% seguro</span>
+          <span>Ninguém congela</span>
         </div>
       </div>
     </div>
   </section>
+
+  <!-- Use Cases -->
+  <app-use-cases />
 
   <!-- How It Works -->
   <app-how-it-works />
@@ -78,7 +81,7 @@
   <!-- Bottom CTA Section -->
   <section class="bottom-cta-section">
     <div class="bottom-cta-container">
-      <h2 class="bottom-cta-title">Pronto para começar?</h2>
+      <h2 class="bottom-cta-title">Comece a usar Bitcoin hoje</h2>
 
       <div class="cta-section">
         @if (walletManager.isLoggedInSignal()) {

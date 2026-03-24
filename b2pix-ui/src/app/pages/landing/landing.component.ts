@@ -6,6 +6,7 @@ import { HowItWorksComponent } from './components/how-it-works.component';
 import { TrustSectionComponent } from './components/trust-section.component';
 import { SocialSectionComponent } from './components/social-section.component';
 import { InstallSectionComponent } from './components/install-section.component';
+import { UseCasesComponent } from './components/use-cases.component';
 import { WalletSelectionModalComponent, WalletSelectionType } from '../../components/wallet-selection-modal/wallet-selection-modal.component';
 import { EmbeddedWalletCreateComponent } from '../../components/embedded-wallet-create/embedded-wallet-create.component';
 import { EmbeddedWalletUnlockComponent } from '../../components/embedded-wallet-unlock/embedded-wallet-unlock.component';
@@ -18,6 +19,7 @@ import { EmbeddedWalletImportComponent } from '../../components/embedded-wallet-
     TrustSectionComponent,
     SocialSectionComponent,
     InstallSectionComponent,
+    UseCasesComponent,
     WalletSelectionModalComponent,
     EmbeddedWalletCreateComponent,
     EmbeddedWalletUnlockComponent,
