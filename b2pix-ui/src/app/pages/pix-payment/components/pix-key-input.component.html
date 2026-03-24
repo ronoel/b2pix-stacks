@@ -1,0 +1,89 @@
+<div class="pix-key-input">
+
+  <!-- PIX Key Input -->
+  <div class="key-section">
+    <label class="form-label">Chave PIX</label>
+    <input
+      type="text"
+      class="form-input"
+      [class.input-error]="keyError()"
+      placeholder="CPF, CNPJ, telefone, e-mail ou chave aleatória"
+      [ngModel]="pixKeyValue()"
+      (ngModelChange)="pixKeyValue.set($event)"
+      (blur)="onKeyBlur()"
+      autocomplete="off"
+      spellcheck="false"
+    />
+
+    <!-- Auto-detection badge -->
+    @if (detectedKeyType()) {
+      <div class="key-detected">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+          <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>{{ keyTypeLabel() }} detectado</span>
+      </div>
+    }
+
+    @if (keyError()) {
+      <div class="alert-box alert-error key-error">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+          <path d="M15 9l-6 6M9 9l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span>{{ keyError() }}</span>
+      </div>
+    }
+  </div>
+
+  <!-- Value Input (shown after key validates) -->
+  @if (isKeyValid()) {
+    <div class="value-section">
+      <label class="form-label">Valor do pagamento</label>
+
+      <app-quick-amount-chips
+        [amounts]="quickAmounts"
+        [selectedAmount]="selectedQuickAmount()"
+        [formatLabel]="formatChipLabel"
+        (amountSelected)="onQuickAmountSelected($event)"
+      />
+
+      <div class="input-with-addon">
+        <span class="input-prefix">R$</span>
+        <input
+          type="text"
+          inputmode="decimal"
+          class="form-input has-prefix"
+          placeholder="0,00"
+          [ngModel]="displayValue()"
+          (ngModelChange)="onValueChange($event)"
+        />
+      </div>
+
+      <span class="limit-hint">Máx: R$ 1.000,00 por operação</span>
+
+      @if (valueError()) {
+        <div class="alert-box alert-error">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+            <path d="M15 9l-6 6M9 9l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span>{{ valueError() }}</span>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Actions -->
+  <div class="actions">
+    <button
+      class="btn btn-primary btn-lg full-width"
+      [disabled]="!isFormValid()"
+      (click)="onSubmit()">
+      Continuar
+    </button>
+    <button class="btn btn-ghost full-width" (click)="cancelled.emit()">
+      Voltar
+    </button>
+  </div>
+</div>

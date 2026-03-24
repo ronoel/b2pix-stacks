@@ -6,8 +6,8 @@
       backRoute="/dashboard"
     />
 
-    <!-- Scanner View -->
-    @if (currentView() === 'scanner' || currentView() === 'confirmation') {
+    <!-- Input Mode Selector View -->
+    @if (currentView() === 'input-mode' || currentView() === 'confirmation') {
       <div class="view-container">
 
         <!-- Inline error banner (auto-dismiss 8s) -->
@@ -56,7 +56,7 @@
           }
 
           @if (p2pWarningAccepted()) {
-            <app-qr-scanner (qrCodeScanned)="onQrCodeScanned($event)" />
+            <app-input-mode-selector (modeSelected)="onInputModeSelected($event)" />
           }
         }
 
@@ -78,6 +78,57 @@
         </div>
 
         <app-pix-payment-history (viewOrder)="onViewOrder($event)" />
+      </div>
+    }
+
+    <!-- Scanner View (QR mode) -->
+    @if (currentView() === 'scanner') {
+      <div class="view-container">
+        @if (errorMessage()) {
+          <div class="alert-box alert-warning error-banner" role="alert" aria-live="polite">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <span>{{ errorMessage() }}</span>
+            <button class="error-dismiss" (click)="dismissError()" aria-label="Fechar">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        }
+
+        <app-qr-scanner (qrCodeScanned)="onQrCodeScanned($event)" />
+
+        <button class="btn btn-ghost back-nav" (click)="currentView.set('input-mode')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Voltar
+        </button>
+      </div>
+    }
+
+    <!-- PIX Key Input View -->
+    @if (currentView() === 'pix-key') {
+      <div class="view-container">
+        <app-pix-key-input
+          (pixKeySubmitted)="onPixKeySubmitted($event)"
+          (cancelled)="currentView.set('input-mode')"
+        />
+      </div>
+    }
+
+    <!-- Value Input View (valueless QR) -->
+    @if (currentView() === 'value-input' && qrData()) {
+      <div class="view-container">
+        <app-value-input
+          [qrData]="qrData()!"
+          (valueSubmitted)="onValueInputSubmitted($event)"
+          (cancelled)="currentView.set('scanner')"
+        />
       </div>
     }
 
@@ -103,7 +154,7 @@
         />
 
         <div class="status-actions">
-          <button class="btn btn-outline" (click)="resetToScanner()">
+          <button class="btn btn-outline" (click)="resetToStart()">
             Fazer outro pagamento
           </button>
           <button class="btn btn-ghost" (click)="goToDashboard()">

@@ -37,7 +37,9 @@ export interface PixPaymentOrder extends CommonOrder {
 }
 
 export interface CreatePixPaymentRequest {
-  qr_code_payload: string;
+  qr_code_payload?: string;
+  pix_key?: string;
+  pix_value?: number;          // BRL in cents
   transaction: string;
   address: string;
   amount: number;

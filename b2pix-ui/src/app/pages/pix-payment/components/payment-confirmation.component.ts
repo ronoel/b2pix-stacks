@@ -1,8 +1,11 @@
 import { Component, input, output, computed } from '@angular/core';
 import { formatSats, formatSatsToBtc } from '../../../shared/utils/format.util';
+import { PixKeyType, formatPixKeyForDisplay, getPixKeyTypeLabel } from '../../../shared/utils/pix-validation.util';
 
 export interface PixQrData {
   payload: string;
+  pixKey?: string;
+  pixKeyType?: PixKeyType;
   valueInCents: number;
   recipientName: string | null;
 }
@@ -18,6 +21,8 @@ export interface PixQrData {
       <div class="payment-summary">
         @if (qrData().recipientName) {
           <span class="summary-recipient">{{ qrData().recipientName }}</span>
+        } @else if (qrData().pixKey && qrData().pixKeyType) {
+          <span class="summary-recipient">{{ pixKeyLabel() }}</span>
         }
         <span class="summary-amount">{{ formatBrl(pixValueInBrl()) }}</span>
         <span class="summary-sats">≈ {{ formatSats(totalInSats()) }} sats</span>
@@ -141,6 +146,14 @@ export class PaymentConfirmationComponent {
   cancelled = output<void>();
 
   pixValueInBrl = computed(() => this.qrData().valueInCents / 100);
+
+  pixKeyLabel = computed(() => {
+    const data = this.qrData();
+    if (data.pixKey && data.pixKeyType) {
+      return `${getPixKeyTypeLabel(data.pixKeyType)}: ${formatPixKeyForDisplay(data.pixKey, data.pixKeyType)}`;
+    }
+    return '';
+  });
 
   totalInSats = computed(() => this.amountInSats() + this.fee());
 

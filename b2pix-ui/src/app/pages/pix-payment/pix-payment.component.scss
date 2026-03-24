@@ -156,6 +156,16 @@
   to { transform: rotate(360deg); }
 }
 
+// Back navigation button
+.back-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 16px;
+  width: 100%;
+}
+
 // Status Actions
 .status-actions {
   display: flex;

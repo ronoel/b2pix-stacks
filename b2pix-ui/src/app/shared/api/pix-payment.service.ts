@@ -16,6 +16,13 @@ export interface GetPixPaymentsParams {
   limit?: number;
 }
 
+export interface CreatePixPaymentOptions {
+  qrCodePayload?: string;
+  pixKey?: string;
+  pixValueCents?: number;
+  amountInSats: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class PixPaymentService {
   private http = inject(HttpClient);
@@ -28,12 +35,10 @@ export class PixPaymentService {
 
   /**
    * Create a PIX payment order.
-   * Creates the sBTC transaction and sends it with the QR code payload in a single request.
-   * @param qrCodePayload Raw content from the PIX QR Code
-   * @param amountInSats Amount in satoshis to send
-   * @returns Observable of created PixPaymentOrder
+   * Supports QR code (with/without value) and raw PIX key input modes.
+   * Creates the sBTC transaction and sends it with the payment data in a single request.
    */
-  createPixPayment(qrCodePayload: string, amountInSats: number): Observable<PixPaymentOrder> {
+  createPixPayment(options: CreatePixPaymentOptions): Observable<PixPaymentOrder> {
     const recipient = environment.b2pixAddress;
     const address = this.walletManager.getSTXAddress();
 
@@ -41,14 +46,23 @@ export class PixPaymentService {
       throw new Error('Wallet not connected');
     }
 
-    return this.boltContractSBTCService.transferStacksToBolt(amountInSats, recipient).pipe(
+    return this.boltContractSBTCService.transferStacksToBolt(options.amountInSats, recipient).pipe(
       switchMap((transactionSerialized) => {
-        return this.http.post<PixPaymentOrder>(`${this.apiUrl}/v1/pix-orders`, {
-          qr_code_payload: qrCodePayload,
+        const body: Record<string, unknown> = {
           transaction: transactionSerialized,
           address: address,
-          amount: amountInSats
-        });
+          amount: options.amountInSats
+        };
+        if (options.qrCodePayload) {
+          body['qr_code_payload'] = options.qrCodePayload;
+        }
+        if (options.pixKey) {
+          body['pix_key'] = options.pixKey;
+        }
+        if (options.pixValueCents !== undefined) {
+          body['pix_value'] = options.pixValueCents;
+        }
+        return this.http.post<PixPaymentOrder>(`${this.apiUrl}/v1/pix-orders`, body);
       }),
       catchError((error: any) => {
         console.error('Error creating PIX payment:', error);

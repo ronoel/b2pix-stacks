@@ -8,6 +8,7 @@ import { PixPayoutRequest } from '../../shared/models/pix-payout-request.model';
 import { sBTCTokenService } from '../../libs/sbtc-token.service';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import { LoadingService } from '../../services/loading.service';
+import { validatePixKey } from '../../shared/utils/pix-validation.util';
 import { QrScannerComponent } from './components/qr-scanner.component';
 import { PaymentConfirmationComponent, PixQrData } from './components/payment-confirmation.component';
 import { OrderStatusComponent } from '../../components/order-status/order-status.component';
@@ -15,6 +16,9 @@ import { PixPaymentHistoryComponent } from './components/pix-payment-history.com
 import { PageHeaderComponent } from '../../components/page-header/page-header.component';
 import { StatusSheetComponent } from '../../components/status-sheet/status-sheet.component';
 import { ActivePayoutCardComponent } from '../../components/active-payout-card/active-payout-card.component';
+import { InputModeSelectorComponent, PixInputMode } from './components/input-mode-selector.component';
+import { ValueInputComponent } from './components/value-input.component';
+import { PixKeyInputComponent, PixKeySubmitData } from './components/pix-key-input.component';
 
 @Component({
   selector: 'app-pix-payment',
@@ -26,7 +30,10 @@ import { ActivePayoutCardComponent } from '../../components/active-payout-card/a
     PixPaymentHistoryComponent,
     PageHeaderComponent,
     StatusSheetComponent,
-    ActivePayoutCardComponent
+    ActivePayoutCardComponent,
+    InputModeSelectorComponent,
+    ValueInputComponent,
+    PixKeyInputComponent
   ],
   templateUrl: './pix-payment.component.html',
   styleUrls: ['./pix-payment.component.scss']
@@ -51,7 +58,8 @@ export class PixPaymentComponent implements OnInit, OnDestroy {
   readonly SATS_PER_BTC = 100000000;
 
   // View state
-  currentView = signal<'scanner' | 'confirmation' | 'processing' | 'status'>('scanner');
+  currentView = signal<'input-mode' | 'scanner' | 'pix-key' | 'value-input' | 'confirmation' | 'processing' | 'status'>('input-mode');
+  inputMode = signal<PixInputMode | null>(null);
 
   // Active payout check
   activePayout = signal<PixPayoutRequest | null>(null);
@@ -184,17 +192,18 @@ export class PixPaymentComponent implements OnInit, OnDestroy {
     }
   }
 
+  // Input mode selected
+  onInputModeSelected(mode: PixInputMode) {
+    this.inputMode.set(mode);
+    this.currentView.set(mode === 'qr' ? 'scanner' : 'pix-key');
+  }
+
   // QR Code scanned
   onQrCodeScanned(payload: string) {
     const parsed = this.parsePixPayload(payload);
 
     if (!parsed) {
       this.showError(this.lastParseError || 'QR Code inválido. Este não parece ser um QR Code PIX válido. Verifique e tente novamente.');
-      return;
-    }
-
-    if (parsed.valueInCents <= 0) {
-      this.showError('QR Code sem valor definido. Apenas QR Codes PIX com valor são aceitos.');
       return;
     }
 
@@ -205,7 +214,14 @@ export class PixPaymentComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Calculate sats
+    // Valueless QR — ask user for value
+    if (parsed.valueInCents <= 0) {
+      this.qrData.set(parsed);
+      this.currentView.set('value-input');
+      return;
+    }
+
+    // QR with value — proceed to confirmation
     if (this.currentBtcPrice() > 0) {
       const sats = this.pixPaymentService.brlToSats(
         parsed.valueInCents / 100,
@@ -218,6 +234,46 @@ export class PixPaymentComponent implements OnInit, OnDestroy {
     this.currentView.set('confirmation');
   }
 
+  // Value submitted for valueless QR
+  onValueInputSubmitted(valueInCents: number) {
+    const data = this.qrData();
+    if (!data) return;
+
+    this.qrData.set({ ...data, valueInCents });
+
+    if (this.currentBtcPrice() > 0) {
+      const sats = this.pixPaymentService.brlToSats(
+        valueInCents / 100,
+        this.currentBtcPrice()
+      );
+      this.amountInSats.set(sats);
+    }
+
+    this.currentView.set('confirmation');
+  }
+
+  // PIX key submitted
+  onPixKeySubmitted(data: PixKeySubmitData) {
+    const pixQrData: PixQrData = {
+      payload: '',
+      pixKey: data.pixKey,
+      pixKeyType: data.pixKeyType,
+      valueInCents: data.valueInCents,
+      recipientName: null
+    };
+
+    if (this.currentBtcPrice() > 0) {
+      const sats = this.pixPaymentService.brlToSats(
+        data.valueInCents / 100,
+        this.currentBtcPrice()
+      );
+      this.amountInSats.set(sats);
+    }
+
+    this.qrData.set(pixQrData);
+    this.currentView.set('confirmation');
+  }
+
   // Confirm payment
   onPaymentConfirmed() {
     const data = this.qrData();
@@ -227,7 +283,12 @@ export class PixPaymentComponent implements OnInit, OnDestroy {
     this.currentView.set('processing');
     this.loadingService.show('Criando transação de pagamento...');
 
-    this.pixPaymentService.createPixPayment(data.payload, this.amountInSats()).subscribe({
+    this.pixPaymentService.createPixPayment({
+      qrCodePayload: data.payload || undefined,
+      pixKey: data.pixKey,
+      pixValueCents: data.pixKey || !data.payload ? data.valueInCents : undefined,
+      amountInSats: this.amountInSats()
+    }).subscribe({
       next: (order) => {
         this.isProcessing.set(false);
         this.loadingService.hide();
@@ -258,16 +319,17 @@ export class PixPaymentComponent implements OnInit, OnDestroy {
   onConfirmationCancelled() {
     this.qrData.set(null);
     this.amountInSats.set(0);
-    this.currentView.set('scanner');
+    this.currentView.set('input-mode');
   }
 
-  // Reset to scanner for "Fazer outro pagamento"
-  resetToScanner() {
+  // Reset to start for "Fazer outro pagamento"
+  resetToStart() {
     this.qrData.set(null);
     this.amountInSats.set(0);
     this.createdOrderId.set(null);
     this.errorMessage.set('');
-    this.currentView.set('scanner');
+    this.inputMode.set(null);
+    this.currentView.set('input-mode');
   }
 
   // Error handling — inline banner with auto-dismiss
@@ -343,7 +405,7 @@ export class PixPaymentComponent implements OnInit, OnDestroy {
     // Extract and validate PIX key (sub-tag 01)
     // Dynamic QR codes may use sub-tag 25 (URL) instead — skip key validation in that case
     const pixKey = merchantTags.get('01');
-    if (pixKey && !this.validatePixKey(pixKey)) {
+    if (pixKey && !validatePixKey(pixKey)) {
       this.lastParseError = 'Chave PIX inválida no QR Code. A chave não possui um formato válido (CPF, CNPJ, telefone com +55, e-mail ou chave aleatória).';
       return null;
     }
@@ -411,80 +473,6 @@ export class PixPaymentComponent implements OnInit, OnDestroy {
       }
     }
     return crc.toString(16).toUpperCase().padStart(4, '0');
-  }
-
-  private validatePixKey(key: string): boolean {
-    // Phone: starts with +
-    if (key.startsWith('+')) {
-      return /^\+55\d{10,11}$/.test(key);
-    }
-
-    // Email: contains @
-    if (key.includes('@')) {
-      const parts = key.split('@');
-      return parts.length === 2 && parts[0].length > 0 && parts[1].includes('.');
-    }
-
-    // EVP/UUID: 36 chars with hyphens
-    if (key.length === 36 && key.includes('-')) {
-      return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(key);
-    }
-
-    // CPF: 11 digits
-    if (/^\d{11}$/.test(key)) {
-      return this.validateCpf(key);
-    }
-
-    // CNPJ: 14 digits
-    if (/^\d{14}$/.test(key)) {
-      return this.validateCnpj(key);
-    }
-
-    return false;
-  }
-
-  private validateCpf(cpf: string): boolean {
-    if (/^(\d)\1+$/.test(cpf)) return false;
-
-    let sum = 0;
-    for (let i = 0; i < 9; i++) {
-      sum += parseInt(cpf[i]) * (10 - i);
-    }
-    let remainder = (sum * 10) % 11;
-    if (remainder >= 10) remainder = 0;
-    if (remainder !== parseInt(cpf[9])) return false;
-
-    sum = 0;
-    for (let i = 0; i < 10; i++) {
-      sum += parseInt(cpf[i]) * (11 - i);
-    }
-    remainder = (sum * 10) % 11;
-    if (remainder >= 10) remainder = 0;
-    if (remainder !== parseInt(cpf[10])) return false;
-
-    return true;
-  }
-
-  private validateCnpj(cnpj: string): boolean {
-    if (/^(\d)\1+$/.test(cnpj)) return false;
-
-    const weights1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-    let sum = 0;
-    for (let i = 0; i < 12; i++) {
-      sum += parseInt(cnpj[i]) * weights1[i];
-    }
-    let remainder = sum % 11;
-    if ((remainder < 2 ? 0 : 11 - remainder) !== parseInt(cnpj[12])) return false;
-
-    const weights2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-    sum = 0;
-    for (let i = 0; i < 13; i++) {
-      sum += parseInt(cnpj[i]) * weights2[i];
-    }
-    remainder = sum % 11;
-    if ((remainder < 2 ? 0 : 11 - remainder) !== parseInt(cnpj[13])) return false;
-
-    return true;
   }
 
   private getErrorMessage(error: any): string {
