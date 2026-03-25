@@ -10,7 +10,6 @@ import { Component, ViewEncapsulation } from '@angular/core';
         <div class="footer-brand">
           <img src="images/logo-512px-t.png" alt="B2Pix Logo" width="24" height="24" class="footer-logo">
           <span class="footer-brand-name">B2Pix</span>
-          <span class="footer-brand-tagline">P2P Bitcoin com PIX</span>
         </div>
 
         <div class="footer-social">
@@ -75,12 +74,6 @@ import { Component, ViewEncapsulation } from '@angular/core';
       font-size: 16px;
       font-weight: 700;
       color: var(--text-primary);
-    }
-
-    .footer-brand-tagline {
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text-muted);
     }
 
     .footer-social {
