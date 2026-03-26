@@ -4,7 +4,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { LoadingService } from '../../services/loading.service';
 import { BuyOrderService } from '../../shared/api/buy-order.service';
 import { PaymentRequestService } from '../../shared/api/payment-request.service';
-import { BuyOrder, BuyOrderStatus } from '../../shared/models/buy-order.model';
+import { BuyOrderResponse, VerificationOutcome } from '../../shared/models/buy-order.model';
 import { PaymentRequest, PaymentRequestStatus, PaymentSourceType } from '../../shared/models/payment-request.model';
 import {
   formatBrlCents,
@@ -41,15 +41,22 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   countdownTimer = viewChild(CountdownTimerComponent);
 
   // Component state
-  buyData = signal<BuyOrder | null>(null);
+  buyData = signal<BuyOrderResponse | null>(null);
   isLoading = signal(true);
   errorMessage = signal('');
+
+  // PIX info from creation response (passed via router state)
+  pixKey = signal('');
+  pixExpiresAt = signal('');
 
   // Time warning sheet state (bottom sheet, triggers at 3 minutes)
   showTimeWarningSheet = signal(false);
   showConfirmCancel = signal(false);
   private hasShownTimeWarning = false;
-  private hasShownTimeoutAlert = false;
+
+  // Resubmit state
+  isResubmitting = signal(false);
+  resubmitOutcome = signal<VerificationOutcome | null>(null);
 
   // Payment request state (for completed status)
   paymentRequest = signal<PaymentRequest | null>(null);
@@ -59,6 +66,15 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   private pollSubscription?: Subscription;
 
   ngOnInit() {
+    // Read PIX data passed via router state from the creation page
+    const state = history.state;
+    if (state?.expires_at) {
+      this.pixExpiresAt.set(state.expires_at);
+    }
+    if (state?.pix_key) {
+      this.pixKey.set(state.pix_key);
+    }
+
     const buyId = this.route.snapshot.paramMap.get('id');
 
     if (buyId) {
@@ -91,8 +107,6 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
       next: (buy) => {
         this.buyData.set(buy);
 
-        // Timer is handled by the countdown-timer component via getExpiresAt()
-
         // If completed status, load payment request
         if (this.shouldShowPaymentDetails()) {
           this.loadPaymentRequest(buy.id);
@@ -115,34 +129,64 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     });
   }
 
+  // --- Status helpers ---
 
   /**
-   * Check if a buy is actually expired (expires_at has passed)
-   * even if the server status still shows as created
+   * Get the effective display status combining buy order + PIX inbound status.
+   * For non-final orders, PIX status drives the UI. For final orders, order status.
    */
-  isActuallyExpired(buy: BuyOrder | null): boolean {
-    if (!buy || !buy.expires_at) return false;
-
-    const now = new Date();
-    const expiresAt = new Date(buy.expires_at);
-    return now.getTime() > expiresAt.getTime();
-  }
-
-  isPendingPayment(): boolean {
+  getEffectiveStatus(): string {
     const buy = this.buyData();
-    const status = buy?.status;
-    const statusStr = status?.toString().toLowerCase();
+    if (!buy) return '';
 
-    // If status is created but it's actually expired, don't show payment form
-    if (statusStr === 'created' && this.isActuallyExpired(buy)) {
-      return false;
+    // Final orders: use order status directly
+    if (buy.is_final) return buy.status;
+
+    // Non-final: use pix status if available
+    if (buy.pix) {
+      // If pix is 'created' but locally expired, show as expired
+      if (buy.pix.status === 'created' && this.isLocallyExpired()) {
+        return 'expired';
+      }
+      return buy.pix.status;
     }
 
-    return statusStr === 'created';
+    return buy.status;
+  }
+
+  /**
+   * Check if the PIX payment window has elapsed locally,
+   * even if the server hasn't caught up yet.
+   */
+  private isLocallyExpired(): boolean {
+    const expiresAt = this.getExpiresAt();
+    if (!expiresAt) return false;
+    return new Date().getTime() > new Date(expiresAt).getTime();
+  }
+
+  /**
+   * Show payment form only when PIX is active and waiting for payment.
+   */
+  isPendingPayment(): boolean {
+    const buy = this.buyData();
+    if (!buy) return false;
+
+    const pixStatus = buy.pix?.status;
+
+    // Show payment form when PIX is active (created) and not locally expired
+    if (pixStatus === 'created') {
+      return !this.isLocallyExpired();
+    }
+
+    return false;
   }
 
   getExpiresAt(): string {
-    return this.buyData()?.expires_at || '';
+    return this.pixExpiresAt() || this.buyData()?.pix?.expires_at || '';
+  }
+
+  getPixKey(): string {
+    return this.pixKey() || this.buyData()?.pix?.pix_key || '';
   }
 
   onTimerWarning() {
@@ -153,15 +197,12 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   }
 
   handlePaymentTimeout() {
-    // Only show alert once
-    if (!this.hasShownTimeoutAlert) {
-      this.hasShownTimeoutAlert = true;
-      alert('O tempo de pagamento foi excedido. Sua compra foi cancelada.');
+    // Reload data — server will have PIX marked as expired.
+    // Template will automatically show the expired state.
+    const buy = this.buyData();
+    if (buy) {
+      this.loadBuyData(buy.id, false);
     }
-
-    // Don't reload buy data - the component will automatically show expired state
-    // based on local time check. No need to fetch from server since status
-    // might still be "pending" on server side, but we know it's expired locally.
   }
 
   getTotalFiatAmount(): number {
@@ -192,9 +233,9 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   formatSats = formatSats;
 
   copyPixKey() {
-    const buy = this.buyData();
-    if (buy?.pix_key) {
-      navigator.clipboard.writeText(buy.pix_key).then(() => {
+    const key = this.getPixKey();
+    if (key) {
+      navigator.clipboard.writeText(key).then(() => {
         alert('Chave PIX copiada para a área de transferência!');
       }).catch(() => {
         alert('Erro ao copiar chave PIX. Copie manualmente.');
@@ -287,11 +328,10 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   }
 
   shouldShowPaymentDetails(): boolean {
-    const status = this.buyData()?.status;
-    const statusStr = status?.toString().toLowerCase();
-    return statusStr === 'confirmed' ||
-           statusStr === 'rejected' ||
-           statusStr === 'analyzing';
+    const status = this.getEffectiveStatus();
+    return status === 'confirmed' ||
+           status === 'rejected' ||
+           status === 'analyzing';
   }
 
   loadPaymentRequest(buyId: string) {
@@ -312,54 +352,41 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
   }
 
   getPageTitle(): string {
-    const status = this.buyData()?.status;
-    const statusStr = status?.toString().toLowerCase();
-    if (statusStr === 'created') {
+    const status = this.getEffectiveStatus();
+    if (status === 'created') {
       return 'Pagamento PIX';
     }
     return 'Detalhes da compra';
   }
 
-  getStatusClass(status: BuyOrderStatus): string {
-    const buy = this.buyData();
+  getStatusClass(status?: string): string {
+    const effectiveStatus = status || this.getEffectiveStatus();
 
-    // Check if it's actually expired even if status is created
-    if (status?.toString().toLowerCase() === 'created' && this.isActuallyExpired(buy)) {
-      return 'warning';
-    }
-
-    if (this.isSuccessStatus(status)) return 'completed';
-    if (this.isProcessingStatus(status)) return 'processing';
+    if (this.isSuccessStatus(effectiveStatus)) return 'completed';
+    if (this.isProcessingStatus(effectiveStatus)) return 'processing';
     return 'warning';
   }
 
-  isSuccessStatus(status: BuyOrderStatus): boolean {
-    const statusStr = status?.toString().toLowerCase();
-    return statusStr === 'confirmed';
+  isSuccessStatus(status?: string): boolean {
+    const s = (status || this.getEffectiveStatus()).toLowerCase();
+    return s === 'confirmed';
   }
 
-  isProcessingStatus(status: BuyOrderStatus): boolean {
-    const statusStr = status?.toString().toLowerCase();
-    return statusStr === 'processing' || statusStr === 'analyzing';
+  isProcessingStatus(status?: string): boolean {
+    const s = (status || this.getEffectiveStatus()).toLowerCase();
+    return s === 'processing' || s === 'analyzing';
   }
 
-  getStatusLabel(status: BuyOrderStatus): string {
-    // Use string comparison for more robust matching
-    const statusStr = status?.toString().toLowerCase();
-    const buy = this.buyData();
+  getStatusLabel(status?: string): string {
+    const s = (status || this.getEffectiveStatus()).toLowerCase();
 
-    // Check if it's actually expired even if status is created
-    if (statusStr === 'created' && this.isActuallyExpired(buy)) {
-      return 'Expirada';
-    }
-
-    switch (statusStr) {
+    switch (s) {
       case 'created':
         return 'Aguardando Pagamento';
       case 'processing':
         return 'Verificando Pagamento';
       case 'analyzing':
-        return 'Em Análise';
+        return 'Pagamento em Análise';
       case 'confirmed':
         return 'Pagamento Confirmado';
       case 'rejected':
@@ -367,28 +394,20 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
       case 'canceled':
         return 'Cancelada';
       case 'expired':
-        return 'Expirada';
+        return 'PIX Expirado';
       default:
-        console.warn('Unknown status:', status, 'Type:', typeof status);
         return 'Em análise';
     }
   }
 
-  getStatusDescription(status: BuyOrderStatus): string {
-    // Use string comparison for more robust matching
-    const statusStr = status?.toString().toLowerCase();
-    const buy = this.buyData();
+  getStatusDescription(status?: string): string {
+    const s = (status || this.getEffectiveStatus()).toLowerCase();
 
-    // Check if it's actually expired even if status is created
-    if (statusStr === 'created' && this.isActuallyExpired(buy)) {
-      return 'O prazo para pagamento expirou.';
-    }
-
-    switch (statusStr) {
+    switch (s) {
       case 'created':
         return 'Complete o pagamento para prosseguir';
       case 'processing':
-        return 'Estamos verificando seu pagamento...';
+        return 'Estamos verificando seu pagamento junto ao banco...';
       case 'analyzing':
         return 'Não conseguimos identificar seu pagamento automaticamente. Sua ordem está sendo analisada.';
       case 'confirmed':
@@ -398,14 +417,14 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
       case 'canceled':
         return 'Esta compra foi cancelada.';
       case 'expired': {
-        const expiredBuy = this.buyData();
-        if (expiredBuy && !expiredBuy.is_final) {
-          return 'O prazo para pagamento expirou, mas caso você já tenha pago, envie o comprovante.';
+        const buy = this.buyData();
+        if (buy && !buy.is_final && buy.can_resubmit) {
+          return 'O prazo para pagamento expirou. Se você já pagou, verifique o pagamento.';
         }
         return 'O prazo para pagamento expirou.';
       }
       default:
-        return 'Acompanhe o status da sua compra. Em caso de dúvidas, entre em contato com o suporte.';
+        return 'Acompanhe o status da sua compra.';
     }
   }
 
@@ -465,10 +484,21 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
 
   getBlockchainExplorerUrl = getExplorerUrl;
 
-  isExpiredNonFinal(): boolean {
+  // --- Resubmit flow ---
+
+  canResubmit(): boolean {
+    return this.buyData()?.can_resubmit === true;
+  }
+
+  canCancel(): boolean {
     const buy = this.buyData();
-    if (!buy) return false;
-    return buy.status?.toString().toLowerCase() === 'expired' && !buy.is_final;
+    if (!buy || buy.is_final) return false;
+    const status = this.getEffectiveStatus();
+    return status === 'expired' || status === 'analyzing';
+  }
+
+  getRemainingAttempts(): number {
+    return this.buyData()?.remaining_attempts ?? 0;
   }
 
   resubmitPayment(event?: Event) {
@@ -480,20 +510,24 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     const buy = this.buyData();
     if (!buy) return;
 
-    this.loadingService.show();
+    this.isResubmitting.set(true);
+    this.resubmitOutcome.set(null);
 
     this.buyOrderService.resubmitPayment(buy.id).subscribe({
-      next: () => {
-        this.loadingService.hide();
+      next: (response) => {
+        this.isResubmitting.set(false);
+        this.resubmitOutcome.set(response.verification_outcome);
+
+        // Reload data to reflect updated state
         this.loadBuyData(buy.id, false);
       },
       error: (error) => {
         console.error('Error resubmitting payment:', error);
-        this.loadingService.hide();
+        this.isResubmitting.set(false);
 
-        let errorMessage = 'Erro ao reenviar comprovante. Tente novamente.';
-        if (error.error && error.error.message) {
-          errorMessage = error.error.message;
+        let errorMessage = 'Erro ao verificar pagamento. Tente novamente.';
+        if (error.error?.error) {
+          errorMessage = error.error.error;
         } else if (error.message) {
           errorMessage = error.message;
         }
@@ -501,6 +535,32 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
         alert(errorMessage);
       }
     });
+  }
+
+  getOutcomeMessage(): string {
+    switch (this.resubmitOutcome()) {
+      case 'confirmed':
+        return 'Pagamento confirmado! Processando sua compra...';
+      case 'not_found':
+        return 'Pagamento não encontrado. Sua ordem será analisada manualmente.';
+      case 'query_failed':
+        return 'Falha na consulta ao banco. Tente novamente.';
+      default:
+        return '';
+    }
+  }
+
+  getOutcomeClass(): string {
+    switch (this.resubmitOutcome()) {
+      case 'confirmed':
+        return 'completed';
+      case 'not_found':
+        return 'processing';
+      case 'query_failed':
+        return 'warning';
+      default:
+        return '';
+    }
   }
 
   goBack() {
@@ -513,7 +573,7 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
 
   /**
    * Start polling for status updates every 10 seconds.
-   * Only polls for "Detalhes da compra" view (non-created, non-final).
+   * Polls for all non-final orders except when PIX is active (created).
    */
   private startPolling() {
     this.stopPolling();
@@ -522,17 +582,14 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
       const buy = this.buyData();
       if (!buy) return;
 
-      const status = buy.status?.toString().toLowerCase();
-
-      // Only poll for "Detalhes da compra" view — not while awaiting payment
-      if (status === 'created') return;
-
-      // Stop polling if final — is_final is the sole authority here.
-      // (isActuallyExpired only applies to 'created' payment window, not post-payment statuses)
+      // Stop polling for final orders
       if (buy.is_final) {
         this.stopPolling();
         return;
       }
+
+      // Don't poll while waiting for payment (pix active)
+      if (buy.pix?.status === 'created' && !this.isLocallyExpired()) return;
 
       this.buyOrderService.getBuyOrderById(buy.id).subscribe({
         next: (updated) => {

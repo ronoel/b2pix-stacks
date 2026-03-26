@@ -14,17 +14,21 @@ export enum BuyOrderStatus {
 }
 
 /**
- * PIX Inbound details returned when creating or resubmitting a buy order.
+ * PIX Inbound details returned with a buy order.
+ * `status` indicates the current state of the PIX payment.
  */
 export interface PixInboundInfo {
   pix_inbound_id: string;
+  status: string;              // 'created' | 'processing' | 'analyzing' | 'confirmed' | 'rejected' | 'expired'
   pix_key: string;
   lp_address: string;
   expires_at: string;          // ISO 8601
 }
 
 /**
- * Simplified Buy Order response (PIX details moved to PixInboundRequest).
+ * Buy Order response.
+ * Non-final orders include `pix`, `can_resubmit`, and `remaining_attempts`.
+ * Final orders omit these fields.
  */
 export interface BuyOrderResponse {
   id: string;
@@ -35,6 +39,10 @@ export interface BuyOrderResponse {
   is_final: boolean;
   created_at: string;          // ISO 8601
   updated_at: string;          // ISO 8601
+  // Present only for non-final orders (absent or null for final orders)
+  pix?: PixInboundInfo | null;
+  can_resubmit?: boolean;
+  remaining_attempts?: number;
 }
 
 /**
@@ -47,10 +55,13 @@ export interface CreateBuyOrderResponse extends BuyOrderResponse {
 
 /**
  * Response from PUT /api/v1/buy-orders/:id/resubmit
+ * Re-verifies the existing PIX inbound against the bank.
  */
+export type VerificationOutcome = 'confirmed' | 'not_found' | 'query_failed';
+
 export interface ResubmitResponse {
   buy_order_id: string;
-  pix: PixInboundInfo;
+  verification_outcome: VerificationOutcome;
 }
 
 /**

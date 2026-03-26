@@ -4,7 +4,7 @@ import { Observable, from } from 'rxjs';
 import { switchMap, catchError, map } from 'rxjs/operators';
 import { environment } from "../../../environments/environment";
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
-import { BuyOrder, CreateBuyOrderResponse, ResubmitResponse, PaginatedBuyOrdersResponse } from "../models/buy-order.model";
+import { BuyOrderResponse, CreateBuyOrderResponse, ResubmitResponse, PaginatedBuyOrdersResponse } from "../models/buy-order.model";
 import { SignedRequest } from "../models/api.model";
 import { QuoteService, QuoteResponse } from './quote.service';
 
@@ -51,10 +51,11 @@ export class BuyOrderService {
   }
 
   /**
-   * Get a buy order by ID
+   * Get a buy order by ID.
+   * Non-final orders include pix status, can_resubmit, and remaining_attempts.
    */
-  getBuyOrderById(id: string): Observable<BuyOrder> {
-    return this.http.get<BuyOrder>(`${this.apiUrl}/v1/buy-orders/${id}`);
+  getBuyOrderById(id: string): Observable<BuyOrderResponse> {
+    return this.http.get<BuyOrderResponse>(`${this.apiUrl}/v1/buy-orders/${id}`);
   }
 
   /**
@@ -90,7 +91,7 @@ export class BuyOrderService {
   /**
    * Cancel a buy order
    */
-  cancelBuyOrder(orderId: string): Observable<BuyOrder> {
+  cancelBuyOrder(orderId: string): Observable<BuyOrderResponse> {
     const timestamp = new Date().toISOString();
     const payload = `B2PIX - Cancelar Ordem\nb2pix.org\n${orderId}\n${timestamp}`;
 
@@ -101,7 +102,7 @@ export class BuyOrderService {
           signature: signedMessage.signature,
           payload
         };
-        return this.http.delete<BuyOrder>(`${this.apiUrl}/v1/buy-orders/cancel`, {
+        return this.http.delete<BuyOrderResponse>(`${this.apiUrl}/v1/buy-orders/cancel`, {
           body: data
         });
       }),
@@ -136,8 +137,8 @@ export class BuyOrderService {
   }
 
   /**
-   * Resubmit payment — creates new PIX attempt for expired payment.
-   * Returns new PIX inbound info.
+   * Resubmit payment — re-verifies the existing PIX inbound against the bank.
+   * Returns verification outcome (confirmed, not_found, or query_failed).
    */
   resubmitPayment(orderId: string): Observable<ResubmitResponse> {
     const timestamp = new Date().toISOString();

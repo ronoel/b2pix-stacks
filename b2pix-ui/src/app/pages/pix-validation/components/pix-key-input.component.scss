@@ -18,10 +18,30 @@
   }
 }
 
-.pix-valid-feedback {
-  display: block;
+.input-error {
+  border-color: var(--danger) !important;
+
+  &:focus {
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1) !important;
+  }
+}
+
+.key-detected {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
   margin-top: 6px;
-  font-size: 12px;
-  font-weight: 600;
+  background: rgba(4, 120, 87, 0.08);
   color: var(--success);
+  border-radius: var(--r-full);
+  font-size: 13px;
+  font-weight: 600;
+  width: fit-content;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.key-error {
+  font-size: 13px;
+  margin-top: 8px;
 }

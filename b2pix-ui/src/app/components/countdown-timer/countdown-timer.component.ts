@@ -28,10 +28,14 @@ export class CountdownTimerComponent implements OnDestroy {
   private observer: IntersectionObserver | null = null;
   private hasEmittedWarning = false;
   private hasEmittedDanger = false;
+  private timerStarted = false;
 
   constructor() {
     effect(() => {
       const seconds = this.timeLeft();
+
+      // Don't emit expired if the timer was never started (e.g. expiresAt was empty)
+      if (seconds <= 0 && !this.timerStarted) return;
 
       if (seconds <= 0) {
         this.cleanup();
@@ -70,6 +74,7 @@ export class CountdownTimerComponent implements OnDestroy {
 
   private startTimer(expiresAt: string): void {
     this.cleanup();
+    this.timerStarted = true;
     this.hasEmittedWarning = false;
     this.hasEmittedDanger = false;
 

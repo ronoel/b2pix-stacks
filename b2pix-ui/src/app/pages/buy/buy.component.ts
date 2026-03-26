@@ -216,7 +216,12 @@ export class BuyComponent implements OnInit, OnDestroy {
         this.isProcessingPurchase.set(false);
         this.loadingService.hide();
         this.showConfirmSheet.set(false);
-        this.router.navigate(['/buy', buyOrder.id]);
+        this.router.navigate(['/buy', buyOrder.id], {
+          state: {
+            pix_key: buyOrder.pix?.pix_key,
+            expires_at: buyOrder.pix?.expires_at,
+          }
+        });
       },
       error: (error: any) => {
         console.error('Erro ao criar ordem de compra:', error);

@@ -23,19 +23,19 @@
 
         <p class="privacy-description fade-up stagger-2">
           Para sua segurança, precisamos confirmar que a conta bancária pertence a você.
-          Isso é feito com seu <strong>CPF ou CNPJ</strong>.
+          Isso é feito verificando sua <strong>chave PIX</strong>.
         </p>
 
         <div class="card privacy-card fade-up stagger-3">
           <div class="privacy-point">
             <div class="privacy-point-icon">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12"/>
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
               </svg>
             </div>
             <div class="privacy-point-text">
-              <strong>Apenas para confirmar titularidade</strong>
-              <span>Validamos apenas que a conta bancária pertence a você</span>
+              <strong>Plataforma descentralizada e de autocustódia</strong>
+              <span>Não deduzimos nem reportamos impostos ou informações ao governo. A responsabilidade fiscal é inteiramente sua</span>
             </div>
           </div>
 
@@ -46,20 +46,20 @@
               </svg>
             </div>
             <div class="privacy-point-text">
-              <strong>Não é um processo KYC completo</strong>
+              <strong>Confirmar titularidade da conta</strong>
+              <span>Validamos apenas que a conta bancária pertence a você para evitar golpes na sua conta</span>
+            </div>
+          </div>
+
+          <div class="privacy-point">
+            <div class="privacy-point-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </div>
+            <div class="privacy-point-text">
+              <strong>Não é um processo KYC</strong>
               <span>Sem selfie, sem comprovante de endereço, sem documentos extras</span>
-            </div>
-          </div>
-
-          <div class="privacy-point">
-            <div class="privacy-point-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12"/>
-              </svg>
-            </div>
-            <div class="privacy-point-text">
-              <strong>Seus dados não são compartilhados</strong>
-              <span>Não vendemos nem compartilhamos com terceiros</span>
             </div>
           </div>
 
@@ -70,17 +70,10 @@
               </svg>
             </div>
             <div class="privacy-point-text">
-              <strong>Coleta mínima de dados</strong>
-              <span>Apenas o necessário para a segurança da transação</span>
+              <strong>Seus dados não são compartilhados</strong>
+              <span>A plataforma não coleta nem compartilha seus dados com terceiros.</span>
             </div>
           </div>
-        </div>
-
-        <div class="alert-box alert-info fade-up stagger-4" style="margin-bottom: 20px;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-          </svg>
-          <span>A verificação protege todos os usuários contra fraudes.</span>
         </div>
 
         <button
@@ -108,7 +101,7 @@
           <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
           <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
         </svg>
-        <span>Para verificar sua conta, será necessário um pequeno depósito de verificação (não reembolsável).</span>
+        <span>Para verificar sua conta, será necessário um pequeno depósito de verificação de ≈ R$ 3 (não reembolsável).</span>
       </div>
 
       @if (loading()) {
@@ -165,7 +158,7 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
           </svg>
-          <span>Apenas chaves CPF ou CNPJ são aceitas.</span>
+          <span>O pagamento PIX deve ser feito a partir da conta vinculada a esta chave. Ao vender cripto pela plataforma, você receberá o pagamento nesta chave PIX.</span>
         </div>
 
       }
@@ -193,7 +186,7 @@
         </div>
         <p class="instructions-compact">
           Pague o PIX no valor acima para validar sua conta. Esta é uma taxa administrativa não reembolsável.
-          O pagamento deve ser feito a partir da conta vinculada à chave PIX: <strong>{{ userPixKey() }}</strong>
+          O pagamento deve ser feito a partir da conta vinculada à chave PIX: <strong>{{ userPixKeyFormatted() }}</strong>
         </p>
       </div>
 

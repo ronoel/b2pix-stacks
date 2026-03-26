@@ -1,18 +1,36 @@
 <div class="pix-key-input-group">
-  <label for="pixKey" class="field-label">Sua chave PIX (CPF ou CNPJ)</label>
+  <label for="pixKey" class="field-label">Sua chave PIX</label>
   <input
     type="text"
     id="pixKey"
     class="input"
-    [class.input-valid]="isValid() && value()"
-    [class.input-error]="!isValid() && value()"
-    placeholder="000.000.000-00 ou 00.000.000/0000-00"
-    [value]="displayValue()"
-    (input)="onInput($event)"
+    [class.input-valid]="isValid() && pixKeyValue()"
+    [class.input-error]="keyError()"
+    placeholder="CPF, CNPJ, telefone, e-mail ou chave aleatória"
+    [ngModel]="pixKeyValue()"
+    (ngModelChange)="pixKeyValue.set($event)"
+    (blur)="onKeyBlur()"
     [disabled]="disabled()"
-    inputmode="numeric"
+    autocomplete="off"
+    spellcheck="false"
   />
-  @if (value() && isValid()) {
-    <p class="pix-valid-feedback">{{ getDocumentType() }} válido</p>
+
+  @if (detectedKeyType()) {
+    <div class="key-detected">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+        <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>{{ keyTypeLabel() }} detectado</span>
+    </div>
+  }
+
+  @if (keyError()) {
+    <div class="alert-box alert-error key-error">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+        <path d="M15 9l-6 6M9 9l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span>{{ keyError() }}</span>
+    </div>
   }
 </div>

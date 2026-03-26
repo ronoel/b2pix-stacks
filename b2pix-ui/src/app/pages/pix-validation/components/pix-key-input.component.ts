@@ -1,6 +1,11 @@
-import { Component, Input, Output, EventEmitter, signal } from '@angular/core';
-
+import { Component, Input, Output, EventEmitter, signal, computed, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import {
+  PixKeyType,
+  detectPixKeyType,
+  getPixKeyTypeLabel,
+  normalizePixKey
+} from '../../../shared/utils/pix-validation.util';
 
 @Component({
   selector: 'app-pix-key-input',
@@ -14,116 +19,43 @@ export class PixKeyInputComponent {
   @Output() valueChange = new EventEmitter<string>();
   @Output() validChange = new EventEmitter<boolean>();
 
-  value = signal('');
-  displayValue = signal('');
+  pixKeyValue = signal('');
+  detectedKeyType = signal<PixKeyType | null>(null);
   isValid = signal(false);
+  keyTouched = signal(false);
 
-  onInput(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const rawValue = input.value.replace(/\D/g, '');
-
-    this.value.set(rawValue);
-    this.displayValue.set(this.formatPixKey(rawValue));
-    this.isValid.set(this.validatePixKey(rawValue));
-
-    this.valueChange.emit(rawValue);
-    this.validChange.emit(this.isValid());
-
-    // Atualizar o input com valor formatado
-    input.value = this.displayValue();
+  constructor() {
+    effect(() => {
+      const key = this.pixKeyValue().trim();
+      if (key.length === 0) {
+        this.detectedKeyType.set(null);
+        this.isValid.set(false);
+        this.validChange.emit(false);
+        this.valueChange.emit('');
+        return;
+      }
+      const type = detectPixKeyType(key);
+      this.detectedKeyType.set(type);
+      this.isValid.set(type !== null);
+      this.validChange.emit(type !== null);
+      this.valueChange.emit(type !== null ? normalizePixKey(key) : '');
+    });
   }
 
-  private formatPixKey(value: string): string {
-    if (value.length <= 11) {
-      // CPF: 000.000.000-00
-      return value
-        .replace(/(\d{3})(\d)/, '$1.$2')
-        .replace(/(\d{3})(\d)/, '$1.$2')
-        .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-    } else {
-      // CNPJ: 00.000.000/0000-00
-      return value
-        .replace(/(\d{2})(\d)/, '$1.$2')
-        .replace(/(\d{3})(\d)/, '$1.$2')
-        .replace(/(\d{3})(\d)/, '$1/$2')
-        .replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+  keyTypeLabel = computed(() => {
+    const type = this.detectedKeyType();
+    return type ? getPixKeyTypeLabel(type) : '';
+  });
+
+  keyError = computed(() => {
+    if (!this.keyTouched() || this.pixKeyValue().trim().length === 0) return '';
+    if (!this.isValid()) {
+      return 'Chave PIX inválida. Formatos aceitos: CPF, CNPJ, telefone (+55), e-mail ou chave aleatória (UUID).';
     }
-  }
-
-  private validatePixKey(value: string): boolean {
-    if (value.length === 11) {
-      return this.validateCPF(value);
-    } else if (value.length === 14) {
-      return this.validateCNPJ(value);
-    }
-    return false;
-  }
-
-  private validateCPF(cpf: string): boolean {
-    // Verifica se todos os dígitos são iguais
-    if (/^(\d)\1+$/.test(cpf)) return false;
-
-    // Validação básica de CPF
-    let sum = 0;
-    let remainder;
-
-    for (let i = 1; i <= 9; i++) {
-      sum += parseInt(cpf.substring(i - 1, i)) * (11 - i);
-    }
-    remainder = (sum * 10) % 11;
-    if (remainder === 10 || remainder === 11) remainder = 0;
-    if (remainder !== parseInt(cpf.substring(9, 10))) return false;
-
-    sum = 0;
-    for (let i = 1; i <= 10; i++) {
-      sum += parseInt(cpf.substring(i - 1, i)) * (12 - i);
-    }
-    remainder = (sum * 10) % 11;
-    if (remainder === 10 || remainder === 11) remainder = 0;
-    if (remainder !== parseInt(cpf.substring(10, 11))) return false;
-
-    return true;
-  }
-
-  private validateCNPJ(cnpj: string): boolean {
-    // Verifica se todos os dígitos são iguais
-    if (/^(\d)\1+$/.test(cnpj)) return false;
-
-    // Validação básica de CNPJ
-    let size = cnpj.length - 2;
-    let numbers = cnpj.substring(0, size);
-    const digits = cnpj.substring(size);
-    let sum = 0;
-    let pos = size - 7;
-
-    for (let i = size; i >= 1; i--) {
-      sum += parseInt(numbers.charAt(size - i)) * pos--;
-      if (pos < 2) pos = 9;
-    }
-
-    let result = sum % 11 < 2 ? 0 : 11 - (sum % 11);
-    if (result !== parseInt(digits.charAt(0))) return false;
-
-    size = size + 1;
-    numbers = cnpj.substring(0, size);
-    sum = 0;
-    pos = size - 7;
-
-    for (let i = size; i >= 1; i--) {
-      sum += parseInt(numbers.charAt(size - i)) * pos--;
-      if (pos < 2) pos = 9;
-    }
-
-    result = sum % 11 < 2 ? 0 : 11 - (sum % 11);
-    if (result !== parseInt(digits.charAt(1))) return false;
-
-    return true;
-  }
-
-  getDocumentType(): string {
-    const length = this.value().length;
-    if (length === 11) return 'CPF';
-    if (length === 14) return 'CNPJ';
     return '';
+  });
+
+  onKeyBlur(): void {
+    this.keyTouched.set(true);
   }
 }

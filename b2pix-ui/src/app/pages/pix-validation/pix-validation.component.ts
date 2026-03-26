@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, signal, effect } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed, effect } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -10,6 +10,7 @@ import { PixKeyInputComponent } from './components/pix-key-input.component';
 import { PixCopiaColaComponent } from '../../components/pix-copia-cola/pix-copia-cola.component';
 import { PageHeaderComponent } from '../../components/page-header/page-header.component';
 import { formatBrlCents } from '../../shared/utils/format.util';
+import { detectPixKeyType, formatPixKeyForDisplay } from '../../shared/utils/pix-validation.util';
 
 @Component({
   selector: 'app-pix-validation',
@@ -32,6 +33,13 @@ export class PixValidationComponent implements OnInit, OnDestroy {
   error = signal('');
 
   pixKeyConfirmed = signal(false);
+
+  userPixKeyFormatted = computed(() => {
+    const key = this.userPixKey();
+    if (!key) return '';
+    const type = detectPixKeyType(key);
+    return type ? formatPixKeyForDisplay(key, type) : key;
+  });
 
   private scrollOnStepChange = effect(() => {
     this.step(); // track signal
@@ -134,7 +142,7 @@ export class PixValidationComponent implements OnInit, OnDestroy {
 
   submitPixKey(): void {
     if (!this.pixKeyValid()) {
-      this.error.set('CPF ou CNPJ inválido');
+      this.error.set('Chave PIX inválida');
       return;
     }
 
