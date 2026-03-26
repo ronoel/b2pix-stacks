@@ -226,12 +226,8 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     this.loadingService.show();
 
     this.buyOrderService.markBuyOrderAsPaid(buy.id).subscribe({
-      next: (updatedBuy) => {
+      next: () => {
         this.loadingService.hide();
-        this.buyData.set(updatedBuy);
-
-        // Show success message
-        // alert('Pagamento confirmado com sucesso! Aguarde a liberação dos bitcoins.');
 
         // Reload to show details view and start auto-refresh
         this.loadBuyData(buy.id, false);
@@ -487,9 +483,8 @@ export class BuyDetailsComponent implements OnInit, OnDestroy {
     this.loadingService.show();
 
     this.buyOrderService.resubmitPayment(buy.id).subscribe({
-      next: (updatedBuy) => {
+      next: () => {
         this.loadingService.hide();
-        this.buyData.set(updatedBuy);
         this.loadBuyData(buy.id, false);
       },
       error: (error) => {

@@ -1,0 +1,531 @@
+<div class="invoice-details-page">
+  <div class="container">
+    <app-page-header title="Detalhes da cobrança" backRoute="/invoices" />
+
+    @if (isLoading()) {
+      <div class="loading-state">
+        <div class="loading-spinner"></div>
+      </div>
+    } @else if (error() && !invoice()) {
+      <div class="empty-state">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="15" y1="9" x2="9" y2="15"/>
+          <line x1="9" y1="9" x2="15" y2="15"/>
+        </svg>
+        <p style="color: var(--text-muted); font-size: 14px;">{{ error() }}</p>
+      </div>
+    } @else if (invoice(); as inv) {
+      <!-- Status Banner -->
+      <div class="status-banner" [class]="'status-banner--' + getInvoiceStatusClass(inv.status)">
+        <div class="status-banner__icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            @if (isPaid()) {
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M9 12l2 2 4-4"/>
+            } @else if (isActive()) {
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 6V12L16 14"/>
+            } @else {
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="15" y1="9" x2="9" y2="15"/>
+              <line x1="9" y1="9" x2="15" y2="15"/>
+            }
+          </svg>
+        </div>
+        <span class="status-banner__label">{{ getInvoiceStatusLabel(inv.status) }}</span>
+      </div>
+
+      <!-- Detail Card -->
+      <div class="card detail-card">
+        <div class="detail-row">
+          <span class="detail-label">Valor</span>
+          <span class="detail-value">{{ formatBrlCents(inv.value_brl) }}</span>
+        </div>
+        @if (inv.label) {
+          <div class="detail-row">
+            <span class="detail-label">Descrição</span>
+            <span class="detail-value">{{ inv.label }}</span>
+          </div>
+        }
+        @if (inv.confirmed_sbtc) {
+          <div class="detail-row highlight">
+            <span class="detail-label">sBTC recebido</span>
+            <span class="detail-value font-mono">{{ formatSats(inv.confirmed_sbtc) }} sats</span>
+          </div>
+        }
+        @if (inv.client_email) {
+          <div class="detail-row">
+            <span class="detail-label">Email do cliente</span>
+            <span class="detail-value">{{ inv.client_email }}</span>
+          </div>
+        }
+        @if (inv.paid_at) {
+          <div class="detail-row">
+            <span class="detail-label">Pago em</span>
+            <span class="detail-value">{{ formatDateTime(inv.paid_at) }}</span>
+          </div>
+        }
+        <div class="detail-row">
+          <span class="detail-label">Criado em</span>
+          <span class="detail-value">{{ formatDateTime(inv.created_at) }}</span>
+        </div>
+      </div>
+
+      <!-- Send receipt (only after payment confirmed) -->
+      @if (isPaid() && !inv.client_email) {
+        <button class="btn btn-primary btn-full" style="margin-bottom: 16px;" (click)="showEmailSheet.set(true)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+            <polyline points="22,6 12,13 2,6"/>
+          </svg>
+          Enviar comprovante por email
+        </button>
+      }
+
+      <!-- Active payment indicator (when sheet is closed but payment is active) -->
+      @if (hasActivePayment() && !showQrSheet()) {
+        <div class="active-payment-banner" (click)="showQrSheet.set(true)">
+          <div class="active-payment-banner__pulse"></div>
+          <div class="active-payment-banner__content">
+            <span class="active-payment-banner__label">Pagamento em andamento</span>
+            <span class="active-payment-banner__status badge badge-{{ getPaymentStatusClass(activePaymentStatus()) }}">{{ getPaymentStatusLabel(activePaymentStatus()) }}</span>
+          </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </div>
+      }
+
+      <!-- Actions for Active invoice -->
+      @if (isActive()) {
+        <!-- Payment Link -->
+        <div class="card link-card">
+          <label class="link-card__label">Link de pagamento</label>
+          <div class="link-card__url font-mono">{{ paymentLink() }}</div>
+          <div class="link-card__actions">
+            <button class="btn btn-primary btn-sm" (click)="copyLink()">
+              @if (linkCopied()) {
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 6L9 17L4 12"/>
+                </svg>
+                Copiado!
+              } @else {
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                  <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                </svg>
+                Copiar link
+              }
+            </button>
+            <button class="btn btn-ghost btn-sm" (click)="shareLink()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="18" cy="5" r="3"/>
+                <circle cx="6" cy="12" r="3"/>
+                <circle cx="18" cy="19" r="3"/>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+              </svg>
+              Compartilhar
+            </button>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+          @if (!hasActivePayment()) {
+            <button
+              class="btn btn-btc btn-full"
+              [disabled]="isStartingInPerson() || isLoadingPaymentStatus()"
+              (click)="startInPersonPayment()"
+            >
+              @if (isStartingInPerson() || isLoadingPaymentStatus()) {
+                <div class="loading-spinner-sm"></div>
+                Gerando...
+              } @else {
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2"/>
+                  <path d="M7 7h.01"/>
+                  <path d="M17 7h.01"/>
+                  <path d="M7 17h.01"/>
+                  <rect x="9" y="9" width="6" height="6"/>
+                </svg>
+                Pagamento Presencial
+              }
+            </button>
+          }
+
+          <button class="btn btn-ghost-danger btn-full" (click)="showCancelConfirm.set(true)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="15" y1="9" x2="9" y2="15"/>
+              <line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+            Cancelar cobrança
+          </button>
+        </div>
+      }
+
+      <!-- Error message -->
+      @if (error()) {
+        <div class="alert-box alert-error" style="margin-top: 16px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="15" y1="9" x2="9" y2="15"/>
+            <line x1="9" y1="9" x2="15" y2="15"/>
+          </svg>
+          <span>{{ error() }}</span>
+        </div>
+      }
+    }
+  </div>
+
+  <!-- In-Person Payment Page -->
+  @if (showQrSheet()) {
+    <div class="in-person-page">
+      <div class="container">
+        <app-page-header title="Pagamento Presencial" [showBack]="true" (back)="showQrSheet.set(false)" />
+
+        @if (paymentStatus(); as ps) {
+          <!-- Status indicator -->
+          <div class="payment-status-indicator payment-status-indicator--{{ getPaymentStatusClass(ps.status) }}">
+            <div class="payment-status-indicator__icon">
+              @switch (ps.status) {
+                @case ('created') {
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 6V12L16 14"/>
+                  </svg>
+                }
+                @case ('processing') {
+                  <div class="loading-spinner-sm"></div>
+                }
+                @case ('analyzing') {
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                  </svg>
+                }
+                @case ('confirmed') {
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M9 12l2 2 4-4"/>
+                  </svg>
+                }
+                @case ('rejected') {
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="15" y1="9" x2="9" y2="15"/>
+                    <line x1="9" y1="9" x2="15" y2="15"/>
+                  </svg>
+                }
+                @case ('expired') {
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 6V12L16 14"/>
+                  </svg>
+                }
+              }
+            </div>
+            <span class="payment-status-indicator__label">{{ getPaymentStatusLabel(ps.status) }}</span>
+          </div>
+
+          @switch (ps.status) {
+            @case ('created') {
+              <div class="in-person-content">
+                @if (showCountdown()) {
+                  <app-countdown-timer
+                    [expiresAt]="ps.expires_at"
+                    (expired)="onInPersonExpired()"
+                  />
+                }
+
+                <div class="payment-amount-card">
+                  <span class="payment-amount-card__label">Valor</span>
+                  <span class="payment-amount-card__value font-mono">{{ formatBrlCents(ps.value_brl) }}</span>
+                </div>
+
+                <app-pix-copia-cola
+                  [pixKey]="ps.pix_key"
+                  [amount]="ps.value_brl / 100"
+                  labelText="Chave PIX"
+                  [showLabel]="true"
+                />
+              </div>
+            }
+            @case ('processing') {
+              <div class="payment-status-screen">
+                <div class="loading-spinner"></div>
+                <p class="payment-status-screen__title">Verificando pagamento...</p>
+                <p class="payment-status-screen__hint">Aguarde enquanto confirmamos o recebimento do PIX.</p>
+              </div>
+            }
+            @case ('analyzing') {
+              <div class="payment-status-screen">
+                <div class="payment-status-screen__icon payment-status-screen__icon--analyzing">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                  </svg>
+                </div>
+                <p class="payment-status-screen__title">Pagamento não encontrado</p>
+                <p class="payment-status-screen__hint">Não foi possível confirmar o recebimento do PIX. Se o cliente já realizou o pagamento, tente verificar novamente.</p>
+              </div>
+            }
+            @case ('confirmed') {
+              <div class="payment-status-screen">
+                <div class="payment-status-screen__icon payment-status-screen__icon--confirmed">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M9 12l2 2 4-4"/>
+                  </svg>
+                </div>
+                <p class="payment-status-screen__title">Pagamento confirmado!</p>
+                <p class="payment-status-screen__hint">O PIX de {{ formatBrlCents(ps.value_brl) }} foi recebido com sucesso.</p>
+              </div>
+            }
+            @case ('rejected') {
+              <div class="payment-status-screen">
+                <div class="payment-status-screen__icon payment-status-screen__icon--rejected">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="15" y1="9" x2="9" y2="15"/>
+                    <line x1="9" y1="9" x2="15" y2="15"/>
+                  </svg>
+                </div>
+                <p class="payment-status-screen__title">Pagamento rejeitado</p>
+                <p class="payment-status-screen__hint">O pagamento não pôde ser confirmado. Entre em contato com o suporte se precisar de ajuda.</p>
+              </div>
+            }
+            @case ('expired') {
+              <div class="payment-status-screen">
+                <div class="payment-status-screen__icon payment-status-screen__icon--expired">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 6V12L16 14"/>
+                  </svg>
+                </div>
+                <p class="payment-status-screen__title">Tempo expirado</p>
+                @if (!ps.is_final) {
+                  <p class="payment-status-screen__hint">O tempo para pagamento expirou. Você pode iniciar um novo pagamento presencial.</p>
+                } @else {
+                  <p class="payment-status-screen__hint">O período de pagamento expirou e não pode mais ser retentado.</p>
+                }
+              </div>
+            }
+          }
+        } @else if (payInPersonResponse(); as pir) {
+          <div class="in-person-content">
+            <app-countdown-timer
+              [expiresAt]="pir.expires_at"
+              (expired)="onInPersonExpired()"
+            />
+
+            <app-pix-copia-cola
+              [pixKey]="pir.pix_key"
+              [amount]="pir.value_brl / 100"
+              labelText="Chave PIX"
+              [showLabel]="true"
+            />
+          </div>
+        }
+
+        <!-- Action Buttons -->
+        <div class="in-person-actions">
+          @if (paymentStatus(); as ps) {
+            @switch (ps.status) {
+              @case ('created') {
+                <button
+                  class="btn btn-primary btn-lg btn-full"
+                  [disabled]="isCheckingPayment()"
+                  (click)="checkInPersonPayment()"
+                >
+                  @if (isCheckingPayment()) {
+                    <div class="loading-spinner-sm"></div>
+                    Verificando...
+                  } @else {
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20 6L9 17L4 12"/>
+                    </svg>
+                    Verificar pagamento
+                  }
+                </button>
+                <button
+                  class="btn btn-ghost-danger btn-lg btn-full"
+                  [disabled]="isCancellingPayment()"
+                  (click)="cancelInPersonPayment()"
+                >
+                  @if (isCancellingPayment()) {
+                    <div class="loading-spinner-sm"></div>
+                    Cancelando...
+                  } @else {
+                    Cancelar pagamento
+                  }
+                </button>
+              }
+              @case ('processing') {
+                <button
+                  class="btn btn-ghost btn-lg btn-full"
+                  [disabled]="isCancellingPayment()"
+                  (click)="cancelInPersonPayment()"
+                >
+                  @if (isCancellingPayment()) {
+                    <div class="loading-spinner-sm"></div>
+                    Cancelando...
+                  } @else {
+                    Cancelar pagamento
+                  }
+                </button>
+              }
+              @case ('confirmed') {
+                <button class="btn btn-primary btn-lg btn-full" (click)="showQrSheet.set(false)">
+                  Voltar à cobrança
+                </button>
+              }
+              @case ('rejected') {
+                <button class="btn btn-primary btn-lg btn-full" (click)="showQrSheet.set(false)">
+                  Voltar à cobrança
+                </button>
+              }
+              @case ('expired') {
+                @if (!ps.is_final) {
+                  <button
+                    class="btn btn-btc btn-lg btn-full"
+                    [disabled]="isStartingInPerson()"
+                    (click)="startInPersonPayment()"
+                  >
+                    @if (isStartingInPerson()) {
+                      <div class="loading-spinner-sm"></div>
+                      Gerando...
+                    } @else {
+                      Novo pagamento presencial
+                    }
+                  </button>
+                }
+                <button class="btn btn-ghost btn-lg btn-full" (click)="showQrSheet.set(false)">
+                  Voltar à cobrança
+                </button>
+              }
+              @case ('analyzing') {
+                <button
+                  class="btn btn-primary btn-lg btn-full"
+                  [disabled]="isCheckingPayment()"
+                  (click)="checkInPersonPayment()"
+                >
+                  @if (isCheckingPayment()) {
+                    <div class="loading-spinner-sm"></div>
+                    Verificando...
+                  } @else {
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20 6L9 17L4 12"/>
+                    </svg>
+                    Reverificar pagamento
+                  }
+                </button>
+                <button
+                  class="btn btn-ghost-danger btn-lg btn-full"
+                  [disabled]="isCancellingPayment()"
+                  (click)="cancelInPersonPayment()"
+                >
+                  @if (isCancellingPayment()) {
+                    <div class="loading-spinner-sm"></div>
+                    Cancelando...
+                  } @else {
+                    Cancelar pagamento
+                  }
+                </button>
+              }
+            }
+          } @else if (payInPersonResponse()) {
+            <button
+              class="btn btn-primary btn-lg btn-full"
+              [disabled]="isCheckingPayment()"
+              (click)="checkInPersonPayment()"
+            >
+              @if (isCheckingPayment()) {
+                <div class="loading-spinner-sm"></div>
+                Verificando...
+              } @else {
+                Verificar pagamento
+              }
+            </button>
+            <button
+              class="btn btn-ghost-danger btn-lg btn-full"
+              [disabled]="isCancellingPayment()"
+              (click)="cancelInPersonPayment()"
+            >
+              @if (isCancellingPayment()) {
+                <div class="loading-spinner-sm"></div>
+                Cancelando...
+              } @else {
+                Cancelar pagamento
+              }
+            </button>
+          }
+        </div>
+
+        @if (error()) {
+          <div class="alert-box alert-error" style="margin-top: 16px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="15" y1="9" x2="9" y2="15"/>
+              <line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+            <span>{{ error() }}</span>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Cancel Invoice Confirmation -->
+  <app-confirm-action-sheet
+    [isOpen]="showCancelConfirm()"
+    title="Cancelar cobrança"
+    message="Tem certeza que deseja cancelar esta cobrança? Esta ação não pode ser desfeita."
+    confirmLabel="Cancelar cobrança"
+    cancelLabel="Voltar"
+    type="danger"
+    [isLoading]="isCancelling()"
+    (confirmed)="confirmCancelInvoice()"
+    (cancelled)="showCancelConfirm.set(false)"
+  />
+
+  <!-- Client Email Sheet -->
+  <app-status-sheet
+    [isOpen]="showEmailSheet()"
+    title="Email do cliente"
+    type="info"
+    (close)="showEmailSheet.set(false)"
+  >
+    <div class="email-form">
+      <p class="email-form__hint">
+        O cliente receberá um comprovante por email quando o pagamento for confirmado.
+      </p>
+      <input
+        type="email"
+        class="form-input"
+        placeholder="cliente@email.com"
+        autocomplete="email"
+        inputmode="email"
+        [value]="clientEmail()"
+        (input)="clientEmail.set($any($event.target).value)"
+      />
+    </div>
+    <div actions>
+      <button
+        class="btn btn-primary btn-lg btn-full"
+        [disabled]="!clientEmail().trim() || isSavingEmail()"
+        (click)="saveClientEmail()"
+      >
+        @if (isSavingEmail()) {
+          <div class="loading-spinner-sm"></div>
+          Salvando...
+        } @else {
+          Salvar email
+        }
+      </button>
+      <button class="btn btn-ghost btn-lg btn-full" (click)="showEmailSheet.set(false)">Cancelar</button>
+    </div>
+  </app-status-sheet>
+</div>

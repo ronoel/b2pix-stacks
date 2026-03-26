@@ -46,7 +46,7 @@ export class App {
   showTabBar(): boolean {
     if (!this.walletManager.isLoggedInSignal()) return false;
     const url = this.currentUrl();
-    const authPaths = ['/dashboard', '/buy', '/sell', '/pix-payment', '/wallet', '/send', '/lp-dashboard', '/lp-register', '/pix-account', '/manager-dashboard', '/order-analysis', '/payment-requests', '/pix-moderation', '/payout-disputes', '/analyzing-order'];
+    const authPaths = ['/dashboard', '/buy', '/sell', '/pix-payment', '/wallet', '/send', '/lp-dashboard', '/lp-register', '/pix-account', '/manager-dashboard', '/order-analysis', '/payment-requests', '/pix-moderation', '/payout-disputes', '/analyzing-order', '/invoices'];
     return authPaths.some(p => url === p || url.startsWith(p + '/'));
   }
 

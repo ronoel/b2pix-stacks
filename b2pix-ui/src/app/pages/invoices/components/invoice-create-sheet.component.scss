@@ -1,0 +1,31 @@
+.create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.label-margin {
+  margin-top: 12px;
+}
+
+.estimate-card {
+  background: var(--primary-bg);
+  border: 1px solid rgba(7, 41, 84, 0.15);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  margin-top: 12px;
+}
+
+.estimate-disclaimer {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 8px 0 0;
+  line-height: 1.4;
+}

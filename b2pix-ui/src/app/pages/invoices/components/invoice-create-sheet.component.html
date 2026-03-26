@@ -1,0 +1,86 @@
+<app-status-sheet
+  [isOpen]="isOpen"
+  title="Nova cobrança"
+  type="info"
+  (close)="close.emit()"
+>
+  <div class="create-form">
+    <!-- BRL Amount Input -->
+    <label class="form-label">Valor em reais</label>
+    <app-currency-input
+      #currencyInput
+      [valueCents]="amountCents()"
+      (valueCentsChange)="onAmountChange($event)"
+    />
+
+    <!-- Quick Amount Chips -->
+    <app-quick-amount-chips
+      [amounts]="quickAmounts"
+      [selectedAmount]="amountCents() / 100"
+      (amountSelected)="onQuickAmount($event)"
+    />
+
+    <!-- Optional Label -->
+    <label class="form-label label-margin">Descrição (opcional)</label>
+    <input
+      type="text"
+      class="form-input"
+      placeholder="Ex: Pedido #123, Serviço de consultoria"
+      [value]="label()"
+      (input)="onLabelInput($event)"
+      maxlength="100"
+    />
+
+    <!-- Estimated sBTC -->
+    @if (amountCents() > 0 && estimatedSats() > 0) {
+      <div class="estimate-card">
+        <div class="detail-row">
+          <span class="detail-label">Estimativa sBTC</span>
+          <span class="detail-value font-mono">{{ formatSats(estimatedSats()) }} sats</span>
+        </div>
+        <p class="estimate-disclaimer">
+          Estimativa. O valor final depende da cotação no momento da confirmação.
+        </p>
+      </div>
+    }
+
+    <!-- Validation Errors -->
+    @if (amountCents() > MAX_BRL_CENTS) {
+      <div class="alert-box alert-error">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="15" y1="9" x2="9" y2="15"/>
+          <line x1="9" y1="9" x2="15" y2="15"/>
+        </svg>
+        <span>Valor máximo: R$ 5.000,00</span>
+      </div>
+    }
+
+    @if (error()) {
+      <div class="alert-box alert-error">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="15" y1="9" x2="9" y2="15"/>
+          <line x1="9" y1="9" x2="15" y2="15"/>
+        </svg>
+        <span>{{ error() }}</span>
+      </div>
+    }
+  </div>
+
+  <div actions>
+    <button
+      class="btn btn-primary btn-lg btn-full"
+      [disabled]="!canCreate()"
+      (click)="create()"
+    >
+      @if (isCreating()) {
+        <div class="loading-spinner-sm"></div>
+        Criando...
+      } @else {
+        Criar cobrança
+      }
+    </button>
+    <button class="btn btn-ghost btn-lg btn-full" (click)="close.emit()">Cancelar</button>
+  </div>
+</app-status-sheet>

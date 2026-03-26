@@ -1,0 +1,154 @@
+<div class="invoice-pay-page">
+  <div class="invoice-pay-container">
+    <!-- Header with branding -->
+    <div class="invoice-pay-header">
+      <img src="images/logo-512px-t.png" alt="B2PIX" class="invoice-pay-header__logo" />
+      <span class="invoice-pay-header__title font-display">Pagamento PIX</span>
+      <span class="invoice-pay-header__slogan">Sua carteira Bitcoin para o dia a dia</span>
+    </div>
+
+    @switch (step()) {
+      @case ('loading') {
+        <div class="loading-state">
+          <div class="loading-spinner"></div>
+          <p class="loading-text">Carregando...</p>
+        </div>
+      }
+
+      @case ('invoice-summary') {
+        <app-payment-step-summary
+          [invoiceSummary]="invoiceSummary()"
+          [email]="email()"
+          [isLoading]="isLoading()"
+          [error]="error()"
+          (emailSubmit)="onEmailSubmit($event)"
+        />
+      }
+
+      @case ('otp-verify') {
+        <app-payment-step-otp
+          [maskedEmail]="maskedEmail()"
+          [isLoading]="isLoading()"
+          [error]="error()"
+          [resendCooldown]="resendCooldown()"
+          (codeComplete)="onOtpComplete($event)"
+          (changeEmail)="onChangeEmail()"
+          (resend)="onResendOtp()"
+        />
+      }
+
+      @case ('payment-active') {
+        @if (paymentSession(); as session) {
+          <app-payment-step-qr
+            [session]="session"
+            [isLoading]="isLoading()"
+            (markPaid)="onMarkPaid()"
+            (expired)="onPaymentExpired()"
+          />
+        }
+      }
+
+      @case ('payment-processing') {
+        <app-payment-step-processing />
+      }
+
+      @case ('payment-expired') {
+        <app-payment-step-expired
+          [isLoading]="isLoading()"
+          [error]="error()"
+          [resubmitAttempts]="resubmitAttempts()"
+          [maxResubmitAttempts]="3"
+          (resubmit)="onResubmit()"
+          (newPayment)="onNewPayment()"
+        />
+      }
+
+      @case ('payment-confirmed') {
+        <app-payment-step-success
+          [invoiceSummary]="invoiceSummary()"
+        />
+      }
+
+      @case ('payment-analyzing') {
+        <div class="status-screen fade-up">
+          <div class="result-icon" style="background: var(--btc-bg);">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </div>
+          <h2 class="status-screen__title font-display">Pagamento não encontrado</h2>
+          <p class="status-screen__text">
+            Não foi possível confirmar o recebimento do PIX. Se você já realizou o pagamento, tente verificar novamente.
+          </p>
+          <button
+            class="btn btn-primary btn-full"
+            style="margin-top: 16px;"
+            [disabled]="isLoading()"
+            (click)="onMarkPaid()"
+          >
+            @if (isLoading()) {
+              <div class="loading-spinner-sm"></div>
+              Verificando...
+            } @else {
+              Reverificar pagamento
+            }
+          </button>
+        </div>
+      }
+
+      @case ('payment-rejected') {
+        <div class="status-screen fade-up">
+          <div class="result-icon error">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="15" y1="9" x2="9" y2="15"/>
+              <line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+          </div>
+          <h2 class="status-screen__title font-display">Pagamento não encontrado</h2>
+          <p class="status-screen__text">
+            Não foi possível confirmar seu pagamento PIX. Se você realizou o pagamento, entre em contato com o suporte.
+          </p>
+          <button class="btn btn-primary btn-full" style="margin-top: 24px;" (click)="onNewPayment()">
+            Tentar novamente
+          </button>
+        </div>
+      }
+
+      @case ('invoice-paid') {
+        <div class="status-screen fade-up">
+          <div class="result-icon success">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 6L9 17L4 12"/>
+            </svg>
+          </div>
+          <h2 class="status-screen__title font-display">Pagamento já confirmado</h2>
+          <p class="status-screen__text">
+            Este pagamento já foi realizado e confirmado com sucesso.
+          </p>
+        </div>
+      }
+
+      @case ('invoice-cancelled') {
+        <div class="status-screen fade-up">
+          <div class="result-icon error">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="15" y1="9" x2="9" y2="15"/>
+              <line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+          </div>
+          <h2 class="status-screen__title font-display">Cobrança cancelada</h2>
+          <p class="status-screen__text">
+            Esta cobrança foi cancelada pelo comerciante.
+          </p>
+        </div>
+      }
+
+      @case ('error') {
+        <app-payment-step-error [message]="error()" />
+      }
+    }
+  </div>
+</div>

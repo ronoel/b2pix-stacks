@@ -1,0 +1,83 @@
+<div class="invoices-page">
+  <div class="container">
+    <app-page-header title="Cobranças" backRoute="/dashboard" />
+
+    @if (isLoading()) {
+      <div class="loading-state">
+        <div class="loading-spinner"></div>
+        <p style="color: var(--text-muted); font-size: 14px;">Carregando cobranças...</p>
+      </div>
+    } @else if (!invoiceEnabled()) {
+      <!-- Permission gate -->
+      <div class="card permission-gate">
+        <div class="icon-box icon-box-lg" style="background: var(--primary-bg); margin: 0 auto 16px;">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0110 0v4"/>
+          </svg>
+        </div>
+        <h3 class="permission-gate__title">Cobranças não habilitadas</h3>
+        <p class="permission-gate__text">
+          Entre em contato com o suporte para habilitar o recurso de cobranças.
+        </p>
+      </div>
+    } @else {
+      <!-- Create button -->
+      <div class="invoices-header">
+        <button
+          class="btn btn-primary"
+          [disabled]="!canCreate"
+          (click)="showCreateSheet.set(true)"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 5V19"/>
+            <path d="M5 12H19"/>
+          </svg>
+          Nova cobrança
+        </button>
+        @if (activeCount >= MAX_ACTIVE_INVOICES) {
+          <p class="limit-warning">Limite de {{ MAX_ACTIVE_INVOICES }} cobranças ativas atingido</p>
+        }
+      </div>
+
+      <!-- Invoice list -->
+      @if (invoices().length === 0) {
+        <div class="empty-state">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+            <polyline points="14,2 14,8 20,8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10,9 9,9 8,9"/>
+          </svg>
+          <p style="color: var(--text-muted); font-size: 14px;">Nenhuma cobrança criada</p>
+          <p style="color: var(--text-dim); font-size: 13px;">
+            Crie sua primeira cobrança para receber pagamentos via PIX.
+          </p>
+        </div>
+      } @else {
+        <div class="invoice-list">
+          @for (invoice of invoices(); track invoice.id) {
+            <app-invoice-card
+              [invoice]="invoice"
+              (select)="onInvoiceSelect($event)"
+            />
+          }
+        </div>
+
+        @if (hasMore()) {
+          <button class="btn btn-ghost btn-full load-more" (click)="loadMore()">
+            Carregar mais
+          </button>
+        }
+      }
+    }
+  </div>
+
+  <!-- Create Invoice Sheet -->
+  <app-invoice-create-sheet
+    [isOpen]="showCreateSheet()"
+    (close)="showCreateSheet.set(false)"
+    (created)="onInvoiceCreated($event)"
+  />
+</div>

@@ -1,8 +1,8 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 
 import { Router } from '@angular/router';
-import { BuyOrderService } from '../../shared/api/buy-order.service';
-import { BuyOrder, BuyOrderStatus } from '../../shared/models/buy-order.model';
+import { PixInboundService } from '../../shared/api/pix-inbound.service';
+import { PixInboundRequestResponse, getPixInboundStatusLabel, getSourceTypeLabel } from '../../shared/models/pix-inbound.model';
 import { formatBrlCents } from '../../shared/utils/format.util';
 import { PageHeaderComponent } from '../../components/page-header/page-header.component';
 
@@ -15,10 +15,10 @@ import { PageHeaderComponent } from '../../components/page-header/page-header.co
 })
 export class OrderAnalysisComponent implements OnInit {
   private router = inject(Router);
-  private buyOrderService = inject(BuyOrderService);
+  private pixInboundService = inject(PixInboundService);
 
   // Signals
-  analyzingOrders = signal<BuyOrder[]>([]);
+  analyzingOrders = signal<PixInboundRequestResponse[]>([]);
   loading = signal(true);
   error = signal<string | null>(null);
 
@@ -34,13 +34,13 @@ export class OrderAnalysisComponent implements OnInit {
     this.loading.set(true);
     this.error.set(null);
 
-    this.buyOrderService.getAnalyzingOrders().subscribe({
-      next: (orders) => {
-        this.analyzingOrders.set(orders);
+    this.pixInboundService.getAnalyzingRequests().subscribe({
+      next: (requests) => {
+        this.analyzingOrders.set(requests);
         this.loading.set(false);
       },
       error: (error) => {
-        console.error('Error loading analyzing orders:', error);
+        console.error('Error loading analyzing requests:', error);
         this.error.set('Erro ao carregar ordens em análise. Tente novamente.');
         this.loading.set(false);
       }
@@ -51,21 +51,17 @@ export class OrderAnalysisComponent implements OnInit {
     this.router.navigate(['/analyzing-order', orderId]);
   }
 
-  getStatusText(status: BuyOrderStatus): string {
-    return status === BuyOrderStatus.Analyzing ? 'Em Análise' : status;
+  getStatusText(status: string): string {
+    return getPixInboundStatusLabel(status);
+  }
+
+  getSourceTypeLabel(sourceType: string): string {
+    return getSourceTypeLabel(sourceType);
   }
 
   formatCurrency(value: string | number): string {
     const numValue = typeof value === 'string' ? parseFloat(value) : value;
     return formatBrlCents(numValue);
-  }
-
-  formatBitcoin(value: string | number | null | undefined): string {
-    if (value === null || value === undefined) {
-      return '0.00000000';
-    }
-    const numValue = typeof value === 'string' ? parseFloat(value) : value;
-    return (numValue / 100000000).toFixed(8);
   }
 
   formatAddress(address: string): string {

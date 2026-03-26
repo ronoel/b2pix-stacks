@@ -1,0 +1,63 @@
+.invoice-pay-page {
+  min-height: 100vh;
+  background: var(--bg-secondary);
+}
+
+.invoice-pay-container {
+  max-width: 440px;
+  margin: 0 auto;
+  padding: 0 20px 32px;
+}
+
+.invoice-pay-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 24px 0 28px;
+
+  &__logo {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    margin-bottom: 4px;
+  }
+
+  &__title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+  }
+
+  &__slogan {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-weight: 400;
+  }
+}
+
+.loading-text {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin: 0;
+}
+
+.status-screen {
+  text-align: center;
+  padding: 40px 0;
+
+  &__title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 12px;
+  }
+
+  &__text {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin: 0;
+  }
+}

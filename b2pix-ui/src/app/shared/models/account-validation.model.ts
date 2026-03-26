@@ -69,6 +69,8 @@ export interface AccountInfo {
   email_verified: boolean;
   pix_verified: boolean;
   is_lp?: boolean;
+  invoice_enabled?: boolean;
+  active_invoice_count?: number;
   created_at?: string;
 }
 

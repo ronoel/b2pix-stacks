@@ -47,31 +47,30 @@
         </div>
 
         <div class="dispute-cards">
-          @for (buy of analyzingOrders(); track buy.id) {
-            <div class="card dispute-card" (click)="viewOrderDetails(buy.id)">
+          @for (req of analyzingOrders(); track req.id) {
+            <div class="card dispute-card" (click)="viewOrderDetails(req.id)">
               <div class="dispute-header">
                 <div class="dispute-id font-mono">
-                  {{ buy.id }}
+                  {{ req.id }}
                 </div>
-                <span class="status-badge processing">{{ getStatusText(buy.status) }}</span>
+                <div class="dispute-badges">
+                  <span class="status-badge processing">{{ getStatusText(req.status) }}</span>
+                  <span class="badge badge-info">{{ getSourceTypeLabel(req.source_type) }}</span>
+                </div>
               </div>
 
               <div class="dispute-details">
                 <div class="detail-row">
                   <span class="detail-label">Valor</span>
-                  <span class="detail-value">{{ formatCurrency(buy.buy_value) }}</span>
+                  <span class="detail-value">{{ formatCurrency(req.value_brl) }}</span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">sBTC</span>
-                  <span class="detail-value">{{ formatBitcoin(buy.amount) }} sBTC</span>
-                </div>
-                <div class="detail-row">
-                  <span class="detail-label">Comprador</span>
-                  <span class="detail-value font-mono">{{ formatAddress(buy.address_buy) }}</span>
+                  <span class="detail-label">Operador PIX</span>
+                  <span class="detail-value font-mono">{{ formatAddress(req.lp_address) }}</span>
                 </div>
                 <div class="detail-row">
                   <span class="detail-label">Criado em</span>
-                  <span class="detail-value">{{ formatDate(buy.created_at) }}</span>
+                  <span class="detail-value">{{ formatDate(req.created_at) }}</span>
                 </div>
               </div>
 

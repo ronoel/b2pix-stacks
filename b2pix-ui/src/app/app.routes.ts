@@ -139,6 +139,20 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'invoices',
+    loadComponent: () => import('./pages/invoices/invoices.component').then(m => m.InvoicesComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'invoices/:id',
+    loadComponent: () => import('./pages/invoice-details/invoice-details.component').then(m => m.InvoiceDetailsComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'pay/:payment_token',
+    loadComponent: () => import('./pages/invoice-pay/invoice-pay.component').then(m => m.InvoicePayComponent)
+  },
+  {
     path: 'bridge',
     loadComponent: () => import('./pages/bridge/bridge.component').then(m => m.BridgeComponent),
     canActivate: [authGuard]

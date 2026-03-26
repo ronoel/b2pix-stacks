@@ -116,6 +116,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return this.validationStatus()?.is_lp === true;
   }
 
+  isInvoiceEnabled(): boolean {
+    return this.validationStatus()?.invoice_enabled === true;
+  }
+
   // Navigation
   navigate(path: string) {
     this.router.navigate([path]);

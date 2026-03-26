@@ -2,8 +2,8 @@
   <div class="container-wide">
     <!-- Header -->
     <app-page-header
-      title="Detalhes da ordem"
-      subtitle="Ordem em análise"
+      title="Detalhes da análise"
+      subtitle="PIX Inbound em análise"
       backRoute="/order-analysis"
     />
 
@@ -11,7 +11,7 @@
       <!-- Loading State -->
       <div class="loading-state">
         <div class="loading-spinner"></div>
-        <p>Carregando detalhes da ordem...</p>
+        <p>Carregando detalhes...</p>
       </div>
     } @else if (error()) {
       <!-- Error State -->
@@ -23,7 +23,7 @@
             <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
           </svg>
         </div>
-        <h2>Erro ao carregar ordem</h2>
+        <h2>Erro ao carregar</h2>
         <p>{{ error() }}</p>
         <button class="btn btn-outline" (click)="loadOrderDetails()">Tentar novamente</button>
       </div>
@@ -33,17 +33,24 @@
         <!-- Status Card -->
         <div class="card">
           <div class="status-header">
-            <h2 class="section-title">Status da transação</h2>
-            <span class="status-badge"
-              [class.processing]="order()!.status === 'analyzing'"
-              [class.completed]="order()!.status === 'confirmed'"
-              [class.failed]="order()!.status === 'rejected'">
-              {{ getStatusText(order()!.status) }}
-            </span>
+            <h2 class="section-title">Status</h2>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <span class="status-badge"
+                [class.processing]="order()!.status === 'analyzing'"
+                [class.completed]="order()!.status === 'confirmed'"
+                [class.failed]="order()!.status === 'rejected'">
+                {{ getStatusText(order()!.status) }}
+              </span>
+              <span class="badge badge-info">{{ getSourceTypeLabel(order()!.source_type) }}</span>
+            </div>
           </div>
           <div class="detail-row">
-            <span class="detail-label">ID da transação</span>
+            <span class="detail-label">ID</span>
             <span class="detail-value font-mono">{{ order()!.id }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Origem</span>
+            <span class="detail-value font-mono">{{ order()!.source_id }}</span>
           </div>
           <div class="detail-row">
             <span class="detail-label">Criado em</span>
@@ -60,20 +67,22 @@
           <h2 class="section-title">Detalhes da transação</h2>
           <div class="detail-row highlight">
             <span class="detail-label">Valor PIX</span>
-            <span class="detail-value">{{ formatCurrency(order()!.buy_value) }}</span>
+            <span class="detail-value">{{ formatCurrency(order()!.value_brl) }}</span>
           </div>
           <div class="detail-row">
-            <span class="detail-label">sBTC</span>
-            <span class="detail-value font-mono">{{ formatBitcoin(order()!.amount) }} sBTC</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Comprador</span>
-            <span class="detail-value font-mono">{{ formatAddress(order()!.address_buy) }}</span>
+            <span class="detail-label">Operador PIX</span>
+            <span class="detail-value font-mono">{{ formatAddress(order()!.lp_address) }}</span>
           </div>
           <div class="detail-row">
             <span class="detail-label">Chave PIX</span>
             <span class="detail-value font-mono">{{ order()!.pix_key }}</span>
           </div>
+          @if (order()!.pix_end_to_end_id) {
+            <div class="detail-row">
+              <span class="detail-label">PIX E2E ID</span>
+              <span class="detail-value font-mono">{{ order()!.pix_end_to_end_id }}</span>
+            </div>
+          }
         </div>
 
         <!-- Resolution Actions -->
@@ -88,23 +97,23 @@
               class="btn btn-success btn-full"
               (click)="showConfirmApprove.set(true)"
               [disabled]="resolving()">
-              Confirmar ordem
-              <span class="btn-hint">Comprador receberá os bitcoins</span>
+              Confirmar pagamento
+              <span class="btn-hint">Pagamento será confirmado</span>
             </button>
 
             <button
               class="btn btn-danger btn-full"
               (click)="showConfirmReject.set(true)"
               [disabled]="resolving()">
-              Rejeitar ordem
-              <span class="btn-hint">A ordem será rejeitada</span>
+              Rejeitar pagamento
+              <span class="btn-hint">O pagamento será rejeitado</span>
             </button>
           </div>
 
           @if (resolving()) {
             <div class="resolution-loading">
               <div class="loading-spinner-sm"></div>
-              <span>Resolvendo ordem...</span>
+              <span>Resolvendo...</span>
             </div>
           }
         </div>
@@ -116,10 +125,10 @@
 <!-- Confirm Approve Sheet -->
 <app-confirm-action-sheet
   [isOpen]="showConfirmApprove()"
-  title="Confirmar ordem"
-  message="Você está liberando os fundos ao comprador. Esta ação não pode ser desfeita."
+  title="Confirmar pagamento"
+  message="Você está confirmando este pagamento PIX. Esta ação não pode ser desfeita."
   type="success"
-  confirmLabel="Confirmar ordem"
+  confirmLabel="Confirmar pagamento"
   [isLoading]="resolving()"
   (confirmed)="resolveOrder('confirmed')"
   (cancelled)="showConfirmApprove.set(false)"
@@ -128,15 +137,11 @@
     <div class="card">
       <div class="detail-row">
         <span class="detail-label">Valor</span>
-        <span class="detail-value">{{ formatCurrency(order()!.buy_value) }}</span>
+        <span class="detail-value">{{ formatCurrency(order()!.value_brl) }}</span>
       </div>
       <div class="detail-row">
-        <span class="detail-label">Quantidade</span>
-        <span class="detail-value font-mono">{{ formatBitcoin(order()!.amount) }} sBTC</span>
-      </div>
-      <div class="detail-row">
-        <span class="detail-label">Comprador</span>
-        <span class="detail-value font-mono">{{ formatAddress(order()!.address_buy) }}</span>
+        <span class="detail-label">Operador PIX</span>
+        <span class="detail-value font-mono">{{ formatAddress(order()!.lp_address) }}</span>
       </div>
       <div class="detail-row">
         <span class="detail-label">Chave PIX</span>
@@ -161,10 +166,10 @@
 <!-- Confirm Reject Sheet -->
 <app-confirm-action-sheet
   [isOpen]="showConfirmReject()"
-  title="Rejeitar ordem"
-  message="Você está rejeitando esta ordem e devolvendo os fundos. Esta ação não pode ser desfeita."
+  title="Rejeitar pagamento"
+  message="Você está rejeitando este pagamento. Esta ação não pode ser desfeita."
   type="danger"
-  confirmLabel="Rejeitar ordem"
+  confirmLabel="Rejeitar pagamento"
   [isLoading]="resolving()"
   (confirmed)="resolveOrder('rejected')"
   (cancelled)="showConfirmReject.set(false)"
@@ -173,15 +178,11 @@
     <div class="card">
       <div class="detail-row">
         <span class="detail-label">Valor</span>
-        <span class="detail-value">{{ formatCurrency(order()!.buy_value) }}</span>
+        <span class="detail-value">{{ formatCurrency(order()!.value_brl) }}</span>
       </div>
       <div class="detail-row">
-        <span class="detail-label">Quantidade</span>
-        <span class="detail-value font-mono">{{ formatBitcoin(order()!.amount) }} sBTC</span>
-      </div>
-      <div class="detail-row">
-        <span class="detail-label">Comprador</span>
-        <span class="detail-value font-mono">{{ formatAddress(order()!.address_buy) }}</span>
+        <span class="detail-label">Operador PIX</span>
+        <span class="detail-value font-mono">{{ formatAddress(order()!.lp_address) }}</span>
       </div>
       <div class="detail-row">
         <span class="detail-label">Chave PIX</span>

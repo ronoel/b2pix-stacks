@@ -1,7 +1,7 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
-import { BuyOrderService } from '../../shared/api/buy-order.service';
+import { PixInboundService } from '../../shared/api/pix-inbound.service';
 import { PaymentRequestService } from '../../shared/api/payment-request.service';
 import { AccountValidationService } from '../../shared/api/account-validation.service';
 import { ManagerPayoutService } from '../../shared/api/manager-payout.service';
@@ -17,7 +17,7 @@ import { PageHeaderComponent } from '../../components/page-header/page-header.co
 })
 export class ManagerDashboardComponent implements OnInit {
   private router = inject(Router);
-  private buyOrderService = inject(BuyOrderService);
+  private pixInboundService = inject(PixInboundService);
   private paymentRequestService = inject(PaymentRequestService);
   private accountValidationService = inject(AccountValidationService);
   private managerPayoutService = inject(ManagerPayoutService);
@@ -51,7 +51,7 @@ export class ManagerDashboardComponent implements OnInit {
     this.error.set(null);
 
     forkJoin({
-      analyzing: this.buyOrderService.getAnalyzingOrders(),
+      analyzing: this.pixInboundService.getAnalyzingRequests(),
       waitingPayments: this.paymentRequestService.getPaymentRequests({
         status: [PaymentRequestStatus.Waiting],
         limit: 100

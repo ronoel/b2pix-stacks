@@ -4,7 +4,7 @@ import { Observable, from } from 'rxjs';
 import { switchMap, catchError, map } from 'rxjs/operators';
 import { environment } from "../../../environments/environment";
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
-import { BuyOrder, PaginatedBuyOrdersResponse } from "../models/buy-order.model";
+import { BuyOrder, CreateBuyOrderResponse, ResubmitResponse, PaginatedBuyOrdersResponse } from "../models/buy-order.model";
 import { SignedRequest } from "../models/api.model";
 import { QuoteService, QuoteResponse } from './quote.service';
 
@@ -19,7 +19,7 @@ export class BuyOrderService {
    * Create a new buy order
    * @param buyValueInCents Amount in BRL cents
    */
-  createBuyOrder(buyValueInCents: number): Observable<BuyOrder> {
+  createBuyOrder(buyValueInCents: number): Observable<CreateBuyOrderResponse> {
     const timestamp = new Date().toISOString();
     const payload = `B2PIX - Criar Ordem de Compra\nb2pix.org\n${buyValueInCents}\n${timestamp}`;
 
@@ -30,7 +30,7 @@ export class BuyOrderService {
           signature: signedMessage.signature,
           payload
         };
-        return this.http.post<BuyOrder>(`${this.apiUrl}/v1/buy-orders`, data);
+        return this.http.post<CreateBuyOrderResponse>(`${this.apiUrl}/v1/buy-orders`, data);
       }),
       catchError((error: any) => {
         console.error('Error in createBuyOrder:', error);
@@ -61,7 +61,7 @@ export class BuyOrderService {
    * Mark buy order as paid
    * @param orderId Order ID
    */
-  markBuyOrderAsPaid(orderId: string): Observable<BuyOrder> {
+  markBuyOrderAsPaid(orderId: string): Observable<{ status: string }> {
     const timestamp = new Date().toISOString();
     const payload = `B2PIX - Marcar Ordem como Paga\nb2pix.org\n${orderId}\n${timestamp}`;
 
@@ -72,7 +72,7 @@ export class BuyOrderService {
           signature: signedMessage.signature,
           payload
         };
-        return this.http.put<BuyOrder>(`${this.apiUrl}/v1/buy-orders/${orderId}/paid`, data);
+        return this.http.put<{ status: string }>(`${this.apiUrl}/v1/buy-orders/${orderId}/paid`, data);
       }),
       catchError((error: any) => {
         console.error('Error in markBuyOrderAsPaid:', error);
@@ -136,61 +136,10 @@ export class BuyOrderService {
   }
 
   /**
-   * Get analyzing orders (Public endpoint)
+   * Resubmit payment — creates new PIX attempt for expired payment.
+   * Returns new PIX inbound info.
    */
-  getAnalyzingOrders(): Observable<BuyOrder[]> {
-    return this.http.get<BuyOrder[]>(`${this.apiUrl}/v1/buy-orders/analyzing`);
-  }
-
-  /**
-   * Resolve analyzing order (Manager only)
-   * @param orderId Order ID
-   * @param resolution 'confirmed' or 'rejected'
-   * @param pixEndToEndId Optional PIX end-to-end ID (only for 'confirmed')
-   */
-  resolveAnalyzingOrder(orderId: string, resolution: 'confirmed' | 'rejected', pixEndToEndId?: string): Observable<BuyOrder> {
-    const timestamp = new Date().toISOString();
-    const lines = [
-      'B2PIX - Resolver Análise de Ordem',
-      'b2pix.org',
-      orderId,
-      resolution,
-    ];
-    if (pixEndToEndId) {
-      lines.push(pixEndToEndId);
-    }
-    lines.push(timestamp);
-    const payload = lines.join('\n');
-
-    return from(this.walletManager.signMessage(payload)).pipe(
-      switchMap(signedMessage => {
-        const data: SignedRequest = {
-          publicKey: signedMessage.publicKey,
-          signature: signedMessage.signature,
-          payload
-        };
-        return this.http.put<BuyOrder>(`${this.apiUrl}/v1/buy-orders/resolve`, data);
-      }),
-      catchError((error: any) => {
-        console.error('Error in resolveAnalyzingOrder:', error);
-        if (error.message && error.message.includes('User denied')) {
-          throw new Error('Assinatura cancelada pelo usuário');
-        }
-        if (error.status === 409 && error.error?.error === 'duplicate_pix_order') {
-          throw new Error('Este ID PIX já está vinculado a outra ordem');
-        }
-        if (error.error?.error) {
-          throw new Error(error.error.error);
-        }
-        throw error;
-      })
-    );
-  }
-
-  /**
-   * Resubmit payment verification on an expired non-final order
-   */
-  resubmitPayment(orderId: string): Observable<BuyOrder> {
+  resubmitPayment(orderId: string): Observable<ResubmitResponse> {
     const timestamp = new Date().toISOString();
     const payload = `B2PIX - Reenviar Pagamento\nb2pix.org\n${orderId}\n${timestamp}`;
 
@@ -201,7 +150,7 @@ export class BuyOrderService {
           signature: signedMessage.signature,
           payload
         };
-        return this.http.put<BuyOrder>(`${this.apiUrl}/v1/buy-orders/${orderId}/resubmit`, data);
+        return this.http.put<ResubmitResponse>(`${this.apiUrl}/v1/buy-orders/${orderId}/resubmit`, data);
       }),
       catchError((error: any) => {
         console.error('Error in resubmitPayment:', error);

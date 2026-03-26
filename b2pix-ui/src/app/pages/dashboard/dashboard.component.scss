@@ -198,6 +198,11 @@
   color: var(--btc);
 }
 
+.action-card--invoice .action-card__icon {
+  background: var(--primary-bg);
+  color: var(--primary);
+}
+
 .action-card__label {
   font-size: 14px;
   font-weight: 700;

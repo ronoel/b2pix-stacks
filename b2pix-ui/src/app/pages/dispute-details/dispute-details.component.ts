@@ -1,11 +1,12 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 
 import { ActivatedRoute, Router } from '@angular/router';
-import { BuyOrderService } from '../../shared/api/buy-order.service';
-import { BuyOrder, BuyOrderStatus } from '../../shared/models/buy-order.model';
+import { PixInboundService } from '../../shared/api/pix-inbound.service';
+import { PixInboundRequestResponse, getPixInboundStatusLabel, getSourceTypeLabel } from '../../shared/models/pix-inbound.model';
 import { formatBrlCents } from '../../shared/utils/format.util';
 import { PageHeaderComponent } from '../../components/page-header/page-header.component';
 import { ConfirmActionSheetComponent } from '../../components/confirm-action-sheet/confirm-action-sheet.component';
+
 @Component({
   selector: 'app-analyzing-order',
   standalone: true,
@@ -16,10 +17,10 @@ import { ConfirmActionSheetComponent } from '../../components/confirm-action-she
 export class AnalyzingOrderComponent implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
-  private buyOrderService = inject(BuyOrderService);
+  private pixInboundService = inject(PixInboundService);
 
   // Signals
-  order = signal<BuyOrder | null>(null);
+  order = signal<PixInboundRequestResponse | null>(null);
   loading = signal(true);
   error = signal<string | null>(null);
   resolving = signal(false);
@@ -33,7 +34,7 @@ export class AnalyzingOrderComponent implements OnInit {
       if (orderId) {
         this.loadOrderDetails(orderId);
       } else {
-        this.error.set('ID da ordem não encontrado');
+        this.error.set('ID não encontrado');
         this.loading.set(false);
       }
     });
@@ -45,19 +46,29 @@ export class AnalyzingOrderComponent implements OnInit {
 
     const id = orderId || this.route.snapshot.params['id'];
     if (!id) {
-      this.error.set('ID da ordem não encontrado');
+      this.error.set('ID não encontrado');
       this.loading.set(false);
       return;
     }
 
-    this.buyOrderService.getBuyOrderById(id).subscribe({
-      next: (order) => {
-        this.order.set(order);
+    // The analyzing list already contains all the data we need.
+    // Re-fetch the full list and find this specific item.
+    this.pixInboundService.getAnalyzingRequests().subscribe({
+      next: (requests) => {
+        const found = requests.find(r => r.id === id);
+        if (found) {
+          this.order.set(found);
+          if (found.pix_end_to_end_id) {
+            this.pixEndToEndId.set(found.pix_end_to_end_id);
+          }
+        } else {
+          this.error.set('Solicitação não encontrada na lista de análise.');
+        }
         this.loading.set(false);
       },
       error: (error) => {
         console.error('Error loading order details:', error);
-        this.error.set('Erro ao carregar detalhes da ordem. Tente novamente.');
+        this.error.set('Erro ao carregar detalhes. Tente novamente.');
         this.loading.set(false);
       }
     });
@@ -72,17 +83,17 @@ export class AnalyzingOrderComponent implements OnInit {
 
     const e2eId = resolution === 'confirmed' ? this.pixEndToEndId().trim() || undefined : undefined;
 
-    this.buyOrderService.resolveAnalyzingOrder(currentOrder.id, resolution, e2eId).subscribe({
-      next: (updatedOrder) => {
-        this.order.set(updatedOrder);
+    this.pixInboundService.resolveAnalyzingRequest(currentOrder.id, resolution, e2eId).subscribe({
+      next: (updated) => {
+        this.order.set(updated);
         this.resolving.set(false);
         this.router.navigate(['/order-analysis']);
       },
       error: (error) => {
-        console.error('Error resolving order:', error);
+        console.error('Error resolving:', error);
         this.resolving.set(false);
         this.showConfirmApprove.set(false);
-        this.error.set(error.message || 'Erro ao resolver ordem. Tente novamente.');
+        this.error.set(error.message || 'Erro ao resolver. Tente novamente.');
       }
     });
   }
@@ -91,29 +102,18 @@ export class AnalyzingOrderComponent implements OnInit {
     this.router.navigate(['/order-analysis']);
   }
 
-  getStatusText(status: BuyOrderStatus): string {
-    switch (status) {
-      case BuyOrderStatus.Analyzing:
-        return 'Em análise';
-      case BuyOrderStatus.Confirmed:
-        return 'Confirmada';
-      case BuyOrderStatus.Rejected:
-        return 'Rejeitada';
-      default:
-        return status;
-    }
+  getStatusText(status: string): string {
+    return getPixInboundStatusLabel(status);
+  }
+
+  getSourceTypeLabel(sourceType: string): string {
+    return getSourceTypeLabel(sourceType);
   }
 
   formatCurrency(value: string | number | null | undefined): string {
     if (value === null || value === undefined) return 'R$ 0,00';
     const numValue = typeof value === 'string' ? parseFloat(value) : value;
     return formatBrlCents(numValue);
-  }
-
-  formatBitcoin(value: string | number | null | undefined): string {
-    if (value === null || value === undefined) return '0.00000000';
-    const numValue = typeof value === 'string' ? parseFloat(value) : value;
-    return (numValue / 100000000).toFixed(8);
   }
 
   formatAddress(address: string): string {

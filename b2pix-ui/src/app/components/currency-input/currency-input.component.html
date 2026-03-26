@@ -1,0 +1,15 @@
+<div class="currency-input" [class.size-large]="size() === 'large'">
+  <span class="currency-prefix">{{ prefix() }}</span>
+  <input
+    #inputEl
+    type="text"
+    inputmode="numeric"
+    class="currency-field"
+    [attr.placeholder]="placeholder()"
+    [value]="displayValue()"
+    (keydown)="onKeyDown($event)"
+    (input)="onInput($event)"
+    (paste)="onPaste($event)"
+    autocomplete="off"
+  />
+</div>

@@ -5,7 +5,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { AccountValidationService } from '../../shared/api/account-validation.service';
 import { EmailVerificationStep } from '../../shared/models/account-validation.model';
 import { CountdownTimerComponent } from './components/countdown-timer.component';
-import { CodeInputComponent } from './components/code-input.component';
+import { CodeInputComponent } from '../../components/code-input/code-input.component';
 import { PageHeaderComponent } from '../../components/page-header/page-header.component';
 
 @Component({
