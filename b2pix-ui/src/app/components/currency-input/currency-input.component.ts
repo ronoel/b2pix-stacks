@@ -1,4 +1,4 @@
-import { Component, input, output, signal, computed, effect, ElementRef, viewChild } from '@angular/core';
+import { Component, input, output, signal, computed, linkedSignal, ElementRef, viewChild } from '@angular/core';
 
 @Component({
   selector: 'app-currency-input',
@@ -23,16 +23,7 @@ export class CurrencyInputComponent {
   private inputRef = viewChild<ElementRef<HTMLInputElement>>('inputEl');
 
   /** Internal cents tracked independently so we can update from both typing and external changes */
-  private internalCents = signal(0);
-
-  constructor() {
-    effect(() => {
-      const external = this.valueCents();
-      if (external !== this.internalCents()) {
-        this.internalCents.set(external);
-      }
-    });
-  }
+  private internalCents = linkedSignal(() => this.valueCents());
 
   displayValue = computed(() => {
     const cents = this.internalCents();
