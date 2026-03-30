@@ -36,6 +36,35 @@ export function getPixInboundStatusClass(status: string): string {
   }
 }
 
+export interface BankPixTransaction {
+  endToEndId: string;
+  valor: string;
+  chave: string;
+  horario: string;
+  txid?: string;
+  infoPagador?: string;
+}
+
+export interface BankPixQueryResponse {
+  inbound_request: PixInboundRequestResponse;
+  expected_value: string;
+  query_start: string;
+  query_end: string;
+  bank_response: {
+    parametros: {
+      inicio: string;
+      fim: string;
+      paginacao: {
+        paginaAtual: number;
+        itensPorPagina: number;
+        quantidadeDePaginas: number;
+        quantidadeTotalDeItens: number;
+      };
+    };
+    pix: BankPixTransaction[];
+  };
+}
+
 export function getSourceTypeLabel(sourceType: string): string {
   switch (sourceType) {
     case 'buy_order': return 'Compra';

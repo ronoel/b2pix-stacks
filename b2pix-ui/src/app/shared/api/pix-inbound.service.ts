@@ -5,7 +5,7 @@ import { switchMap, catchError } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import { SignedRequest } from '../models/api.model';
-import { PixInboundRequestResponse } from '../models/pix-inbound.model';
+import { PixInboundRequestResponse, BankPixQueryResponse } from '../models/pix-inbound.model';
 
 @Injectable({ providedIn: 'root' })
 export class PixInboundService {
@@ -18,6 +18,13 @@ export class PixInboundService {
    */
   getAnalyzingRequests(): Observable<PixInboundRequestResponse[]> {
     return this.http.get<PixInboundRequestResponse[]>(`${this.apiUrl}/v1/pix-inbound/analyzing`);
+  }
+
+  /**
+   * Query bank PIX transactions received for a given inbound request
+   */
+  getBankPix(inboundRequestId: string): Observable<BankPixQueryResponse> {
+    return this.http.get<BankPixQueryResponse>(`${this.apiUrl}/v1/pix-inbound/${inboundRequestId}/bank-pix`);
   }
 
   /**

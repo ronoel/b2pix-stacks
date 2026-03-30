@@ -2,7 +2,7 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 
 import { ActivatedRoute, Router } from '@angular/router';
 import { PixInboundService } from '../../shared/api/pix-inbound.service';
-import { PixInboundRequestResponse, getPixInboundStatusLabel, getSourceTypeLabel } from '../../shared/models/pix-inbound.model';
+import { PixInboundRequestResponse, BankPixQueryResponse, BankPixTransaction, getPixInboundStatusLabel, getSourceTypeLabel } from '../../shared/models/pix-inbound.model';
 import { formatBrlCents } from '../../shared/utils/format.util';
 import { PageHeaderComponent } from '../../components/page-header/page-header.component';
 import { ConfirmActionSheetComponent } from '../../components/confirm-action-sheet/confirm-action-sheet.component';
@@ -27,6 +27,11 @@ export class AnalyzingOrderComponent implements OnInit {
   showConfirmApprove = signal(false);
   showConfirmReject = signal(false);
   pixEndToEndId = signal('');
+
+  // Bank PIX query
+  bankPixData = signal<BankPixQueryResponse | null>(null);
+  bankPixLoading = signal(false);
+  bankPixError = signal<string | null>(null);
 
   ngOnInit() {
     this.route.params.subscribe(params => {
@@ -96,6 +101,47 @@ export class AnalyzingOrderComponent implements OnInit {
         this.error.set(error.message || 'Erro ao resolver. Tente novamente.');
       }
     });
+  }
+
+  loadBankPix() {
+    const currentOrder = this.order();
+    if (!currentOrder || this.bankPixLoading()) return;
+
+    this.bankPixLoading.set(true);
+    this.bankPixError.set(null);
+
+    this.pixInboundService.getBankPix(currentOrder.id).subscribe({
+      next: (data) => {
+        this.bankPixData.set(data);
+        this.bankPixLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Error loading bank PIX:', err);
+        this.bankPixError.set(err.error?.error || 'Erro ao consultar PIX no banco.');
+        this.bankPixLoading.set(false);
+      }
+    });
+  }
+
+  isPixMatch(pix: BankPixTransaction): boolean {
+    const order = this.order();
+    if (!order) return false;
+    const expectedValue = this.bankPixData()?.expected_value;
+    return pix.valor === expectedValue && pix.chave === order.pix_key;
+  }
+
+  isValueMatch(pix: BankPixTransaction): boolean {
+    return pix.valor === this.bankPixData()?.expected_value;
+  }
+
+  isKeyMatch(pix: BankPixTransaction): boolean {
+    const order = this.order();
+    return !!order && pix.chave === order.pix_key;
+  }
+
+  formatBrl(value: string): string {
+    const num = parseFloat(value);
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(num);
   }
 
   goBack() {
