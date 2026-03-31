@@ -39,6 +39,12 @@ export class PixKeyInputComponent {
   selectedQuickAmount = signal(0);
   quickAmounts = [20, 50, 100, 250];
 
+  displayValue = computed(() => {
+    const cents = this.valueInCents();
+    if (cents <= 0) return '';
+    return (cents / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  });
+
   constructor() {
     // Auto-detect key type as user types
     effect(() => {
@@ -67,12 +73,6 @@ export class PixKeyInputComponent {
     return '';
   });
 
-  displayValue = computed(() => {
-    const cents = this.valueInCents();
-    if (cents <= 0) return '';
-    return (cents / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  });
-
   valueError = computed(() => {
     const cents = this.valueInCents();
     if (cents > this.MAX_VALUE_CENTS) {
@@ -93,19 +93,23 @@ export class PixKeyInputComponent {
   }
 
   onQuickAmountSelected(amountBrl: number) {
-    const cents = amountBrl * 100;
-    this.valueInCents.set(cents);
+    this.valueInCents.set(amountBrl * 100);
     this.selectedQuickAmount.set(amountBrl);
   }
 
-  onValueChange(displayStr: string) {
-    this.selectedQuickAmount.set(0);
-    const cleaned = displayStr.replace(/[^\d,]/g, '').replace(',', '.');
-    const parsed = parseFloat(cleaned);
-    if (!isNaN(parsed)) {
-      this.valueInCents.set(Math.round(parsed * 100));
-    } else {
-      this.valueInCents.set(0);
+  onKeyDown(event: KeyboardEvent) {
+    const key = event.key;
+    if (key >= '0' && key <= '9') {
+      event.preventDefault();
+      const newValue = this.valueInCents() * 10 + parseInt(key, 10);
+      if (newValue <= 99999999) {
+        this.valueInCents.set(newValue);
+        this.selectedQuickAmount.set(0);
+      }
+    } else if (key === 'Backspace') {
+      event.preventDefault();
+      this.valueInCents.update(v => Math.floor(v / 10));
+      this.selectedQuickAmount.set(0);
     }
   }
 

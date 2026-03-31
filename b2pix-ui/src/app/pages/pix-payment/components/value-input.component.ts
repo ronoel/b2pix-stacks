@@ -1,5 +1,4 @@
 import { Component, input, output, signal, computed } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { PixQrData } from './payment-confirmation.component';
 import { QuickAmountChipsComponent } from '../../../components/quick-amount-chips/quick-amount-chips.component';
 import { formatBrlCents } from '../../../shared/utils/format.util';
@@ -7,7 +6,7 @@ import { formatBrlCents } from '../../../shared/utils/format.util';
 @Component({
   selector: 'app-value-input',
   standalone: true,
-  imports: [FormsModule, QuickAmountChipsComponent],
+  imports: [QuickAmountChipsComponent],
   template: `
     <div class="value-input">
       <div class="alert-box alert-info">
@@ -40,11 +39,11 @@ import { formatBrlCents } from '../../../shared/utils/format.util';
           <span class="input-prefix">R$</span>
           <input
             type="text"
-            inputmode="decimal"
+            inputmode="numeric"
             class="form-input has-prefix"
             placeholder="0,00"
-            [ngModel]="displayValue()"
-            (ngModelChange)="onValueChange($event)"
+            [value]="displayValue()"
+            (keydown)="onKeyDown($event)"
           />
         </div>
 
@@ -165,19 +164,23 @@ export class ValueInputComponent {
   formatChipLabel = (amount: number) => `R$ ${amount}`;
 
   onQuickAmountSelected(amountBrl: number) {
-    const cents = amountBrl * 100;
-    this.valueInCents.set(cents);
+    this.valueInCents.set(amountBrl * 100);
     this.selectedQuickAmount.set(amountBrl);
   }
 
-  onValueChange(displayStr: string) {
-    this.selectedQuickAmount.set(0);
-    const cleaned = displayStr.replace(/[^\d,]/g, '').replace(',', '.');
-    const parsed = parseFloat(cleaned);
-    if (!isNaN(parsed)) {
-      this.valueInCents.set(Math.round(parsed * 100));
-    } else {
-      this.valueInCents.set(0);
+  onKeyDown(event: KeyboardEvent) {
+    const key = event.key;
+    if (key >= '0' && key <= '9') {
+      event.preventDefault();
+      const newValue = this.valueInCents() * 10 + parseInt(key, 10);
+      if (newValue <= 99999999) {
+        this.valueInCents.set(newValue);
+        this.selectedQuickAmount.set(0);
+      }
+    } else if (key === 'Backspace') {
+      event.preventDefault();
+      this.valueInCents.update(v => Math.floor(v / 10));
+      this.selectedQuickAmount.set(0);
     }
   }
 

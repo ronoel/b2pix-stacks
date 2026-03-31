@@ -52,11 +52,11 @@
         <span class="input-prefix">R$</span>
         <input
           type="text"
-          inputmode="decimal"
+          inputmode="numeric"
           class="form-input has-prefix"
           placeholder="0,00"
-          [ngModel]="displayValue()"
-          (ngModelChange)="onValueChange($event)"
+          [value]="displayValue()"
+          (keydown)="onKeyDown($event)"
         />
       </div>
 
