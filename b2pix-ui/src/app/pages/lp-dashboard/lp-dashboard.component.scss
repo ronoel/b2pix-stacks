@@ -595,6 +595,42 @@
 }
 
 // ============================================
+// HISTORY SUB-FILTER (Sent / Received toggle)
+// ============================================
+
+.history-filter {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.history-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  background: var(--bg-primary);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(.active) {
+    border-color: var(--text-dim);
+    color: var(--text-secondary);
+  }
+
+  &.active {
+    background: var(--primary-bg);
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+}
+
+// ============================================
 // HISTORY LIST
 // ============================================
 
@@ -656,6 +692,14 @@
   font-size: 16px;
   font-weight: 700;
   color: var(--text-primary);
+
+  &--sent {
+    color: var(--danger);
+  }
+
+  &--received {
+    color: var(--success);
+  }
 }
 
 .source-badge {

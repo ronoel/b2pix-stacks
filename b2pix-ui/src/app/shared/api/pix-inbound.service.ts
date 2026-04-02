@@ -1,11 +1,11 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, from } from 'rxjs';
 import { switchMap, catchError } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { WalletManagerService } from '../../libs/wallet/wallet-manager.service';
 import { SignedRequest } from '../models/api.model';
-import { PixInboundRequestResponse, BankPixQueryResponse } from '../models/pix-inbound.model';
+import { PixInboundRequestResponse, PaginatedInboundRequestResponse, BankPixQueryResponse } from '../models/pix-inbound.model';
 
 @Injectable({ providedIn: 'root' })
 export class PixInboundService {
@@ -25,6 +25,33 @@ export class PixInboundService {
    */
   getBankPix(inboundRequestId: string): Observable<BankPixQueryResponse> {
     return this.http.get<BankPixQueryResponse>(`${this.apiUrl}/v1/pix-inbound/${inboundRequestId}/bank-pix`);
+  }
+
+  /**
+   * Get confirmed PIX inbound requests for the connected LP address.
+   */
+  getConfirmedForLp(params?: { page?: number; limit?: number }): Observable<PaginatedInboundRequestResponse> {
+    const address = this.walletManager.getSTXAddress();
+    if (!address) {
+      throw new Error('Wallet not connected');
+    }
+
+    let httpParams = new HttpParams();
+    if (params?.page !== undefined) {
+      httpParams = httpParams.set('page', params.page.toString());
+    }
+    if (params?.limit !== undefined) {
+      httpParams = httpParams.set('limit', params.limit.toString());
+    }
+
+    return this.http.get<PaginatedInboundRequestResponse>(`${this.apiUrl}/v1/pix-inbound/confirmed/${address}`, {
+      params: httpParams
+    }).pipe(
+      catchError((error: any) => {
+        console.error('Error fetching confirmed inbound requests:', error);
+        throw error;
+      })
+    );
   }
 
   /**

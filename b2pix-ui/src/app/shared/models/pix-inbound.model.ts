@@ -6,10 +6,18 @@ export interface PixInboundRequestResponse {
   pix_key: string;
   value_brl: number;             // BRL in cents
   pix_end_to_end_id: string | null;
+  paid_at: string | null;        // ISO 8601 — actual bank payment time
   status: string;                // 'created' | 'processing' | 'analyzing' | 'confirmed' | 'rejected' | 'expired'
   is_final: boolean;
   created_at: string;            // ISO 8601
   updated_at: string;            // ISO 8601
+}
+
+export interface PaginatedInboundRequestResponse {
+  items: PixInboundRequestResponse[];
+  page: number;
+  limit: number;
+  has_more: boolean;
 }
 
 export function getPixInboundStatusLabel(status: string): string {

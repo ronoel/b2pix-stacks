@@ -269,98 +269,173 @@
             </div>
           }
 
-          @if (isLoadingHistory() && historyItems().length === 0) {
-            <div class="loading-state">
-              <div class="loading-spinner"></div>
-              <p>Carregando histórico...</p>
-            </div>
-          } @else if (historyItems().length === 0) {
-            <div class="empty-state">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-                <path d="M3 12C3 7.02944 7.02944 3 12 3C14.5755 3 16.9 4.15205 18.5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                <path d="M21 12C21 16.9706 16.9706 21 12 21C9.42446 21 7.09995 19.848 5.5 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                <path d="M13 2L18 6L14 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M11 22L6 18L10 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- Sub-filter: PIX Enviados / PIX Recebidos -->
+          <div class="history-filter">
+            <button
+              class="history-filter-btn"
+              [class.active]="historyFilter() === 'sent'"
+              (click)="switchHistoryFilter('sent')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M12 5V19M5 12L12 5L19 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
-              <h3>Nenhum histórico ainda</h3>
-              <p>Suas ordens processadas aparecerão aqui.</p>
-            </div>
-          } @else {
-            <div class="history-list">
-              @for (item of historyItems(); track item.id) {
-                <div class="history-card-wrapper">
+              PIX Enviados
+            </button>
+            <button
+              class="history-filter-btn"
+              [class.active]="historyFilter() === 'received'"
+              (click)="switchHistoryFilter('received')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M12 19V5M19 12L12 19L5 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              PIX Recebidos
+            </button>
+          </div>
+
+          <!-- PIX Enviados (Sent — existing payout history) -->
+          @if (historyFilter() === 'sent') {
+            @if (isLoadingHistory() && historyItems().length === 0) {
+              <div class="loading-state">
+                <div class="loading-spinner"></div>
+                <p>Carregando histórico...</p>
+              </div>
+            } @else if (historyItems().length === 0) {
+              <div class="empty-state">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                  <path d="M3 12C3 7.02944 7.02944 3 12 3C14.5755 3 16.9 4.15205 18.5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  <path d="M21 12C21 16.9706 16.9706 21 12 21C9.42446 21 7.09995 19.848 5.5 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  <path d="M13 2L18 6L14 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M11 22L6 18L10 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <h3>Nenhum PIX enviado ainda</h3>
+                <p>Suas ordens processadas aparecerão aqui.</p>
+              </div>
+            } @else {
+              <div class="history-list">
+                @for (item of historyItems(); track item.id) {
+                  <div class="history-card-wrapper">
+                    <div class="history-card">
+                      <div class="history-header">
+                        <div class="history-values">
+                          <span class="history-brl history-brl--sent">-{{ formatBrlCents(item.pix_value) }}</span>
+                        </div>
+                        <span class="status-badge" [class]="getStatusClass(item.status)">
+                          {{ getStatusLabel(item.status) }}
+                        </span>
+                      </div>
+                      <div class="history-meta">
+                        @if (item.pix_end_to_end_id) {
+                          <span class="meta-item font-mono">PIX: {{ item.pix_end_to_end_id }}</span>
+                        }
+                        <span class="meta-item">{{ formatDateTime(item.created_at) }}</span>
+                      </div>
+                    </div>
+                    @if (item.status === 'disputed') {
+                      <div class="history-chat-toggle">
+                        <button class="btn-chat-toggle" (click)="toggleHistoryChat(item.id)">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          </svg>
+                          {{ expandedChatId() === item.id ? 'Ocultar mensagens' : 'Ver mensagens' }}
+                        </button>
+                      </div>
+                      @if (expandedChatId() === item.id) {
+                        <div class="history-chat">
+                          <app-message-chat
+                            [sourceType]="item.source_type"
+                            [sourceId]="item.source_id"
+                            currentUserRole="payer"
+                          />
+                        </div>
+                      }
+                    }
+                  </div>
+                }
+              </div>
+
+              <!-- Summary stats -->
+              @if (stats() && !isLoadingStats()) {
+                <div class="stats-summary">
+                  <div class="stat-item">
+                    <span class="stat-label">PIX processados</span>
+                    <span class="stat-value">{{ stats()!.total_paid_count }}</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-label">Cancelamentos</span>
+                    <span class="stat-value">{{ stats()!.cancel_count }}</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-label">Volume total</span>
+                    <span class="stat-value">{{ formatBrlCents(stats()!.total_paid_value_cents) }}</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-label">Disputas perdidas</span>
+                    <span class="stat-value">{{ stats()!.dispute_lost_count }}</span>
+                  </div>
+                </div>
+              }
+
+              @if (historyHasMore()) {
+                <div class="load-more">
+                  <button class="btn btn-outline btn-sm" (click)="loadMoreHistory()" [disabled]="isLoadingHistory()">
+                    @if (isLoadingHistory()) {
+                      <div class="loading-spinner-sm"></div>
+                      Carregando...
+                    } @else {
+                      Carregar mais
+                    }
+                  </button>
+                </div>
+              }
+            }
+          }
+
+          <!-- PIX Recebidos (Received — inbound confirmed) -->
+          @if (historyFilter() === 'received') {
+            @if (isLoadingReceived() && receivedItems().length === 0) {
+              <div class="loading-state">
+                <div class="loading-spinner"></div>
+                <p>Carregando PIX recebidos...</p>
+              </div>
+            } @else if (receivedItems().length === 0) {
+              <div class="empty-state">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 19V5M19 12L12 19L5 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <h3>Nenhum PIX recebido ainda</h3>
+                <p>PIX confirmados na sua conta aparecerão aqui.</p>
+              </div>
+            } @else {
+              <div class="history-list">
+                @for (item of receivedItems(); track item.id) {
                   <div class="history-card">
                     <div class="history-header">
                       <div class="history-values">
-                        <span class="history-brl">{{ formatBrlCents(item.pix_value) }}</span>
+                        <span class="history-brl history-brl--received">+{{ formatBrlCents(item.value_brl) }}</span>
                       </div>
-                      <span class="status-badge" [class]="getStatusClass(item.status)">
-                        {{ getStatusLabel(item.status) }}
-                      </span>
+                      <span class="status-badge completed">Confirmado</span>
                     </div>
                     <div class="history-meta">
                       @if (item.pix_end_to_end_id) {
                         <span class="meta-item font-mono">PIX: {{ item.pix_end_to_end_id }}</span>
                       }
-                      <span class="meta-item">{{ formatDateTime(item.created_at) }}</span>
+                      <span class="meta-item">{{ formatDateTime(item.paid_at || item.created_at) }}</span>
                     </div>
                   </div>
-                  @if (item.status === 'disputed') {
-                    <div class="history-chat-toggle">
-                      <button class="btn-chat-toggle" (click)="toggleHistoryChat(item.id)">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                          <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                        {{ expandedChatId() === item.id ? 'Ocultar mensagens' : 'Ver mensagens' }}
-                      </button>
-                    </div>
-                    @if (expandedChatId() === item.id) {
-                      <div class="history-chat">
-                        <app-message-chat
-                          [sourceType]="item.source_type"
-                          [sourceId]="item.source_id"
-                          currentUserRole="payer"
-                        />
-                      </div>
+                }
+              </div>
+
+              @if (receivedHasMore()) {
+                <div class="load-more">
+                  <button class="btn btn-outline btn-sm" (click)="loadMoreReceived()" [disabled]="isLoadingReceived()">
+                    @if (isLoadingReceived()) {
+                      <div class="loading-spinner-sm"></div>
+                      Carregando...
+                    } @else {
+                      Carregar mais
                     }
-                  }
+                  </button>
                 </div>
               }
-            </div>
-
-            <!-- Summary stats -->
-            @if (stats() && !isLoadingStats()) {
-              <div class="stats-summary">
-                <div class="stat-item">
-                  <span class="stat-label">PIX processados</span>
-                  <span class="stat-value">{{ stats()!.total_paid_count }}</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">Cancelamentos</span>
-                  <span class="stat-value">{{ stats()!.cancel_count }}</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">Volume total</span>
-                  <span class="stat-value">{{ formatBrlCents(stats()!.total_paid_value_cents) }}</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">Disputas perdidas</span>
-                  <span class="stat-value">{{ stats()!.dispute_lost_count }}</span>
-                </div>
-              </div>
-            }
-
-            @if (historyHasMore()) {
-              <div class="load-more">
-                <button class="btn btn-outline btn-sm" (click)="loadMoreHistory()" [disabled]="isLoadingHistory()">
-                  @if (isLoadingHistory()) {
-                    <div class="loading-spinner-sm"></div>
-                    Carregando...
-                  } @else {
-                    Carregar mais
-                  }
-                </button>
-              </div>
             }
           }
         }

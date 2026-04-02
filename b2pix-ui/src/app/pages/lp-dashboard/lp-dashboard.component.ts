@@ -3,6 +3,7 @@ import { Component, inject, signal, OnInit, OnDestroy, ViewEncapsulation } from 
 import { Router } from '@angular/router';
 import { interval, Subscription } from 'rxjs';
 import { PixPayoutRequestService } from '../../shared/api/pix-payout-request.service';
+import { PixInboundService } from '../../shared/api/pix-inbound.service';
 import { AccountValidationService } from '../../shared/api/account-validation.service';
 import { QuoteService } from '../../shared/api/quote.service';
 import { PushNotificationService } from '../../services/push-notification.service';
@@ -22,6 +23,7 @@ import {
   getLedgerEntryTypeLabel,
   getLedgerEntryTypeClass
 } from '../../shared/models/lp-ledger.model';
+import { PixInboundRequestResponse } from '../../shared/models/pix-inbound.model';
 import { LpQueueCardComponent } from './components/lp-queue-card.component';
 import { LpActiveOrderComponent } from './components/lp-active-order.component';
 import { LpConvertModalComponent } from './components/lp-convert-modal.component';
@@ -49,6 +51,7 @@ import { formatBrlCents, formatSats, formatSatsToBtc, formatDateTime } from '../
 export class LpDashboardComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private payoutRequestService = inject(PixPayoutRequestService);
+  private pixInboundService = inject(PixInboundService);
   private accountValidationService = inject(AccountValidationService);
   private quoteService = inject(QuoteService);
   protected pushNotification = inject(PushNotificationService);
@@ -81,6 +84,15 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
   isLoadingHistory = signal(false);
   historyPage = signal(1);
   historyHasMore = signal(false);
+
+  // History sub-filter: 'sent' (PIX Enviados) or 'received' (PIX Recebidos)
+  historyFilter = signal<'sent' | 'received'>('sent');
+
+  // Received PIX (inbound confirmed)
+  receivedItems = signal<PixInboundRequestResponse[]>([]);
+  isLoadingReceived = signal(false);
+  receivedPage = signal(1);
+  receivedHasMore = signal(false);
 
   // Sheets (replaces modal signals)
   activeSheet = signal<'convert' | 'withdraw' | 'credentials' | null>(null);
@@ -136,8 +148,10 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
         }
         break;
       case 'history':
-        if (this.historyItems().length === 0) {
+        if (this.historyFilter() === 'sent' && this.historyItems().length === 0) {
           this.loadHistory();
+        } else if (this.historyFilter() === 'received' && this.receivedItems().length === 0) {
+          this.loadReceived();
         }
         break;
       case 'ledger':
@@ -413,6 +427,60 @@ export class LpDashboardComponent implements OnInit, OnDestroy {
       error: (error) => {
         console.error('Error loading more history:', error);
         this.isLoadingHistory.set(false);
+      }
+    });
+  }
+
+  // ============================================
+  // History Filter (Sent / Received)
+  // ============================================
+
+  switchHistoryFilter(filter: 'sent' | 'received') {
+    this.historyFilter.set(filter);
+
+    if (filter === 'sent' && this.historyItems().length === 0) {
+      this.loadHistory();
+    } else if (filter === 'received' && this.receivedItems().length === 0) {
+      this.loadReceived();
+    }
+  }
+
+  // ============================================
+  // Received PIX (Inbound Confirmed)
+  // ============================================
+
+  loadReceived() {
+    this.isLoadingReceived.set(true);
+    this.receivedPage.set(1);
+
+    this.pixInboundService.getConfirmedForLp({ page: 1, limit: 10 }).subscribe({
+      next: (response) => {
+        this.receivedItems.set(response.items);
+        this.receivedHasMore.set(response.has_more);
+        this.isLoadingReceived.set(false);
+      },
+      error: (error) => {
+        console.error('Error loading received PIX:', error);
+        this.isLoadingReceived.set(false);
+        this.showError(this.getErrorMessage(error));
+      }
+    });
+  }
+
+  loadMoreReceived() {
+    const nextPage = this.receivedPage() + 1;
+    this.isLoadingReceived.set(true);
+
+    this.pixInboundService.getConfirmedForLp({ page: nextPage, limit: 10 }).subscribe({
+      next: (response) => {
+        this.receivedItems.update(items => [...items, ...response.items]);
+        this.receivedPage.set(nextPage);
+        this.receivedHasMore.set(response.has_more);
+        this.isLoadingReceived.set(false);
+      },
+      error: (error) => {
+        console.error('Error loading more received PIX:', error);
+        this.isLoadingReceived.set(false);
       }
     });
   }
